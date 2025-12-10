@@ -206,10 +206,11 @@ export function GenerativeMountainScene() {
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("mousemove", handleMouseMove as any);
+      window.removeEventListener("mousemove", handleMouseMove);
       if (currentMount) currentMount.removeChild(renderer.domElement);
       geometry.dispose();
       material.dispose();
+      renderer.dispose();
     };
   }, []);
 
