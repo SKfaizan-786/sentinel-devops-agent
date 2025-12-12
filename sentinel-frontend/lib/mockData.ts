@@ -32,6 +32,7 @@ export interface Incident {
     timeline: IncidentEvent[];
     logs?: string[]; // Optional logs/reasoning dump
     reasoning?: string; // Raw AI reasoning JSON or string
+    affectedServices?: string[];
 }
 
 export const mockServices: Service[] = [

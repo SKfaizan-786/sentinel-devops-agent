@@ -29,22 +29,23 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
 
     // Helper to get color for service
     const getServiceColor = (id: string) => {
+        // If service is down, line becomes RED
+        if (metrics[id]?.currentErrorRate > 0.5) return "#ef4444";
+
         switch (id) {
             case "api-gateway": return "#22d3ee"; // Cyan
             case "auth-service": return "#818cf8"; // Indigo
-            case "primary-db": return "#f472b6"; // Pink
-            case "payments-worker": return "#34d399"; // Emerald
+            case "notification-service": return "#f472b6"; // Pink (was missing)
+            case "payment-service": return "#34d399"; // Emerald (was key mismatch)
             default: return "#94a3b8";
         }
     };
 
     // Prepare data for the charts
-    // We need to synchronize the history arrays. 
-    // In a real app we'd fetch structured time-series. 
-    // For this mock, we'll take the history of the first service and map others to it by index.
+    // ... (keep existing data prep)
     const referenceService = serviceIds[0];
     const referenceHistory = referenceService ? metrics[referenceService]?.history : [];
-    
+
     const chartData = referenceHistory?.map((point, index) => {
         const combinedPoint: Record<string, string | number> = { timestamp: point.timestamp };
         serviceIds.forEach(id => {
@@ -113,9 +114,6 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
             <div className="h-[300px] w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 shadow-xl">
                 <ResponsiveContainer width="100%" height="100%">
                     {activeTab === "resources" ? (
-                        // Bar Chart for Resources (Snapshot of current state or history avg could be better, but let's stick to trend for consistency)
-                        // Actually, for consistency let's use LineChart for all trends for now, or Bar for current state. 
-                        // Let's stick to LineChart for consistency in this real-time view
                         <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                             <XAxis
@@ -130,10 +128,10 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                 tickLine={false}
                             />
                             <Tooltip
+                                shared={false}
                                 contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.1)", color: "#f1f5f9" }}
                                 itemStyle={{ color: "#f1f5f9" }}
                             />
-                            <Legend wrapperStyle={{ paddingTop: "20px" }} />
                             {serviceIds.map((id) => (
                                 <Line
                                     key={id}
@@ -141,7 +139,7 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     dataKey={`${id}_cpu`}
                                     name={metrics[id].name}
                                     stroke={getServiceColor(id)}
-                                    strokeWidth={2}
+                                    strokeWidth={metrics[id]?.currentErrorRate > 0.5 ? 4 : 2}
                                     dot={false}
                                 />
                             ))}
@@ -152,9 +150,9 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                             <XAxis dataKey="timestamp" stroke="#64748b" tick={{ fill: "#64748b", fontSize: 12 }} tickLine={false} />
                             <YAxis stroke="#64748b" tick={{ fill: "#64748b", fontSize: 12 }} tickLine={false} />
                             <Tooltip
+                                shared={false}
                                 contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.1)", color: "#f1f5f9" }}
                             />
-                            <Legend wrapperStyle={{ paddingTop: "20px" }} />
                             {serviceIds.map((id) => (
                                 <Line
                                     key={id}
@@ -162,7 +160,7 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     dataKey={`${id}_error`}
                                     name={metrics[id].name}
                                     stroke={getServiceColor(id)}
-                                    strokeWidth={2}
+                                    strokeWidth={metrics[id]?.currentErrorRate > 0.5 ? 4 : 2}
                                     dot={false}
                                 />
                             ))}
@@ -173,9 +171,9 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                             <XAxis dataKey="timestamp" stroke="#64748b" tick={{ fill: "#64748b", fontSize: 12 }} tickLine={false} />
                             <YAxis stroke="#64748b" tick={{ fill: "#64748b", fontSize: 12 }} tickLine={false} />
                             <Tooltip
+                                shared={false}
                                 contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.1)", color: "#f1f5f9" }}
                             />
-                            <Legend wrapperStyle={{ paddingTop: "20px" }} />
                             {serviceIds.map((id) => (
                                 <Line
                                     key={id}
@@ -183,7 +181,8 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     dataKey={`${id}_response`}
                                     name={metrics[id].name}
                                     stroke={getServiceColor(id)}
-                                    strokeWidth={2}
+                                    // Make line thicker if down
+                                    strokeWidth={metrics[id]?.currentErrorRate > 0.5 ? 4 : 2}
                                     dot={false}
                                     activeDot={{ r: 6, strokeWidth: 0 }}
                                 />
@@ -191,6 +190,27 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                         </LineChart>
                     )}
                 </ResponsiveContainer>
+            </div>
+
+            {/* Custom Legend for better control */}
+            <div className="flex flex-wrap items-center justify-center gap-6 pt-2">
+                {serviceIds.map(id => {
+                    const isDown = metrics[id]?.currentErrorRate > 0.5;
+                    const color = getServiceColor(id);
+                    return (
+                        <div key={id} className="flex items-center gap-2">
+                            <span
+                                className="h-3 w-3 rounded-full transition-colors"
+                                style={{ backgroundColor: color, boxShadow: isDown ? `0 0 8px ${color}` : 'none' }}
+                            />
+                            <span
+                                className={`text-sm font-medium transition-colors ${isDown ? "text-red-400 font-bold" : "text-muted-foreground"}`}
+                            >
+                                {metrics[id].name}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

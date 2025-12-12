@@ -58,9 +58,8 @@ services:
             type: local
             local:
               base-path: /app/storage
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - sentinel-net
     depends_on:
@@ -111,14 +110,17 @@ services:
     restart: always
 
   # 5. The Backend API (Bridge)
-  backend:
-    build: ./backend
-    container_name: sentinel-backend
-    ports:
-      - "4000:4000"
-    networks:
-      - sentinel-net
-    restart: always
+  # COMMENTED OUT - Running locally with node index.js
+  # backend:
+  #   build: ./backend
+  #   container_name: sentinel-backend
+  #   environment:
+  #     DOCKER_ENV: "true"
+  #   ports:
+  #     - "4000:4000"
+  #   networks:
+  #     - sentinel-net
+  #   restart: always
 
 volumes:
   postgres-data:

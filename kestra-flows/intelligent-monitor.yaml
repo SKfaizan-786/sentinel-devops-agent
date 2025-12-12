@@ -2,7 +2,12 @@ id: intelligent-monitor
 namespace: sentinel
 
 tasks:
-  # 1. Fetch Health Data (Parallel) - Continue even on failures
+  # Debug log to confirm the flow runs every 30 seconds
+  - id: debug-start
+    type: io.kestra.plugin.core.log.Log
+    message: "==== SENTINEL execution tick - {{ execution.id }} - {{ now() }} ===="
+
+  # 1. Fetch Health Data (Parallel)
   - id: fetch-metrics
     type: io.kestra.plugin.core.flow.Parallel
     allowFailure: true
@@ -11,85 +16,154 @@ tasks:
         type: io.kestra.plugin.core.http.Request
         uri: http://auth-service:3001/health
         allowFailure: true
-      
+
       - id: get-payment
         type: io.kestra.plugin.core.http.Request
         uri: http://payment-service:3002/health
         allowFailure: true
-      
+
       - id: get-notify
         type: io.kestra.plugin.core.http.Request
         uri: http://notification-service:3003/health
         allowFailure: true
 
-  # 2. AI Analysis (Using Real Data + Secure Key)
-  - id: ai-analysis
-    type: io.kestra.plugin.core.http.Request
-    uri: https://api.groq.com/openai/v1/chat/completions
-    retry:
-      type: constant
-      interval: PT5S
-      maxAttempt: 3
-    method: POST
-    headers:
-      Authorization: "Bearer {{ secret('GROQ_API_KEY') }}"
-      Content-Type: "application/json"
-    body: |
-      {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-          {
-            "role": "system",
-            "content": "You are Sentinel, a DevOps AI. Analyze service health and provide concise status: HEALTHY, DEGRADED, or CRITICAL with brief reasoning."
-          },
-          {
-            "role": "user",
-            "content": "Service Health Check Results:\n- Auth Service: {{ outputs['get-auth'] is defined and outputs['get-auth'] is not null ? (outputs['get-auth'].code ?? 'ERROR') : 'DOWN' }}\n- Payment Service: {{ outputs['get-payment'] is defined and outputs['get-payment'] is not null ? (outputs['get-payment'].code ?? 'ERROR') : 'DOWN' }}\n- Notification Service: {{ outputs['get-notify'] is defined and outputs['get-notify'] is not null ? (outputs['get-notify'].code ?? 'ERROR') : 'DOWN' }}\n\nAnalyze the overall system health."
-          }
-        ],
-        "temperature": 0.3,
-        "max_tokens": 150
-      }
 
-  # 3. Log the AI Decision
-  - id: log-decision
-    type: io.kestra.plugin.core.log.Log
-    message: |
-      🤖 SENTINEL AI REPORT:
-      {{ outputs['ai-analysis'].body | jq(".choices[0].message.content") | first }}
-
-  # 4. Push Data to Backend Dashboard (Upgraded)
-  - id: push-to-dashboard
-    type: io.kestra.plugin.core.http.Request
-    uri: http://backend:4000/api/kestra-webhook
-    method: POST
-    contentType: application/json
-    body: |
-      {
-        "aiReport": {{ outputs['ai-analysis'].body | jq(".choices[0].message.content") | first | json }},
-        "raw_ai": {{ outputs['ai-analysis'].body | json }},
-        "metrics": {
-          "auth": { "code": {{ outputs['get-auth'] is defined and outputs['get-auth'] is not null ? (outputs['get-auth'].code ?? 500) : 500 }} },
-          "payment": { "code": {{ outputs['get-payment'] is defined and outputs['get-payment'] is not null ? (outputs['get-payment'].code ?? 500) : 500 }} },
-          "notification": { "code": {{ outputs['get-notify'] is defined and outputs['get-notify'] is not null ? (outputs['get-notify'].code ?? 500) : 500 }} }
-        }
-      }
-
-  # 5. Autonomous Healing (If Auth is Down -> Restart it)
-  - id: check-auth-critical
+  # 2. Decide whether AI analysis is needed
+  - id: ai-needed
     type: io.kestra.plugin.core.flow.If
-    condition: "{{ outputs['get-auth'] is null or (outputs['get-auth'].code | default(500)) == 500 }}"
+    condition: >
+      {{ 
+        (outputs['get-auth'].code | default(500)) != 200 or
+        (outputs['get-payment'].code | default(500)) != 200 or
+        (outputs['get-notify'].code | default(500)) != 200
+      }}
     then:
-      - id: heal-auth-service
+      # 2a. AI Analysis ONLY when something is down
+      - id: ai-analysis
         type: io.kestra.plugin.core.http.Request
-        uri: http://auth-service:3001/simulate/healthy
+        uri: https://api.groq.com/openai/v1/chat/completions
         method: POST
-      
-      - id: log-healing
+        headers:
+          Authorization: "Bearer {{ secret('GROQ_API_KEY') }}"
+          Content-Type: "application/json"
+        body: |
+          {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are Sentinel, a DevOps AI. Analyze service health and provide concise status: HEALTHY, DEGRADED, or CRITICAL with brief reasoning."
+              },
+              {
+                "role": "user",
+                "content": "Service Health Check Results:\n- Auth: {{ outputs['get-auth'].code | default('DOWN') }}\n- Payment: {{ outputs['get-payment'].code | default('DOWN') }}\n- Notification: {{ outputs['get-notify'].code | default('DOWN') }}\n\nAnalyze the overall system health."
+              }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 150
+          }
+
+      # 2b. Log AI result
+      - id: log-decision
         type: io.kestra.plugin.core.log.Log
-        message: "🚑 CRITICAL DETECTED: Sentinel is auto-healing the Auth Service..."
+        message: |
+          🤖 SENTINEL AI REPORT:
+          {{ outputs['ai-analysis'].body | jq(".choices[0].message.content") | first }}
+
+      # 2c. Push to dashboard
+      - id: push-to-dashboard
+        type: io.kestra.plugin.core.http.Request
+        uri: http://host.docker.internal:4000/api/kestra-webhook
+        method: POST
+        contentType: application/json
+        allowFailure: true
+        body: |
+          {% set auth = outputs['get-auth'] | default({}) %}
+          {% set payment = outputs['get-payment'] | default({}) %}
+          {% set notify = outputs['get-notify'] | default({}) %}
+
+          {
+            "aiReport": {{ outputs['ai-analysis'].body | jq(".choices[0].message.content") | first | json }},
+            "metrics": {
+              "auth": { "code": {{ auth.code | default(500) }} },
+              "payment": { "code": {{ payment.code | default(500) }} },
+              "notification": { "code": {{ notify.code | default(500) }} }
+            }
+          }
+
+      # 2d. Auto-healing (only when down)
+      - id: heal-auth
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['get-auth'].code | default(500)) != 200 }}"
+        then:
+          - id: log-auth-healing
+            type: io.kestra.plugin.core.log.Log
+            message: "🚑 AUTH SERVICE DOWN - HEALING NOW..."
+          - id: restart-auth
+            type: io.kestra.plugin.core.http.Request
+            uri: http://auth-service:3001/simulate/healthy
+            method: POST
+          - id: log-auth-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ AUTH SERVICE HEALED!"
+
+      - id: heal-payment
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['get-payment'].code | default(500)) != 200 }}"
+        then:
+          - id: log-payment-healing
+            type: io.kestra.plugin.core.log.Log
+            message: "🚑 PAYMENT SERVICE DOWN - HEALING NOW..."
+          - id: restart-payment
+            type: io.kestra.plugin.core.http.Request
+            uri: http://payment-service:3002/simulate/healthy
+            method: POST
+          - id: log-payment-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ PAYMENT SERVICE HEALED!"
+
+      - id: heal-notify
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['get-notify'].code | default(500)) != 200 }}"
+        then:
+          - id: log-notify-healing
+            type: io.kestra.plugin.core.log.Log
+            message: "🚑 NOTIFICATION SERVICE DOWN - HEALING NOW..."
+          - id: restart-notify
+            type: io.kestra.plugin.core.http.Request
+            uri: http://notification-service:3003/simulate/healthy
+            method: POST
+          - id: log-notify-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ NOTIFICATION SERVICE HEALED!"
+
+    else:
+      # System is HEALTHY - send recovery notification
+      - id: log-healthy
+        type: io.kestra.plugin.core.log.Log
+        message: "✅ All services healthy - System Normal"
+      
+      - id: push-healthy-to-dashboard
+        type: io.kestra.plugin.core.http.Request
+        uri: http://host.docker.internal:4000/api/kestra-webhook
+        method: POST
+        contentType: application/json
+        allowFailure: true
+        body: |
+          {
+            "aiReport": "HEALTHY: All services (Auth, Payment, Notification) are returning a 200 status code, indicating successful responses and normal operation.",
+            "metrics": {
+              "auth": { "code": {{ outputs['get-auth'].code | default(200) }} },
+              "payment": { "code": {{ outputs['get-payment'].code | default(200) }} },
+              "notification": { "code": {{ outputs['get-notify'].code | default(200) }} }
+            }
+          }
+
 
 triggers:
   - id: monitor-schedule
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "*/1 * * * *"
+    cron: "*/30 * * * * *"
+    withSeconds: true
+    timezone: "Asia/Kolkata"
+    lateMaximumDelay: 600000

@@ -57,7 +57,11 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                 <span className="text-sm text-muted-foreground">•</span>
                                 <span className="text-sm text-muted-foreground">{incident.timestamp.split('T')[0]}</span>
                             </div>
-                            <h4 className="font-semibold text-white text-lg leading-tight mb-1">{incident.title}</h4>
+                            <h4 className={`font-semibold text-lg leading-tight mb-1 ${incident.severity === 'critical' ? 'text-red-400' :
+                                    incident.severity === 'warning' ? 'text-yellow-400' : 'text-white'
+                                }`}>
+                                {incident.title}
+                            </h4>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" /> {incident.duration}

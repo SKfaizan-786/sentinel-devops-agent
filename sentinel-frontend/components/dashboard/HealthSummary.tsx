@@ -53,15 +53,17 @@ export function HealthSummary({ uptime, servicesUp, totalServices, activeInciden
                         <p className="text-sm text-muted-foreground font-medium">Active Incidents</p>
                         <h3 className="text-2xl font-bold mt-1 text-white">{activeIncidents}</h3>
                     </div>
-                    <div className={`p-2 rounded-lg ${activeIncidents > 0 ? "bg-red-500/10" : "bg-white/5"}`}>
-                        <AlertTriangle className={`h-5 w-5 ${activeIncidents > 0 ? "text-red-500" : "text-muted-foreground"}`} />
+                    <div className={`p-2 rounded-lg ${activeIncidents > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                        {activeIncidents > 0 ? (
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                        ) : (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                        )}
                     </div>
                 </div>
-                {activeIncidents > 0 && (
-                    <div className="mt-4 text-xs text-red-400 animate-pulse">
-                        Requires attention
-                    </div>
-                )}
+                <div className={`mt-4 text-xs ${activeIncidents > 0 ? "text-red-400 animate-pulse" : "text-green-400"}`}>
+                    {activeIncidents > 0 ? "Requires attention" : "System Healthy"}
+                </div>
             </Spotlight>
 
             <Spotlight className="p-4 bg-white/5 border-white/5">
