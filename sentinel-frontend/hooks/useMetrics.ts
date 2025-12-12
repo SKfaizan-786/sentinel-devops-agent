@@ -4,7 +4,10 @@ import { useEffect, useState, useRef } from "react";
 
 export type TimeSeriesPoint = {
     timestamp: string;
-    value: number;
+    responseTime: number;
+    errorRate: number;
+    cpu: number;
+    value?: number; // derived or legacy
     [key: string]: any;
 };
 
@@ -21,7 +24,9 @@ export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
     // Helper for initial history
     const initialHistory = Array(30).fill(0).map((_, i) => ({
         timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
-        value: 20 + Math.random() * 10
+        responseTime: 20 + Math.random() * 10,
+        cpu: 10 + Math.random() * 10,
+        errorRate: 0
     }));
 
     const [metrics, setMetrics] = useState<Record<string, ServiceMetrics>>({
@@ -53,11 +58,27 @@ export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
                     "notification-service": data.services?.notification
                 };
 
-                Object.keys(next).forEach(key => {
+                Object.keys(next).forEach((key, index) => {
                     const backendData = serviceMap[key];
-                    let responseTime = Math.floor(Math.random() * 50) + 20; // Base latency
+                    // Create base wave for visual liveliness (Sine wave + Noise)
+                    const time = Date.now() / 2000;
+                    const wave = Math.sin(time + index) * 10; // Phase shift by index
+
+                    let responseTime = 0;
                     let errorRate = 0;
-                    let cpu = Math.floor(Math.random() * 30) + 10;
+                    let cpu = 0;
+
+                    // Base values per service type
+                    if (key === "api-gateway") {
+                        responseTime = 25 + wave;
+                        cpu = 15 + Math.random() * 5;
+                    } else if (key === "notification-service") {
+                        responseTime = 120 + wave + Math.random() * 10;
+                        cpu = 45 + Math.random() * 5;
+                    } else {
+                        responseTime = 45 + wave + Math.random() * 10; // Default
+                        cpu = 25 + Math.random() * 5;
+                    }
 
                     // If real backend data says it's down (code != 200)
                     if (backendData && backendData.code !== 200) {
@@ -65,13 +86,8 @@ export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
                         responseTime = 0;
                         cpu = 0;
                     } else if (backendData) {
-                        // Healthy: Add some randomness for liveliness
-                        responseTime += Math.random() * 20;
-                    }
-
-                    // Special case for API Gateway (Simulated as always healthy wrapper)
-                    if (key === "api-gateway") {
-                        responseTime = 15 + Math.random() * 10;
+                        // Healthy: Add random jitter to the wave
+                        responseTime += Math.random() * 5;
                     }
 
                     // Round values for UI cleanliness
@@ -86,7 +102,7 @@ export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
                         currentCpu: cpu,
                         history: [
                             ...next[key].history,
-                            { timestamp, value: responseTime }
+                            { timestamp, responseTime, cpu, errorRate }
                         ].slice(-30) // Keep last 30 points
                     };
                 });

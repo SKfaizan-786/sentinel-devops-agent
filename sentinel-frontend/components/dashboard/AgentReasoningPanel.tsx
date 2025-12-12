@@ -47,7 +47,9 @@ export function AgentReasoningPanel({ incident }: AgentReasoningPanelProps) {
                 {/* Real AI Log Output */}
                 <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Live Analysis Stream</h4>
-                    <div className="bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs text-green-300 overflow-x-auto whitespace-pre-wrap shadow-inner">
+                    <div className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner ${incident.severity === 'critical' ? 'text-red-400' :
+                            incident.severity === 'warning' ? 'text-orange-400' : 'text-green-300'
+                        }`}>
                         <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2 text-muted-foreground">
                             <Terminal className="h-3 w-3" />
                             <span>kestra-agent-log.txt</span>

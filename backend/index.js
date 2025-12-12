@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const axios = require('axios'); // Needed for manual actions
+const axios = require('axios');
 
 const app = express();
 const PORT = 4000;
@@ -13,108 +13,178 @@ app.use(bodyParser.json());
 // --- IN-MEMORY DATABASE ---
 let systemStatus = {
   services: {
-    auth: { code: 0 },
-    payment: { code: 0 },
-    notification: { code: 0 }
+    auth: { status: 'unknown', code: 0, lastUpdated: null },
+    payment: { status: 'unknown', code: 0, lastUpdated: null },
+    notification: { status: 'unknown', code: 0, lastUpdated: null }
   },
+  aiAnalysis: "Waiting for AI report...",
   lastUpdated: new Date()
 };
 
-let activityLog = []; // Events for the feed
-let aiInsights = [];  // Deep dive reasoning for the "Insights" panel
+let activityLog = [];
+let aiLogs = [];
 
-// --- HELPER: Add to Activity Log ---
-const addActivity = (message, type = 'info') => {
-  const entry = {
-    id: Date.now(),
-    timestamp: new Date(),
-    message,
-    type // 'info', 'alert', 'success'
-  };
-  activityLog.unshift(entry);
-  if (activityLog.length > 50) activityLog.pop(); // Keep last 50
-  return entry;
-};
+// Service configuration
+// Using localhost for local execution
+const services = [
+  { name: 'auth', url: 'http://localhost:3001/health' },
+  { name: 'payment', url: 'http://localhost:3002/health' },
+  { name: 'notification', url: 'http://localhost:3003/health' }
+];
 
-// --- ENDPOINTS ---
+// Continuous health checking (every 5 seconds)
+async function checkServiceHealth() {
+  console.log('🔍 Checking service health...');
 
-// 1. Get Status
+  for (const service of services) {
+    try {
+      const response = await axios.get(service.url, { timeout: 3000 });
+      console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
+      systemStatus.services[service.name] = {
+        status: 'healthy',
+        code: response.status,
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      const code = error.response?.status || 503;
+      console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
+
+      systemStatus.services[service.name] = {
+        status: code >= 500 ? 'critical' : 'degraded',
+        code: code,
+        lastUpdated: new Date()
+      };
+
+      // Log the failure
+      if (code >= 500) {
+        const lastLog = activityLog[0];
+        const isDuplicate = lastLog && lastLog.message.includes(service.name.toUpperCase()) && lastLog.message.includes("DOWN");
+
+        if (!isDuplicate) {
+          activityLog.unshift({
+            id: Date.now(),
+            message: `${service.name.toUpperCase()} service is DOWN (HTTP ${code})`,
+            type: 'alert',
+            severity: 'critical',
+            timestamp: new Date()
+          });
+          if (activityLog.length > 50) activityLog.splice(50);
+        }
+      }
+    }
+  }
+  systemStatus.lastUpdated = new Date();
+}
+
+// Start continuous health monitoring
+setInterval(checkServiceHealth, 5000);
+checkServiceHealth(); // Initial check
+
+// --- ENDPOINTS FOR FRONTEND ---
+
 app.get('/api/status', (req, res) => {
   res.json(systemStatus);
 });
 
-// 2. Get Activity Feed
 app.get('/api/activity', (req, res) => {
-  res.json({ activity: activityLog });
+  res.json({ activity: activityLog.slice(0, 50) });
 });
 
-// 3. Get AI Insights
 app.get('/api/insights', (req, res) => {
-  res.json({ insights: aiInsights });
-});
-
-// 4. Manual Actions (Triggered by Dashboard Buttons)
-app.post('/api/action/:service/:type', async (req, res) => {
-  const { service, type } = req.params;
-  const serviceMap = {
-    'auth': '3001',
-    'payment': '3002',
-    'notification': '3003'
-  };
-
-  const port = serviceMap[service];
-  if (!port) return res.status(400).json({ error: 'Unknown service' });
-
-  try {
-    // Call the service's simulation endpoint
-    // If type is 'restart', we simulate making it healthy
-    const mode = type === 'restart' || type === 'heal' ? 'healthy' : type;
-
-    await axios.post(`http://${service}-service:${port}/simulate/${mode}`, {}, {
-      timeout: 5000
-    });
-
-    addActivity(`Manual Action: Triggered ${type} on ${service}`, 'success');
-    res.json({ success: true, message: `Executed ${type} on ${service}` });
-  } catch (error) {
-    addActivity(`Failed to execute ${type} on ${service}`, 'alert');
-    res.status(500).json({ error: 'Action failed' });
-  }
+  res.json({ insights: aiLogs.slice(0, 20) });
 });
 
 // --- WEBHOOK FOR KESTRA ---
+
 app.post('/api/kestra-webhook', (req, res) => {
-  const { aiReport, metrics, raw_ai } = req.body; // raw_ai is the full JSON from AI
+  const { aiReport, metrics } = req.body;
+  console.log('📦 Received update from Kestra:', aiReport);
 
-  console.log('📦 Received Kestra Update');
-
-  // Update Status
+  if (aiReport) {
+    systemStatus.aiAnalysis = aiReport;
+  }
   systemStatus.lastUpdated = new Date();
-  if (metrics) systemStatus.services = metrics;
 
-  // Process AI Report
-  // If the report contains "CRITICAL" or "DEGRADED", log it as an alert
-  if (aiReport && (aiReport.includes("CRITICAL") || aiReport.includes("DEGRADED"))) {
-    addActivity(aiReport, 'alert');
-  } else if (aiReport && aiReport.includes("HEALTHY")) {
-    // Only log healthy if previous state was bad, otherwise it's spammy
-    // For now, let's just log it so you see it working
-    addActivity("System Health Check: All Systems Normal", 'success');
+  // Parse Metrics Update
+  if (metrics) {
+    Object.keys(metrics).forEach(serviceName => {
+      if (systemStatus.services[serviceName]) {
+        systemStatus.services[serviceName].code = metrics[serviceName].code || 0;
+        const code = metrics[serviceName].code;
+        systemStatus.services[serviceName].status =
+          code >= 200 && code < 300 ? 'healthy' :
+            code >= 500 ? 'critical' : 'degraded';
+        systemStatus.services[serviceName].lastUpdated = new Date();
+      }
+    });
   }
 
-  // Store detailed insight
-  if (raw_ai) {
-    aiInsights.unshift({
+  aiLogs.unshift({
+    id: Date.now(),
+    analysis: aiReport,
+    metrics: metrics,
+    summary: aiReport,
+    timestamp: new Date()
+  });
+  if (aiLogs.length > 20) aiLogs.splice(20);
+
+  if (aiReport && !aiReport.includes("HEALTHY")) {
+    activityLog.unshift({
       id: Date.now(),
-      timestamp: new Date(),
-      analysis: raw_ai
+      message: aiReport,
+      type: 'alert',
+      severity: aiReport.includes('CRITICAL') ? 'critical' : 'warning',
+      timestamp: new Date()
     });
-    if (aiInsights.length > 20) aiInsights.pop();
+    if (activityLog.length > 50) activityLog.splice(50);
   }
 
   res.json({ success: true });
 });
 
+app.post('/api/kestra/events', (req, res) => {
+  const { services, ai, timestamp } = req.body;
+  console.log('📊 Kestra event received:', ai);
+  activityLog.unshift({
+    id: Date.now(),
+    message: `Kestra Analysis: ${ai}`,
+    type: 'info',
+    severity: 'info',
+    timestamp: new Date(timestamp || Date.now())
+  });
+  if (activityLog.length > 50) activityLog.splice(50);
+  res.json({ success: true });
+});
+
+app.post('/api/action/:service/:type', async (req, res) => {
+  const { service, type } = req.params;
+  const serviceMap = { 'auth': 3001, 'payment': 3002, 'notification': 3003 };
+  const port = serviceMap[service];
+
+  if (!port) return res.status(400).json({ success: false, error: 'Invalid service' });
+
+  try {
+    let mode = 'healthy';
+    if (type === 'restart' || type === 'heal') mode = 'healthy';
+    if (type === 'crash' || type === 'down') mode = 'down';
+
+    await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
+
+    activityLog.unshift({
+      id: Date.now(),
+      message: `Manual action: ${type} executed on ${service} service`,
+      type: 'action',
+      severity: 'info',
+      timestamp: new Date()
+    });
+
+    res.json({ success: true, message: `${type} executed on ${service}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+  console.log(`🔍 Continuous health monitoring active (5s intervals)`);
 });

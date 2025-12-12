@@ -19,19 +19,27 @@ export default function DashboardPage() {
     useEffect(() => {
         setLiveServices(prev => prev.map(service => {
             const realTime = metrics[service.id];
+            // Find base service to reset uptime when healthy
+            const baseService = mockServices.find(s => s.id === service.id) || service;
+
             if (realTime) {
                 const newTrend = realTime.history.length > 0
-                    ? realTime.history.slice(-12).map(p => p.value)
-                    : service.trend;
+                    ? realTime.history.slice(-12).map(p => p.responseTime || 0)
+                    : baseService.trend;
+
+                const isDown = realTime.currentErrorRate > 0.5;
+                // Recover uptime if healthy, drop if down
+                const currentUptime = isDown
+                    ? Math.max(0, baseService.uptime - 20)
+                    : baseService.uptime;
 
                 return {
                     ...service,
                     latency: realTime.currentResponseTime,
                     cpu: realTime.currentCpu,
-                    // Simulate uptime drop if down (Major penalty for visibility)
-                    uptime: realTime.currentErrorRate > 0.5 ? (Math.max(0, service.uptime - 20)).toFixed(2) as any : service.uptime,
-                    status: realTime.currentErrorRate > 0.5 ? "down" : (realTime.currentErrorRate > 0.2 ? "degraded" : "healthy"),
-                    trend: newTrend.length > 0 ? newTrend : service.trend,
+                    uptime: currentUptime.toFixed(2) as any,
+                    status: isDown ? "down" : (realTime.currentErrorRate > 0.2 ? "degraded" : "healthy"),
+                    trend: newTrend.length > 0 ? newTrend : baseService.trend,
                 };
             }
             return service;
