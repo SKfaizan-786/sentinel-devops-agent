@@ -56,7 +56,7 @@ Sentinel combines **AI-powered analysis** with **autonomous orchestration** to c
 Sentinel doesn't just say "Error 500." It uses **Groq's Llama 3.3 70B** to analyze the failure and provide actionable insights.
 
 <div align="center">
-  <img src="./screenshots/cline-usage-1.png" alt="Cline AI Analysis" width="700"/>
+  <img src="./screenshots/02.jpeg" alt="Cline AI Analysis" width="700"/>
   <p><em>Cline helping design the AI analysis workflow</em></p>
 </div>
 
@@ -96,7 +96,7 @@ When a critical service crashes, Kestra **automatically** triggers recovery work
 Built with **Next.js 14**, the dashboard provides instant visibility into your infrastructure:
 
 <div align="center">
-  <img src="./screenshots/system-healthy.png" alt="System Healthy State" width="700"/>
+  <img src="./screenshots/04.png" alt="System Healthy State" width="700"/>
   <p><em>Dashboard showing all services healthy (green status)</em></p>
 </div>
 
@@ -107,7 +107,7 @@ Built with **Next.js 14**, the dashboard provides instant visibility into your i
 - 📝 **Activity Feed**: Real-time event stream from Kestra webhooks
 
 <div align="center">
-  <img src="./screenshots/system-down.png" alt="System Critical State" width="700"/>
+  <img src="./screenshots/05.png" alt="System Critical State" width="700"/>
   <p><em>Dashboard detecting Auth service failure (red alert)</em></p>
 </div>
 
@@ -116,7 +116,7 @@ Built with **Next.js 14**, the dashboard provides instant visibility into your i
 A powerful terminal interface for DevOps engineers, built following the **Cline philosophy** of autonomous workflows.
 
 <div align="center">
-  <img src="./screenshots/cli-status.png" alt="Sentinel CLI Status" width="700"/>
+  <img src="./screenshots/06.png" alt="Sentinel CLI Status" width="700"/>
   <p><em>CLI showing live service health with color-coded table</em></p>
 </div>
 
