@@ -1,226 +1,283 @@
-# 🛡️ Sentinel: Autonomous DevOps Intelligence Agent
+<p align="center">
+  <img src="sentinel-frontend/public/logo.png" alt="Sentinel Logo" width="120">
+</p>
+
+<h1 align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=32&pause=1000&color=667EEA&center=true&vCenter=true&width=700&lines=Sentinel;Autonomous+DevOps+Intelligence+Agent;Self-Healing+Infrastructure+24%2F7" alt="Typing SVG" />
+</h1>
+
+<p align="center">
+  <em>Your infrastructure never sleeps. Neither does Sentinel.</em>
+</p>
+
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-667eea.svg?style=for-the-badge&labelColor=1a1b27" alt="License: MIT">
+  </a>
+  <a href="https://nodejs.org/">
+    <img src="https://img.shields.io/badge/Node.js-18+-339933.svg?style=for-the-badge&logo=node.js&logoColor=white&labelColor=1a1b27" alt="Node.js 18+">
+  </a>
+  <a href="https://nextjs.org/">
+    <img src="https://img.shields.io/badge/Next.js-16-000000.svg?style=for-the-badge&logo=next.js&logoColor=white&labelColor=1a1b27" alt="Next.js 16">
+  </a>
+  <a href="https://kestra.io/">
+    <img src="https://img.shields.io/badge/Kestra-Orchestration-7C3AED.svg?style=for-the-badge&logo=apache&logoColor=white&labelColor=1a1b27" alt="Kestra">
+  </a>
+  <a href="https://groq.com/">
+    <img src="https://img.shields.io/badge/Groq-LLaMA%203.3--70B-FF6B6B.svg?style=for-the-badge&logo=openai&logoColor=white&labelColor=1a1b27" alt="Groq AI">
+  </a>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-key-features">Features</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-hackathon-achievement">Hackathon</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
+
+---
+
+## 🏆 Hackathon Achievement
 
 <div align="center">
 
-![Sentinel Banner](https://img.shields.io/badge/Status-Active-success?style=for-the-badge) 
-[![Kestra](https://img.shields.io/badge/Orchestration-Kestra-7C3AED?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiA3TDEyIDEyTDIyIDdMMTIgMloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yIDEyTDEyIDE3TDIyIDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+)](https://kestra.io)
-![Next.js](https://img.shields.io/badge/Dashboard-Next.js_14-black?style=for-the-badge&logo=next.js)
-![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![AI](https://img.shields.io/badge/AI-Groq_Llama_3.3-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)
-[![CodeRabbit](https://img.shields.io/badge/CodeRabbit-PR%20Reviews-4B32C3?style=for-the-badge&logo=openai&logoColor=white)](https://coderabbit.ai)
+### 🥇 **FEATURED PROJECT** at WeMakeDevs AI Agents Assemble
 
-### *"The On-Call Engineer That Never Sleeps"*
+| Metric | Value |
+|:------:|:-----:|
+| **Total Teams Competing** | 6,000+ worldwide |
+| **Countries Represented** | 20+ |
+| **Prize Pool** | **$15,000 USD** |
+| **Sentinel's Status** | ✨ **Featured in Top Projects** ✨ |
 
-**Sentinel** is an AI-driven autonomous DevOps agent that predicts system failures, analyzes root causes using LLMs, and executes self-healing workflows—**without human intervention**.
-
-🌐 **[Live Demo on Vercel](https://sentinel-devops-agent.vercel.app)** | 🎥 **[Watch Demo Video](https://youtu.be/VlqGomVrFzQ)** | 📖 [Documentation](ARCHITECTURE.md)
-
-> **Note**: The live demo shows the frontend UI/UX. Backend integration requires local setup (see [Quick Start](#-quick-start)).
-
-[Features](#-key-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [CLI Usage](#-cli-usage) • [Demo](#-live-demo)
+**Submitted to:** [Apertre 3.0 Open Source Programme](https://apertre.org)
 
 </div>
 
 ---
 
-## 🎯 Problem Statement
+## 🎯 What is Sentinel?
 
-Traditional monitoring tools tell you **what** broke. Sentinel tells you **why** it broke and **fixes it automatically**.
+<table>
+<tr>
+<td width="60%">
 
-- ❌ **Manual Incident Response**: Engineers wake up at 3 AM to restart services
-- ❌ **Alert Fatigue**: Too many notifications, not enough context
-- ❌ **Reactive Operations**: Problems are fixed after users complain
+**Sentinel** is an **autonomous AI-powered DevOps agent** that transforms infrastructure management from reactive firefighting to proactive, self-healing operations.
 
-### ✅ Our Solution
+Unlike traditional monitoring tools that tell you **what broke**, Sentinel tells you **why it broke** and **fixes it automatically**—without human intervention.
 
-Sentinel combines **AI-powered analysis** with **autonomous orchestration** to create a self-healing infrastructure that:
-- Detects failures in real-time (5-second polling)
-- Analyzes root causes using Llama 3.3 70B
-- Auto-heals critical services within 30 seconds
-- Provides human-readable incident reports
+### The Problem We Solve
 
----
+- ❌ Engineers woken at 3 AM to restart services
+- ❌ Alert fatigue from constant notifications  
+- ❌ MTTR (Mean Time To Recovery) measured in hours
+- ❌ Post-mortem blame cycles instead of prevention
 
-## 🏆 Hackathon Qualifications
+### Sentinel's Solution
 
-| Track | How Sentinel Qualifies |
-|-------|------------------------|
-| **🤖 Kestra Prize** | Kestra orchestrates the entire autonomous workflow: parallel health checks, AI agent coordination, and conditional self-healing logic. Our flow runs every minute and only calls the AI when failures are detected (cost-optimized). |
-| **💻 Cline Prize** | Built with Cline's autonomous coding assistance. Includes a production-ready CLI (`sentinel`) that embodies the "Cline philosophy" of developer automation. [See Evidence](docs/CLINE_USAGE.md) |
-| **🐰 CodeRabbit Prize** | Every PR is reviewed by CodeRabbit for security, best practices, and code quality. We've implemented all critical feedback (async/await patterns, null safety, error handling). |
+- ✅ 24/7 autonomous monitoring with 5-second polling
+- ✅ AI-powered root cause analysis (Groq LLaMA 3.3-70B)
+- ✅ Automatic self-healing within 30 seconds
+- ✅ Transparent reasoning for every decision
+- ✅ Cost-optimized: AI only runs when services actually fail
+
+</td>
+<td width="40%">
+
+<div align="center">
+
+```
+┌─────────────────────────────────┐
+│     🛡️ SENTINEL ARCHITECTURE   │
+├─────────────────────────────────┤
+│                                 │
+│   Your Infrastructure           │
+│   ┌─────┐  ┌─────┐  ┌─────┐   │
+│   │ 🟢  │  │ 🟢  │  │ 🔴  │   │
+│   │Auth │  │ Pay │  │Notif│   │
+│   └──┬──┘  └──┬──┘  └──┬──┘   │
+│      │       │        │       │
+│      └───────┼────────┘       │
+│              ▼                │
+│        ┌──────────────┐       │
+│        │ 🤖 AI Engine │       │
+│        │ (Kestra +    │       │
+│        │  Groq)       │       │
+│        └──────┬───────┘       │
+│               ▼               │
+│        ✨ AUTO-HEAL ✨        │
+│               ▼               │
+│       All Services Healthy    │
+│                                 │
+└─────────────────────────────────┘
+```
+
+</div>
+
+</td>
+</tr>
+</table>
 
 ---
 
 ## ✨ Key Features
 
-### 1. 🧠 AI-Powered Root Cause Analysis
+<table>
+<tr>
+<td width="50%">
 
-Sentinel doesn't just say "Error 500." It uses **Groq's Llama 3.3 70B** to analyze the failure and provide actionable insights.
+### 🧠 Intelligence Layer
+- **Real-time Root Cause Analysis** using LLaMA 3.3-70B
+- **Predictive Failure Detection** via pattern recognition
+- **Cost-Optimized AI**: Only invokes LLM when services fail
+- **Human-Readable Reports** with actionable insights
 
-<div align="center">
-  <img src="./screenshots/02.jpeg" alt="Cline AI Analysis" width="700"/>
-  <p><em>Cline helping design the AI analysis workflow</em></p>
-</div>
+### ⚡ Automation Layer
+- **30-Second Kestra Orchestration** for workflow automation
+- **Autonomous Self-Healing** without human approval
+- **Multi-Service Monitoring** with parallel health checks
+- **Intelligent Recovery Workflows** tailored to failure types
 
-**Example AI Output:**
-```
-CRITICAL: The Auth service is DOWN, which is a critical component for system 
-functionality, making the overall system unusable despite other services 
-(Payment and Notification) being operational.
+</td>
+<td width="50%">
 
-Recommendation: Immediate restart required. High priority.
-```
+### 🎛️ Visibility Layer
+- **Real-Time Dashboard** with live metrics & service status
+- **AI Reasoning Panel** showing agent's decision-making
+- **Incident Timeline** with recovery analytics
+- **CLI Tool** for power users and developers
 
-### 2. 🚑 Autonomous Self-Healing
+### 🐳 Infrastructure Layer
+- **Docker Containerization** for easy deployment
+- **PostgreSQL State Management** via Kestra
+- **Webhook-Based Communication** between components
+- **Scalable Microservices Architecture** for production use
 
-When a critical service crashes, Kestra **automatically** triggers recovery workflows:
+</td>
+</tr>
+</table>
 
-```yaml
-- id: heal-auth
-  type: io.kestra.plugin.core.flow.If
-  condition: "{{ (outputs['get-auth'].code | default(500)) != 200 }}"
-  then:
-    - id: restart-auth
-      type: io.kestra.plugin.core.http.Request
-      uri: http://auth-service:3001/simulate/healthy
-      method: POST
-```
+---
 
-**Recovery Timeline:**
-- ⏱️ **0s**: Service crashes
-- ⏱️ **5s**: Backend detects failure (via continuous polling)
-- ⏱️ **60s**: Kestra runs scheduled check (worst case)
-- ⏱️ **62s**: AI analyzes + triggers healing
-- ⏱️ **65s**: Service restored ✅
-
-### 3. 🖥️ Real-Time Operations Dashboard
-
-Built with **Next.js 14**, the dashboard provides instant visibility into your infrastructure:
+## 🖼️ System in Action
 
 <div align="center">
-  <img src="./screenshots/04.png" alt="System Healthy State" width="700"/>
-  <p><em>Dashboard showing all services healthy (green status)</em></p>
+
+### 📊 Real-Time Dashboard
+*All systems healthy with live metrics and AI reasoning*
+
+![Dashboard](screenshots/05.png)
+
+<br/><br/>
+
+### 🚨 Detecting Failures
+*Service down detected, AI analysis triggered*
+
+![Failure Detection](screenshots/04.png)
+
+<br/><br/>
+
+### 🤖 CLI Power Tool
+*Developer interface for manual operations*
+
+![CLI Tool](screenshots/06.png)
+
 </div>
-
-**Features:**
-- 🟢 **Live Service Status**: Color-coded health indicators
-- 📊 **Metrics Visualization**: Response time, error rates, CPU usage
-- 🤖 **AI Reasoning Panel**: See exactly what the AI is thinking
-- 📝 **Activity Feed**: Real-time event stream from Kestra webhooks
-
-<div align="center">
-  <img src="./screenshots/05.png" alt="System Critical State" width="700"/>
-  <p><em>Dashboard detecting Auth service failure (red alert)</em></p>
-</div>
-
-### 4. ⌨️ Developer CLI (`sentinel`)
-
-A powerful terminal interface for DevOps engineers, built following the **Cline philosophy** of autonomous workflows.
-
-<div align="center">
-  <img src="./screenshots/06.png" alt="Sentinel CLI Status" width="700"/>
-  <p><em>CLI showing live service health with color-coded table</em></p>
-</div>
-
-**Available Commands:**
-
-```bash
-# View live cluster health
-$ sentinel status
-📊 Sentinel System Status
-┌──────────────┬──────────┬──────┐
-│ Service      │ Status   │ Code │
-├──────────────┼──────────┼──────┤
-│ AUTH         │ HEALTHY  │ 200  │
-│ PAYMENT      │ HEALTHY  │ 200  │
-│ NOTIFICATION │ HEALTHY  │ 200  │
-└──────────────┴──────────┴──────┘
-
-# Chaos engineering: crash a service
-$ sentinel simulate auth down
-⚙️ Triggering down on auth...
-✅ Success: Service crashed
-
-# Manual recovery trigger
-$ sentinel heal auth
-🚑 Auto-healing triggered...
-✅ Success: heal executed on auth
-
-# Generate AI incident report
-$ sentinel report
-📝 Generating Incident Report...
-✅ Report saved to ./sentinel-report-1734098765432.md
-   1 incidents, 1 recoveries documented
-```
-
-**Report Output:**
-```markdown
-# 🛡️ Sentinel Incident Report
-
-## 📊 Summary
-- **Total Events Analyzed:** 15
-- **Critical Incidents:** 1
-- **Degraded Events:** 0
-- **Recovery Events:** 1
-- **Current Status:** ✅ Healthy
-
-## 🚨 Incidents
-
-### 🔴 CRITICAL - Event 1
-**Time:** 12/13/2025, 1:14:35 AM
-**Analysis:**
-> CRITICAL: The Auth service is DOWN...
-
-**Recovery:** ✅ Restored after 34s
-```
 
 ---
 
 ## 🏗️ Architecture
 
-```mermaid
-graph TB
-    subgraph "🎯 Infrastructure Layer"
-        A[Auth Service<br/>Port 3001]
-        B[Payment Service<br/>Port 3002]
-        C[Notification Service<br/>Port 3003]
-    end
-
-    subgraph "🧠 Intelligence Layer"
-        D[Kestra Orchestrator<br/>30s Schedule]
-        E[AI Agent<br/>Llama 3.3 70B]
-    end
-
-    subgraph "🖥️ Control Plane"
-        F[Backend API<br/>Node.js + Express]
-        G[Sentinel CLI<br/>Commander.js]
-        H[Dashboard<br/>Next.js 14]
-    end
-
-    A & B & C -->|Health Checks| D
-    D -->|Service Metrics| E
-    E -->|AI Analysis| D
-    D -->|Auto-Healing| A & B & C
-    D -->|Webhook Events| F
-    F -->|REST API| H
-    G -->|Manual Actions| F
-    F -->|Status Updates| G
-
-    style D fill:#7C3AED,stroke:#5B21B6,color:#fff
-    style E fill:#FF6B6B,stroke:#C92A2A,color:#fff
-    style H fill:#000,stroke:#333,color:#fff
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        🛡️ SENTINEL STACK                                 │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────────────┐    ┌────────────────┐    ┌────────────────┐        │
+│  │   📱 FRONTEND  │    │  🔧 BACKEND    │    │  🤖 KESTRA     │        │
+│  │  Next.js 16    │◄──►│  Express.js    │◄──►│  Orchestrator  │        │
+│  │  Port: 3000    │    │  Port: 4000    │    │  Port: 9090    │        │
+│  └────────────────┘    └────────┬───────┘    └────────┬───────┘        │
+│                                 │                     │                 │
+│                    ┌────────────┴─────────────────────┘                 │
+│                    ▼                                                    │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │         🐳 DOCKER NETWORK (Services + State)                    │  │
+│   ├─────────────────────────────────────────────────────────────────┤  │
+│   │                                                                 │  │
+│   │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────────┐ │  │
+│   │  │ 🔐 Auth  │   │ 💳 Pay   │   │ 📧 Notif │   │ 🗄️ Postgres  │ │  │
+│   │  │  :3001   │   │  :3002   │   │  :3003   │   │   :5432     │ │  │
+│   │  └──────────┘   └──────────┘   └──────────┘   └─────────────┘ │  │
+│   │                                                                 │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                            ┌──────────┐                                 │
+│                            │ 🧠 GROQ  │                                 │
+│                            │ LLaMA AI │                                 │
+│                            └──────────┘                                 │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Breakdown
+### How It Works
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Kestra** | Workflow Orchestration | Schedules health checks, triggers AI analysis, executes healing |
-| **Groq API** | Llama 3.3 70B | Analyzes service failures and recommends actions |
-| **Backend** | Node.js + Express | Bridges Kestra ↔ Dashboard, stores state, exposes REST API |
-| **Dashboard** | Next.js 14 + React | Real-time visualization, incident tracking |
-| **CLI** | Commander.js + Chalk | Terminal interface for manual operations |
-| **Services** | Express (Mock) | Simulated microservices for demo |
+```mermaid
+sequenceDiagram
+    participant B as Backend<br/>(5s polling)
+    participant K as Kestra<br/>(30s cron)
+    participant S as Services
+    participant AI as Groq<br/>LLaMA 3.3
+    participant F as Dashboard
+
+    loop Every 5 Seconds
+        B->>S: Health check all services
+        S-->>B: Status responses
+        B->>F: Broadcast status
+    end
+
+    loop Every 30 Seconds
+        K->>S: Parallel health checks
+        S-->>K: Responses
+        
+        alt Any Service Down?
+            K->>AI: Analyze failure + metrics
+            AI-->>K: Root cause + recommendations
+            K->>S: Execute healing action
+            K->>B: POST webhook with report
+            B->>F: Real-time update
+        else All Healthy
+            K->>B: Send healthy status
+        end
+    end
+```
+
+### Recovery Timeline
+
+| Time | Event |
+|:----:|:------|
+| **0s** | Service crashes |
+| **5s** | Backend detects (5-second polling) |
+| **30s** | Kestra scheduled check runs |
+| **32s** | AI analyzes root cause |
+| **35s** | Healing action executes |
+| **40s** | Service restored ✅ |
+
+**Worst-case recovery: ~65 seconds** (when service fails just after Kestra check)
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Tech | Purpose |
+|:-----:|:-----|:--------|
+| **Frontend** | Next.js 16, TypeScript, Tailwind CSS, Recharts | Real-time dashboard with glassmorphism UI |
+| **Backend** | Node.js, Express, Axios | Health aggregation, webhook handler, REST API |
+| **Orchestration** | Kestra, YAML workflows, PostgreSQL | Automation, state management, scheduling |
+| **AI/Intelligence** | Groq API (LLaMA 3.3-70B) | Root cause analysis, recommendations |
+| **Infrastructure** | Docker, Docker Compose, 3 Mock Services | Containerization, networking, simulation |
+| **CLI** | Commander.js, Chalk, cli-table3 | Developer interface, chaos testing |
 
 ---
 
@@ -229,616 +286,224 @@ graph TB
 ### Prerequisites
 
 - **Docker** & **Docker Compose** (v20+)
-- **Node.js** (v18+)
-- **Groq API Key** ([Get one free](https://console.groq.com))
+- **Node.js** 18+ (for local development)
+- **Groq API Key** ([Free at console.groq.com](https://console.groq.com))
 
-### 1️⃣ Clone & Configure
-
-```bash
-git clone https://github.com/SKfaizan-786/sentinel-devops-agent.git
-cd sentinel-devops-agent
-
-# Set your Groq API key
-echo "SECRET_GROQ_API_KEY=your_key_here" > .env
-```
-
-### 2️⃣ Start Infrastructure
-
-```bash
-# Start Kestra, PostgreSQL, and mock services
-docker-compose up -d
-
-# Verify containers are running
-docker ps
-```
-
-**Expected Output:**
-```
-CONTAINER ID   IMAGE                    STATUS
-abc123         kestra/kestra:latest     Up 2 minutes
-def456         postgres:15              Up 2 minutes (healthy)
-ghi789         sentinel-auth            Up 2 minutes
-```
-
-### 3️⃣ Start Backend
-
-```bash
-cd backend
-npm install
-npm start
-
-# Should see:
-# 🚀 Sentinel Backend running on http://0.0.0.0:4000
-# 🔍 Continuous health monitoring active (5s intervals)
-```
-
-### 4️⃣ Launch Dashboard
-
-```bash
-cd sentinel-frontend
-npm install
-npm run dev
-
-# Visit http://localhost:3000/dashboard
-```
-
-### 5️⃣ Install CLI (Optional)
-
-```bash
-cd cli
-npm install
-npm link
-
-# Now you can use 'sentinel' from anywhere!
-sentinel status
-```
-
----
-
-## 🎮 CLI Usage
-
-### Status Monitoring
-
-```bash
-$ sentinel status
-```
-
-Shows a live table of all services with HTTP status codes and health indicators.
-
-### Chaos Engineering
-
-```bash
-# Crash the auth service
-$ sentinel simulate auth down
-
-# Introduce latency
-$ sentinel simulate payment slow
-
-# Restore to healthy
-$ sentinel simulate notification healthy
-```
-
-### Manual Healing
-
-```bash
-# Trigger auto-healing for a specific service
-$ sentinel heal auth
-```
-
-### Incident Reporting
-
-```bash
-# Generate a markdown report with AI insights
-$ sentinel report
-```
-
-The report includes:
-- Summary statistics (incidents, recoveries, uptime)
-- Detailed incident timeline with AI analysis
-- Recovery duration for each failure
-- Current system health status
-
----
-
-## 🧪 Testing the Autonomous Healing
-
-**Scenario: Crash the Auth Service**
-
-1. **Crash the service:**
-   ```bash
-   sentinel simulate auth down
-   ```
-
-2. **Watch the dashboard:**
-   - Status card turns **RED** within 5 seconds
-   - "Active Incidents: 1" appears
-   - AI Reasoning panel shows "Analyzing..."
-
-3. **Wait 30 seconds:**
-   - Kestra detects the failure
-   - AI analyzes: "CRITICAL: Auth service is DOWN"
-   - Auto-healing triggers
-   - Service restarts automatically
-
-4. **Verify recovery:**
-   - Dashboard turns **GREEN**
-   - Activity log shows: "✅ AUTH SERVICE HEALED!"
-   - Run `sentinel status` to confirm
-
-**Total Time to Recovery: ~65 seconds** ⚡
-
-*Note: Backend detects failures within 5 seconds, but Kestra's 1-minute schedule means worst-case recovery is ~65s. For faster recovery, reduce the cron interval in `intelligent-monitor.yaml`.*
-
----
-
-## 🤖 Cline Integration
-
-Sentinel was built with **Cline**, leveraging AI-assisted development throughout the project. Cline helped us:
-- Design the autonomous Kestra workflow architecture
-- Generate the CLI command structure with best practices
-- Implement error handling and edge cases
-- Create the real-time dashboard components
-
-For complete documentation on our Cline development process, see [CLINE_USAGE.md](docs/CLINE_USAGE.md).
-
----
-
-## 📂 Project Structure
-
-```
-sentinel-devops-agent/
-├── backend/                 # Node.js API Bridge
-│   ├── index.js            # Express server, health checks, webhooks
-│   └── package.json
-├── cli/                     # Sentinel CLI Tool
-│   ├── src/
-│   │   ├── api.js          # Backend communication
-│   │   └── commands.js     # CLI command handlers
-│   ├── index.js            # Commander.js entry point
-│   └── package.json
-├── kestra-flows/            # Workflow Definitions
-│   └── intelligent-monitor.yaml  # Main orchestration flow
-├── sentinel-frontend/       # Next.js Dashboard
-│   ├── app/
-│   │   └── dashboard/      # Dashboard page
-│   ├── components/         # React components
-│   └── hooks/              # Custom hooks (useIncidents, useMetrics)
-├── services/                # Mock Microservices
-│   ├── auth/               # Auth service (Port 3001)
-│   ├── payment/            # Payment service (Port 3002)
-│   └── notification/       # Notification service (Port 3003)
-├── docs/                    # Documentation
-│   └── CLINE_USAGE.md      # Cline integration evidence
-├── screenshots/             # Demo images
-├── docker-compose.yml       # Infrastructure as Code
-└── README.md               # You are here!
-```
-
----
-
-## 🛠️ Technology Stack
-
-### Backend
-- **Node.js** + **Express** - REST API server
-- **Axios** - HTTP client for service health checks
-- **CORS** - Cross-origin resource sharing
-
-### Frontend
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **Recharts** - Data visualization
-- **Tailwind CSS** - Utility-first styling
-- **Lucide Icons** - Modern icon library
-
-### Orchestration
-- **Kestra** - Workflow automation
-- **PostgreSQL** - Kestra state storage
-- **Docker Compose** - Container orchestration
-
-### AI & Intelligence
-- **Groq API** - Llama 3.3 70B inference
-- **Conditional Execution** - AI only runs on failures (cost-optimized)
-
-### CLI
-- **Commander.js** - Command-line framework
-- **Chalk** - Terminal styling
-- **cli-table3** - ASCII tables
-- **Figlet** - ASCII art banners
-
----
-
-## 🎯 Key Innovations
-
-### 1. Cost-Optimized AI Usage
-Unlike traditional monitoring that runs AI on every check, Sentinel only invokes the LLM when services are **actually down**:
-
-```yaml
-- id: ai-needed
-  type: io.kestra.plugin.core.flow.If
-  condition: >
-    {{ 
-      (outputs['get-auth'].code | default(500)) != 200 or
-      (outputs['get-payment'].code | default(500)) != 200 or
-      (outputs['get-notify'].code | default(500)) != 200
-    }}
-  then:
-    - id: ai-analysis  # Only runs if condition is true
-```
-
-**Result:** ~99% reduction in AI API costs during normal operations.
-
-### 2. State-Aware Recovery Notifications
-The system tracks state transitions and only sends notifications when the status **changes**:
-
-- Service goes down → Send "CRITICAL" log
-- Service recovers → Send "HEALTHY" log
-- Service stays healthy → No spam
-
-### 3. Intelligent Report Generation
-The CLI's `sentinel report` command filters out redundant "HEALTHY" entries and calculates recovery times:
-
-```markdown
-### 🔴 CRITICAL - Event 1
-**Time:** 12/13/2025, 1:14:35 AM
-**Recovery:** ✅ Restored after 34s
-```
-
----
-
-## � AI-Powered Code Quality with CodeRabbit
-
-Sentinel leverages **CodeRabbit** for automated, intelligent code reviews on every pull request. This ensures enterprise-grade code quality without manual review overhead.
-
-### How We Use CodeRabbit
-
-**1. Automated PR Reviews**
-Every commit triggers CodeRabbit to analyze:
-- Security vulnerabilities (unauthenticated endpoints, injection risks)
-- Performance issues (timeout configurations, async/await patterns)
-- Best practices (error handling, null safety, type coercion)
-- Documentation accuracy (README claims vs actual code)
-
-**2. Intelligent Feedback**
-CodeRabbit doesn't just flag issues—it provides:
-- **Severity ratings** (Critical/Major/Minor)
-- **Actionable suggestions** with code diffs
-- **Context-aware analysis** (e.g., "30s timeout may cause sequential blocking")
-- **Committable patches** for instant fixes
-
-**3. Real Examples from This Project**
-
-**Issue Found:**
-```markdown
-⚠️ Potential issue | 🔴 Critical
-async/await in commander actions: prevents early process exit
-```
-
-**CodeRabbit's Fix:**
-```diff
-- .action((service) => {
--     runAction(service, 'heal');
-- });
-+ .action(async (service) => {
-+     await runAction(service, 'heal');
-+ });
-```
-
-**Issue Found:**
-```markdown
-⚠️ Potential issue | 🟠 Major
-30-second timeout may cause performance issues.
-Worst case: 3 services × 30s = 90 seconds per check cycle
-```
-
-**Our Response:**
-We kept the 30s timeout intentionally for demo stability, but documented the trade-off. CodeRabbit's analysis helped us make an informed decision.
-
-### Impact on Development
-
-| Metric | Before CodeRabbit | After CodeRabbit |
-|--------|-------------------|------------------|
-| **Bugs Caught** | Manual review only | 8 critical issues auto-detected |
-| **Review Time** | ~30 min per PR | ~5 min (just approve fixes) |
-| **Code Quality** | Inconsistent | Enterprise-grade patterns |
-| **Documentation** | Often outdated | Verified against code |
-
-### Key Benefits
-
-✅ **Catches Issues Humans Miss**: Detected async/await bugs, null safety issues, and documentation inconsistencies
-✅ **Learns Project Context**: Understands our architecture (Kestra schedule, timeout configs)
-✅ **Saves Time**: Instant feedback vs waiting for human reviewers
-✅ **Educational**: Teaches best practices through detailed explanations
-
-**Example Review Comment:**
-> "The table states the flow runs 'every 30 seconds,' but the actual cron schedule is `*/1 * * * *`, which executes every 1 minute."
-
-This level of detail ensures our documentation stays accurate and trustworthy.
-
----
-
-## �🤝 Contributing
-
-We welcome contributions! Here's how:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request (CodeRabbit will review it!)
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👥 Team
-- **@SKfaizan-786** (Backend & Orchestration)
-- **@mdhaarishussain** (Frontend & Dashboard)
-
-<div align="center">
-
-# 🛡️ Sentinel
-
-### AI-Powered DevOps Intelligence Agent
-
-*Autonomous monitoring. Predictive healing. Always awake.*
-
-[![Next.js](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-[Live Demo](https://sentinel-devops.vercel.app) • [View Dashboard](/dashboard) • [Interactive Demo](/demo)
-
-</div>
-
----
-
-## 🎯 Overview
-
-**Sentinel** is an autonomous AI agent that monitors your infrastructure 24/7, predicts failures before they happen, and automatically heals incidents—all while explaining its reasoning transparently.
-
-Built for the **AI Agents Assemble Hackathon** by WeMakeDevs, Sentinel demonstrates how AI can transform DevOps from reactive firefighting to proactive, self-healing operations.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| 🔍 **24/7 Monitoring** | Continuous observation of all services with real-time metrics |
-| 🧠 **Predictive Intelligence** | ML-powered failure prediction before outages occur |
-| ⚡ **Autonomous Healing** | Automatic incident resolution with configurable workflows |
-| 📊 **Transparent Reasoning** | Full visibility into AI decision-making process |
-| 🎛️ **Interactive Dashboard** | Real-time visualization of system health and incidents |
-| 📱 **Responsive Design** | Works seamlessly on desktop, tablet, and mobile |
-
----
-
-## 🖼️ Screenshots
-
-### Landing Page
-![Landing Page](docs/screenshots/landing.png)
-
-### Dashboard Overview
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Interactive Demo
-![Demo Mode](docs/screenshots/demo.png)
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technologies |
-|----------|-------------|
-| **Framework** | Next.js 16+ (App Router) |
-| **Language** | TypeScript 5.0 |
-| **Styling** | Tailwind CSS 4.0 |
-| **Charts** | Recharts |
-| **Animations** | Framer Motion |
-| **3D Graphics** | Three.js (React Three Fiber) |
-| **Icons** | Lucide React |
-| **Fonts** | Geist Sans & Mono |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm, yarn, or pnpm
-
-### Installation
+### ⚡ One-Command Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/SKfaizan-786/sentinel-devops-agent.git
-cd sentinel-devops-agent/sentinel-frontend
+cd sentinel-devops-agent
 
-# Install dependencies
-npm install
+# Start the entire stack
+docker-compose up -d
 
-# Start development server
-npm run dev
+# That's it! Access at:
+# 🌐 Dashboard: http://localhost:3000
+# 🤖 Kestra UI: http://localhost:9090
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+### 🔧 Development Setup
 
-### Build for Production
+<details>
+<summary><b>Expand for full development guide</b></summary>
 
 ```bash
-npm run build
+# 1. Start infrastructure only
+docker-compose up -d kestra postgres auth-service payment-service notification-service
+
+# 2. Start backend (in new terminal)
+cd backend
+npm install
 npm start
+
+# 3. Start frontend (in another terminal)
+cd ../sentinel-frontend
+npm install
+npm run dev
+
+# 4. Optional: Install CLI
+cd ../cli
+npm install
+npm link
+
+# Now accessible at:
+# Dashboard: http://localhost:3000
+# Backend: http://localhost:4000
+# Kestra: http://localhost:9090
+# CLI: sentinel status
+```
+
+</details>
+
+---
+
+## 🖥️ CLI Usage
+
+Sentinel includes a powerful CLI for DevOps engineers:
+
+```bash
+# View system health
+sentinel status
+
+# Simulate failures (chaos testing)
+sentinel simulate auth down
+sentinel simulate payment degraded
+sentinel simulate notification slow
+
+# Trigger manual healing
+sentinel heal auth
+
+# Generate AI incident report
+sentinel report
+```
+
+**Example Output:**
+```
+$ sentinel status
+
+🛡️  SENTINEL STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Service              Status    Latency   
+  ─────────────────────────────────────────
+  auth-service         🟢 UP     45ms      
+  payment-service      🟢 UP     52ms      
+  notification-service 🟢 UP     38ms      
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Last Check: 2026-02-01T10:30:00Z
+AI Status: Active & Monitoring
 ```
 
 ---
 
-## 📁 Project Structure
+## 🧪 Test the Auto-Healing
 
-```
-sentinel-frontend/
-├── app/                    # Next.js App Router pages
-│   ├── dashboard/          # Dashboard pages
-│   │   ├── analytics/      # Analytics charts & tables
-│   │   ├── incidents/      # Incident management
-│   │   ├── logs/           # Log viewer
-│   │   ├── services/       # Service grid
-│   │   └── settings/       # User preferences
-│   ├── demo/               # Interactive demo
-│   ├── login/              # Authentication
-│   └── signup/             # Registration
-├── components/
-│   ├── analytics/          # Chart components
-│   ├── common/             # Reusable UI components
-│   ├── dashboard/          # Dashboard widgets
-│   ├── incidents/          # Incident components
-│   ├── landing/            # Landing page sections
-│   ├── layout/             # Layout components
-│   ├── logs/               # Log viewer components
-│   └── settings/           # Settings panels
-├── hooks/                  # Custom React hooks
-│   ├── useMetrics.ts       # Real-time metrics
-│   ├── useIncidents.ts     # Incident management
-│   ├── useLogs.ts          # Log streaming
-│   └── useWebSocket.ts     # WebSocket simulation
-├── lib/                    # Utilities
-│   ├── mockData.ts         # Demo data
-│   └── utils.ts            # Helper functions
-└── public/                 # Static assets
+**Live Demo Scenario:**
+
+```bash
+# Terminal 1: Watch the dashboard
+open http://localhost:3000
+
+# Terminal 2: Crash a service
+sentinel simulate auth down
+
+# Watch what happens:
+# 1. Dashboard status → RED (within 5s)
+# 2. AI panel → "Analyzing..."
+# 3. After 30s → Kestra runs + triggers healing
+# 4. Within 65s total → Service restored, status → GREEN
 ```
 
 ---
 
-## 🎮 Demo Instructions
+## 🏆 Hackathon Qualifications
 
-### Interactive Demo (`/demo`)
-
-Experience Sentinel's self-healing capabilities through a simulated incident scenario:
-
-1. **Navigate to** `/demo`
-2. **Click Play** to start the automated walkthrough
-3. **Watch the 5-step scenario:**
-   - Step 1: Normal Operations (all systems healthy)
-   - Step 2: Traffic Spike (latency increasing)
-   - Step 3: Service Failure (Auth service OOM crash)
-   - Step 4: AI Mitigation (Sentinel initiates rollback)
-   - Step 5: Recovery (system stabilized)
-
-**Controls:**
-- ▶️ Play/Pause: Auto-advance through steps
-- Click step indicators to jump to specific scenarios
-- 🔄 Reset: Return to beginning
+| Track | Achievement |
+|:-----:|:------------|
+| **🤖 Kestra** | Autonomous Kestra orchestration with parallel health checks, conditional AI invocation, and self-healing workflows |
+| **💻 Cline** | Built with Cline's assistance. Production-ready CLI embodies autonomous developer workflows |
+| **🐰 CodeRabbit** | AI-powered code reviews on every PR ensure enterprise-grade quality |
+| **🌐 Vercel** | Real-time dashboard deployed on Vercel with optimized Next.js |
 
 ---
 
-## 📊 Dashboard Pages
+## 📚 Documentation
 
-| Page | Route | Description |
-|------|-------|-------------|
-| **Overview** | `/dashboard` | System health summary, service grid, live metrics |
-| **Analytics** | `/dashboard/analytics` | Historical charts, performance tables |
-| **Services** | `/dashboard/services` | Detailed service cards with status |
-| **Incidents** | `/dashboard/incidents` | Incident history with filters |
-| **Logs** | `/dashboard/logs` | CLI-style log viewer with streaming |
-| **Settings** | `/dashboard/settings` | Profile, notifications, API keys |
+<div align="center">
 
----
+| Document | Content |
+|:--------:|:--------|
+| [**DOCUMENTATION.md**](DOCUMENTATION.md) | Complete docs index |
+| [**ARCHITECTURE.md**](ARCHITECTURE.md) | System design deep-dive |
+| [**DEVELOPMENT.md**](DEVELOPMENT.md) | Setup & development guide |
+| [**CONTRIBUTING.md**](CONTRIBUTING.md) | How to contribute |
+| [**SECURITY.md**](SECURITY.md) | Security policy & disclosure |
+| [**API.md**](API.md) | REST API reference |
+| [**FAQ.md**](FAQ.md) | 50+ Q&A |
+| [**ROADMAP.md**](ROADMAP.md) | Future features |
 
-## 🎨 Design Philosophy
-
-Sentinel follows the **Function–Aesthetic–Layout** formula:
-
-### Landing Page
-- **Function:** High-conversion SaaS marketing
-- **Aesthetic:** Aurora Gradient + Glassmorphism
-- **Layout:** Scrollytelling with Bento sections
-
-### Dashboard
-- **Function:** Real-time DevOps monitoring
-- **Aesthetic:** Dark Glassmorphism
-- **Layout:** Bento Grid with card-based widgets
-
----
-
-## 🔗 API Endpoints (Future Integration)
-
-```
-GET  /api/services              # List all services
-GET  /api/services/:id          # Service details
-GET  /api/incidents             # List incidents
-GET  /api/incidents/:id         # Incident details
-GET  /api/metrics               # Metrics data
-GET  /api/logs                  # Log search
-WS   /api/stream                # Real-time updates
-```
-
----
-
-## 📈 Performance
-
-- **Landing Page Load:** < 2s
-- **Dashboard Initial Load:** < 3s
-- **Real-time Updates:** < 500ms latency
-- **Lighthouse Score:** 90+ (Performance)
+</div>
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Sentinel is open source and beginner-friendly.
+
+```bash
+# Fork → Clone → Branch → Code → Push → PR
+git checkout -b feature/amazing-feature
+git commit -m "feat: add amazing feature"
+git push origin feature/amazing-feature
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ---
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 ## 👥 Team
 
-Built with ❤️ for the **AI Agents Assemble Hackathon**
+<p align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/SKfaizan-786">
+          <img src="https://github.com/SKfaizan-786.png" width="100px;" alt="SKfaizan-786" style="border-radius: 50%;"/>
+          <br />
+          <sub><b>@SKfaizan-786</b></sub>
+        </a>
+        <br />
+        Backend & Orchestration
+      </td>
+      <td align="center">
+        <a href="https://github.com/mdhaarishussain">
+          <img src="https://github.com/mdhaarishussain.png" width="100px;" alt="mdhaarishussain" style="border-radius: 50%;"/>
+          <br />
+          <sub><b>@mdhaarishussain</b></sub>
+        </a>
+        <br />
+        Frontend & Dashboard
+      </td>
+    </tr>
+  </table>
+</p>
 
-**SK Faizanuddin** ([@SKfaizan-786](https://github.com/SKfaizan-786))
-- Backend Architecture & API Development
-- Kestra Orchestration & Workflow Design
-- CLI Development & Tooling
-- Infrastructure Setup & Docker Configuration
-
-**Md Haaris Hussain** ([@mdhaarishussain](https://github.com/mdhaarishussain))
-- Frontend Dashboard Development
-- UI/UX Design & Visualization
-- Real-time Data Integration
-- Next.js Implementation
+<p align="center">
+  Built with ❤️ for the <b>WeMakeDevs AI Agents Assemble Hackathon</b>
+  <br/>
+  Featured in the Top Projects (6000+ teams worldwide)
+</p>
 
 ---
 
-## 🙏 Acknowledgments
+## ⭐ Show Your Support
 
-- **Kestra** for the powerful workflow orchestration platform
-- **Groq** for lightning-fast LLM inference
-- **Cline** for autonomous coding assistance
-- **CodeRabbit** for AI-powered code reviews
-- **Vercel** for seamless Next.js deployment
+If Sentinel helped you, give us a star! ⭐
+
+[![GitHub stars](https://img.shields.io/github/stars/SKfaizan-786/sentinel-devops-agent?style=for-the-badge&logo=github&color=667eea&labelColor=1a1b27)](https://github.com/SKfaizan-786/sentinel-devops-agent/stargazers)
+
+**Share with your network:**
+
+[![Twitter](https://img.shields.io/badge/Share-Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white&labelColor=1a1b27)](https://twitter.com/intent/tweet?text=Check+out+Sentinel+-+an+AI-powered+DevOps+agent+that+predicts+and+heals+infrastructure+failures+autonomously!+https://github.com/SKfaizan-786/sentinel-devops-agent)
+[![LinkedIn](https://img.shields.io/badge/Share-LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1a1b27)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/SKfaizan-786/sentinel-devops-agent)
 
 ---
 
-<div align="center">
-
-**[⬆ Back to Top](#-sentinel)**
-
-</div>
-### Built with ❤️ for Autonomous DevOps
-
-**[⭐ Star this repo](https://github.com/SKfaizan-786/sentinel-devops-agent)** if you find it useful!
-
-</div>
+<p align="center">
+  <img src="sentinel-frontend/public/logo.png" width="100" alt="Sentinel Logo">
+  <br/>
+  <strong>Sentinel</strong>
+  <br/>
+  <em>"Monitoring that never sleeps"</em>
+  <br/><br/>
+  Made with 🛡️ by the Sentinel Team
+</p>
