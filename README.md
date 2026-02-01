@@ -51,7 +51,7 @@
 | **Prize Pool** | **$15,000 USD** |
 | **Sentinel's Status** | ✨ **Featured in Top Projects** ✨ |
 
-**Submitted to:** [Apertre 3.0 Open Source Programme](https://apertre.org)
+**Submitted to:** [Apertre 3.0 Open Source Programme]([https://apertre.org](https://apertre.resourcio.in/projects))
 
 </div>
 
