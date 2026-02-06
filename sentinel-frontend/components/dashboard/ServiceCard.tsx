@@ -1,6 +1,7 @@
 "use client";
 
 import { Service } from "@/lib/mockData";
+import { getStatusColor } from "@/lib/theme";
 import { MoreHorizontal, Cloud, Database, Server, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { cn } from "@/lib/utils";
@@ -18,16 +19,16 @@ const ServiceIcon = ({ type }: { type: Service["type"] }) => {
 };
 
 const StatusDot = ({ status }: { status: Service["status"] }) => {
-    const color = {
-        healthy: "bg-green-500",
-        degraded: "bg-yellow-500",
-        down: "bg-red-500",
-    }[status];
+    const themeColor = getStatusColor(status);
+
+    // Map theme properties to what the component expects if needed, or simply use theme properties directly.
+    // The theme object return by getStatusColor has 'bg' (bg-color/20), 'text' (text-color), 'border', 'dot' (bg-color).
+    // The original code used "bg-green-500". The theme 'dot' property is "bg-green-500".
 
     return (
         <div className="relative flex h-3 w-3">
-            <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", color)}></span>
-            <span className={cn("relative inline-flex rounded-full h-3 w-3", color)}></span>
+            <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", themeColor.dot)}></span>
+            <span className={cn("relative inline-flex rounded-full h-3 w-3", themeColor.dot)}></span>
         </div>
     );
 };

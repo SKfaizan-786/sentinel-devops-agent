@@ -5,12 +5,13 @@ import { ServiceGrid } from "@/components/dashboard/ServiceGrid";
 import { MetricsCharts } from "@/components/dashboard/MetricsCharts";
 import { IncidentTimeline } from "@/components/dashboard/IncidentTimeline";
 import { AgentReasoningPanel } from "@/components/dashboard/AgentReasoningPanel";
-import { mockMetrics, mockServices } from "@/lib/mockData";
+import { mockServices } from "@/lib/mockData";
 import { useMetrics } from "@/hooks/useMetrics";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useEffect, useState } from "react";
 import { useContainers } from "@/hooks/useContainers";
 import { ContainerCard } from "@/components/dashboard/ContainerCard";
+import { useMemo } from "react";
 
 export default function DashboardPage() {
     const { metrics } = useMetrics();
@@ -21,6 +22,8 @@ export default function DashboardPage() {
     // Merge real-time metrics into services
     useEffect(() => {
         setLiveServices(prev => prev.map(service => {
+    const liveServices = useMemo(() => {
+        return mockServices.map(service => {
             const realTime = metrics[service.id];
             // Find base service to reset uptime when healthy
             const baseService = mockServices.find(s => s.id === service.id) || service;
@@ -41,12 +44,12 @@ export default function DashboardPage() {
                     latency: realTime.currentResponseTime,
                     cpu: realTime.currentCpu,
                     uptime: currentUptime.toFixed(2) as any,
-                    status: isDown ? "down" : (realTime.currentErrorRate > 0.2 ? "degraded" : "healthy"),
+                    status: (isDown ? "down" : (realTime.currentErrorRate > 0.2 ? "degraded" : "healthy")) as "down" | "degraded" | "healthy",
                     trend: newTrend.length > 0 ? newTrend : baseService.trend,
                 };
             }
             return service;
-        }));
+        });
     }, [metrics]);
 
     const activeIncident = incidents.find(i => i.id === activeIncidentId);

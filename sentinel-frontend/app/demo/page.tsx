@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { ServiceGrid } from "@/components/dashboard/ServiceGrid";
 import { MetricsCharts } from "@/components/dashboard/MetricsCharts";
 import { AgentReasoningPanel } from "@/components/dashboard/AgentReasoningPanel";
-import { IncidentTimeline } from "@/components/dashboard/IncidentTimeline";
 import { Service, Incident } from "@/lib/mockData";
 import { ServiceMetrics } from "@/hooks/useMetrics";
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2 } from "lucide-react";
@@ -43,8 +42,8 @@ interface DemoStep {
     services: Service[];
     metrics: Record<string, ServiceMetrics>;
     incidents: Incident[];
-    reasoning?: any;
-    logs?: any[];
+    reasoning?: unknown;
+    logs?: unknown[];
 }
 
 const steps: DemoStep[] = [
@@ -220,7 +219,7 @@ export default function DemoPage() {
                         Interactive Demo
                     </h1>
                     <p className="text-muted-foreground mt-1">
-                        Witness Sentinel's self-healing capabilities in real-time.
+                        Witness Sentinel&apos;s self-healing capabilities in real-time.
                     </p>
                 </div>
 
@@ -306,7 +305,7 @@ export default function DemoPage() {
                 {/* Right Column: Timeline & Incidents */}
                 <div className="space-y-6">
                     {/* Agent Reasoning (Appears if active and incident exists) */}
-                    {currentStep.reasoning && currentStep.incidents.length > 0 && (
+                    {!!currentStep.reasoning && currentStep.incidents.length > 0 && (
                         <div className="mb-6">
                             <AgentReasoningPanel
                                 incident={currentStep.incidents[0]}

@@ -10,7 +10,7 @@ interface AgentReasoningPanelProps {
 
 export function AgentReasoningPanel({ incident }: AgentReasoningPanelProps) {
     // Parse the reasoning JSON if possible, otherwise use raw string
-    let parsedReasoning: any = {};
+    let parsedReasoning: { choices?: { message?: { content?: string } }[], summary?: string } = {};
     let rawLog = "";
 
     try {
@@ -23,7 +23,7 @@ export function AgentReasoningPanel({ incident }: AgentReasoningPanelProps) {
         } else {
             rawLog = incident.reasoning || ""; // Fallback to raw string
         }
-    } catch (e) {
+    } catch {
         rawLog = incident.reasoning || "Analysis data unavailable.";
     }
 
@@ -48,7 +48,7 @@ export function AgentReasoningPanel({ incident }: AgentReasoningPanelProps) {
                 <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Live Analysis Stream</h4>
                     <div className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner ${incident.severity === 'critical' ? 'text-red-400' :
-                            incident.severity === 'warning' ? 'text-orange-400' : 'text-green-300'
+                        incident.severity === 'warning' ? 'text-orange-400' : 'text-green-300'
                         }`}>
                         <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2 text-muted-foreground">
                             <Terminal className="h-3 w-3" />

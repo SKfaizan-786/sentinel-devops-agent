@@ -1,7 +1,6 @@
 "use client";
 
 import { User, Bell, Key, ShieldAlert } from "lucide-react";
-import { useState } from "react";
 
 export function SettingsTabs({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) {
     const tabs = [
@@ -18,8 +17,8 @@ export function SettingsTabs({ activeTab, setActiveTab }: { activeTab: string, s
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === tab.id
-                            ? "bg-white/10 text-white shadow-sm border border-white/5"
-                            : "text-muted-foreground hover:text-white hover:bg-white/5"
+                        ? "bg-white/10 text-white shadow-sm border border-white/5"
+                        : "text-muted-foreground hover:text-white hover:bg-white/5"
                         }`}
                 >
                     {tab.icon}
