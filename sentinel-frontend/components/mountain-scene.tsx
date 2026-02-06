@@ -166,7 +166,6 @@ export function GenerativeMountainScene() {
 
     const pointLight = new THREE.PointLight(0xffffff, 1, 100);
     pointLight.position.set(0, 0, 5);
-    // @ts-ignore
     lightRef.current = pointLight;
     scene.add(pointLight);
 
@@ -189,7 +188,6 @@ export function GenerativeMountainScene() {
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = -(e.clientY / window.innerHeight) * 2 + 1;
       const lightX = x * 5;
-      const lightY = y * 5;
       const pos = new THREE.Vector3(lightX, 2, 2 - y * 2);
 
       if (lightRef.current) {
@@ -201,7 +199,7 @@ export function GenerativeMountainScene() {
     };
 
     window.addEventListener("resize", handleResize);
-    window.addEventListener("mousemove", handleMouseMove as any);
+    window.addEventListener("mousemove", handleMouseMove as unknown as EventListener);
 
     return () => {
       cancelAnimationFrame(frameId);

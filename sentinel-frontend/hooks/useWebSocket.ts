@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 // Mock types for our simulation
 type WebSocketMessage = {
   type: "metrics_update" | "incident_alert" | "log_entry";
-  payload: any;
+  payload: unknown;
 };
 
 interface UseWebSocketOptions {
@@ -53,29 +53,32 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   }, [onMessage]);
 
   useEffect(() => {
+    // 1. Handle disabled state
     if (!enabled) {
-      setStatus("disconnected");
+      if (status !== "disconnected") {
+        setStatus("disconnected");
+      }
       return;
     }
 
-    setStatus("connecting");
-
-    // Simulate connection delay
-    const connectTimer = setTimeout(() => {
-      setStatus("connected");
-
+    // 2. Handle connection flow state machine
+    if (status === "disconnected") {
+      setStatus("connecting");
+    } else if (status === "connecting") {
+      // Simulate connection delay
+      const timer = setTimeout(() => {
+        setStatus("connected");
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (status === "connected") {
       // Start simulation loop
-      timerRef.current = setInterval(simulateMessage, simulationInterval);
-    }, 500);
+      const interval = setInterval(simulateMessage, simulationInterval);
 
-    return () => {
-      clearTimeout(connectTimer);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      setStatus("disconnected");
-    };
-  }, [enabled, simulationInterval, simulateMessage]);
+      // Store reference to clear on unmount/cleanup if needed, 
+      // but returning the cleanup function is sufficient here.
+      return () => clearInterval(interval);
+    }
+  }, [enabled, status, simulationInterval, simulateMessage]);
 
   return { status, lastMessage };
 }

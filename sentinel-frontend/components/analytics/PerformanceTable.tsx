@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { getStatusColor } from "@/lib/theme"; // Import theme helper
 
 interface ServiceMetric {
     id: string;
@@ -19,6 +20,9 @@ const metrics: ServiceMetric[] = [
 ];
 
 export function PerformanceTable() {
+    const criticalColor = getStatusColor('critical');
+    const healthyColor = getStatusColor('healthy');
+
     return (
         <div className="w-full">
             <div className="grid grid-cols-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
@@ -32,12 +36,10 @@ export function PerformanceTable() {
                     <div key={m.id} className="grid grid-cols-4 items-center p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                         <div className="font-mono text-sm text-white">{m.name}</div>
                         <div className="text-right font-mono text-sm text-muted-foreground">{m.p95}</div>
-                        <div className={`text-right font-mono text-sm ${m.p99 > 500 ? "text-red-400 font-bold" : "text-muted-foreground"}`}>{m.p99}</div>
-                        <div className="flex justify-end pr-2">
-                            {m.change > 0 && <span className="flex items-center text-xs text-red-400"><ArrowUpRight className="h-3 w-3 mr-1" />{m.change}%</span>}
-                            {m.change < 0 && <span className="flex items-center text-xs text-green-400"><ArrowDownRight className="h-3 w-3 mr-1" />{Math.abs(m.change)}%</span>}
-                            {m.change === 0 && <span className="flex items-center text-xs text-muted-foreground"><Minus className="h-3 w-3 mr-1" />-</span>}
-                        </div>
+                        <div className={`text-right font-mono text-sm ${m.p99 > 500 ? `${criticalColor.text} font-bold` : "text-muted-foreground"}`}>{m.p99}</div>
+                        {m.change > 0 && <span className={`flex items-center text-xs ${criticalColor.text}`}><ArrowUpRight className="h-3 w-3 mr-1" />{m.change}%</span>}
+                        {m.change < 0 && <span className={`flex items-center text-xs ${healthyColor.text}`}><ArrowDownRight className="h-3 w-3 mr-1" />{Math.abs(m.change)}%</span>}
+                        {m.change === 0 && <span className="flex items-center text-xs text-muted-foreground"><Minus className="h-3 w-3 mr-1" />-</span>}
                     </div>
                 ))}
             </div>

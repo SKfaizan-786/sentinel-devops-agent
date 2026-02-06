@@ -69,7 +69,7 @@ npm run lint
 npm run test
 ```
 
-**Access:** http://localhost:3000
+**Access:** <http://localhost:3000>
 
 #### Backend Development
 
@@ -86,9 +86,10 @@ npm start
 npm run dev
 ```
 
-**Access:** http://localhost:4000
+**Access:** <http://localhost:4000>
 
 **Endpoints:**
+
 - `GET /api/status` - Service health
 - `GET /api/activity` - Activity log
 - `GET /api/insights` - AI insights
@@ -123,6 +124,7 @@ open http://localhost:9090
 ```
 
 **Workflows:**
+
 - `intelligent-monitor.yaml` - Main 30s monitoring loop
 - `health-monitor.yaml` - Health check baseline
 
@@ -213,12 +215,14 @@ App (Next.js Layout)
 ### Key Components & Their Responsibilities
 
 #### `HealthSummary.tsx`
+
 - Displays overall system uptime percentage
 - Shows service count (healthy/total)
 - Shows active incidents count
 - Updates in real-time from `useMetrics` hook
 
 **Props:**
+
 ```typescript
 interface HealthSummaryProps {
   uptime: number;        // 0-100%
@@ -229,6 +233,7 @@ interface HealthSummaryProps {
 ```
 
 #### `ServiceCard.tsx`
+
 - Shows individual service status
 - Displays latency, CPU, memory
 - Shows 12-hour trend sparkline
@@ -237,6 +242,7 @@ interface HealthSummaryProps {
 **Data Source:** `useMetrics` hook + mock services
 
 #### `MetricsCharts.tsx`
+
 - Traffic chart (response time over time)
 - Resources chart (CPU/memory usage)
 - Performance table (sorted by metric)
@@ -244,6 +250,7 @@ interface HealthSummaryProps {
 **Data:** 20-30 point history from `useMetrics`
 
 #### `AgentReasoningPanel.tsx`
+
 - Shows AI analysis from Kestra
 - Displays triggered action
 - Shows confidence score
@@ -252,6 +259,7 @@ interface HealthSummaryProps {
 **Data:** Parsed from `incident.reasoning` (Groq response)
 
 #### `IncidentTimeline.tsx`
+
 - Chronological list of incidents
 - Filters by status/severity
 - Links to incident details
@@ -262,7 +270,9 @@ interface HealthSummaryProps {
 ### Custom Hooks
 
 #### `useMetrics()`
+
 Returns real-time metrics for all services:
+
 ```typescript
 const { metrics } = useMetrics();
 // metrics = {
@@ -276,26 +286,66 @@ const { metrics } = useMetrics();
 ```
 
 **Logic:**
+
 - Polls backend `/api/status` every 2 seconds
 - Applies sine wave to base values (visual liveliness)
 - Detects down services (code !== 200)
 - Maintains 30-point history
 
 #### `useIncidents()`
+
 Returns incident data with auto-open logic:
+
 ```typescript
 const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents();
 // Auto-opens panel if critical/degraded
 ```
 
 **Logic:**
+
 - Fetches insights from `/api/insights`
 - Parses AI analysis (JSON or string)
 - Determines severity (CRITICAL/DEGRADED/HEALTHY)
 - Auto-opens if failed status
 
 #### `useWebSocket()` (Stub)
+
 Currently returns mock WebSocket data. Ready for real WebSocket integration.
+
+### Design System & Theming
+
+The frontend utilizes a centralized theme configuration and a modern CSS variable system.
+
+#### Theme Configuration (`lib/theme.ts`)
+
+We use a strongly typed theme object to manage status and severity colors.
+
+- **Status Scopes:** `healthy`, `warning`, `critical`, `unknown`, `degraded`, `down`, `info`
+- **Helper Functions:**
+  - `getStatusColor(status)`: Returns color object `{ bg, text, border, dot }`
+  - `getSeverityColor(severity)`: Returns similar color object for severity levels
+
+#### Global Styles (`globals.css`)
+
+Key design system elements:
+
+- **CSS Variables:** Mapped to semantic names (e.g., `--status-healthy`, `--status-critical`)
+- **Visual Effects:**
+  - `.glass`: Standard glassmorphism effect
+  - `.liquid-glass`: Advanced cyan-tinted glass effect used in `ServiceCard`
+  - `.aurora-bg`: Dynamic animated background
+
+#### StatusBadge Component
+
+The `StatusBadge` is the primary way to display state. It automatically maps the status string to the correct theme colors.
+
+```tsx
+import { StatusBadge } from '@/components/common/StatusBadge';
+
+// Usage
+<StatusBadge status="healthy" label="Operational" size="md" />
+<StatusBadge status="critical" showDot={true} />
+```
 
 ---
 
@@ -304,6 +354,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
 ### Adding a New Dashboard Page
 
 1. **Create page file**
+
    ```bash
    # sentinel-frontend/app/dashboard/new-feature/page.tsx
    "use client";
@@ -322,6 +373,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
    ```
 
 2. **Add navigation link** in `Sidebar.tsx`
+
    ```typescript
    {
      label: "New Feature",
@@ -337,6 +389,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
 ### Adding a New API Endpoint
 
 1. **Add to backend** (`backend/index.js`)
+
    ```javascript
    app.get('/api/new-endpoint', (req, res) => {
      try {
@@ -349,6 +402,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
    ```
 
 2. **Update frontend hook** if needed
+
    ```typescript
    const fetchData = async () => {
      const res = await fetch('http://localhost:4000/api/new-endpoint');
@@ -358,6 +412,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
    ```
 
 3. **Test with curl/Postman**
+
    ```bash
    curl http://localhost:4000/api/new-endpoint
    ```
@@ -365,6 +420,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
 ### Adding a New Kestra Workflow
 
 1. **Create YAML** in `kestra-flows/`
+
    ```yaml
    id: my-workflow
    namespace: sentinel
@@ -386,6 +442,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
 ### Adding a New CLI Command
 
 1. **Create command function** (`cli/src/commands.js`)
+
    ```javascript
    export const myCommand = async (arg1) => {
      try {
@@ -398,6 +455,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
    ```
 
 2. **Register command** (`cli/index.js`)
+
    ```javascript
    program
      .command('mycommand')
@@ -409,6 +467,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
    ```
 
 3. **Test locally**
+
    ```bash
    npm link
    sentinel mycommand arg1
@@ -425,6 +484,7 @@ Currently returns mock WebSocket data. Ready for real WebSocket integration.
 **Problem:** Dashboard shows "connecting" status
 
 **Solution:**
+
 ```bash
 # 1. Check backend is running
 curl http://localhost:4000/api/status
@@ -445,6 +505,7 @@ docker network inspect sentinel-net
 **Problem:** `docker-compose up` fails
 
 **Solution:**
+
 ```bash
 # Check logs
 docker-compose logs
@@ -463,6 +524,7 @@ docker logs auth-service
 **Problem:** Workflow runs but doesn't execute
 
 **Solution:**
+
 ```bash
 # Access Kestra UI
 open http://localhost:9090
@@ -478,6 +540,7 @@ open http://localhost:9090
 **Problem:** AgentReasoningPanel is empty
 
 **Solution:**
+
 ```bash
 # Check GROQ_API_KEY is set
 echo $SECRET_GROQ_API_KEY
@@ -495,6 +558,7 @@ docker logs kestra
 ### Debug Mode
 
 Enable verbose logging:
+
 ```bash
 # Frontend
 NEXT_DEBUG=* npm run dev
@@ -520,12 +584,14 @@ DEBUG=* sentinel status
 ### Frontend Optimizations
 
 **Current:**
+
 - Next.js 16 with App Router (built-in optimization)
 - Tailwind CSS (tree-shaking unused styles)
 - Framer Motion (GPU-accelerated animations)
 - Lazy loading for heavy components
 
 **To Improve:**
+
 ```typescript
 // Lazy load heavy components
 import dynamic from 'next/dynamic';
@@ -538,10 +604,12 @@ const HeavyChart = dynamic(() => import('./charts/Heavy'), {
 ### Backend Optimizations
 
 **Current:**
+
 - In-memory caching (activityLog, systemStatus)
 - 5-second polling interval (reasonable balance)
 
 **To Improve:**
+
 ```javascript
 // Add caching for frequent requests
 const cache = new Map();
@@ -559,11 +627,13 @@ app.get('/api/status', (req, res) => {
 ### Kestra Optimizations
 
 **Current:**
+
 - 30-second trigger interval
 - Parallel health checks (3x concurrent)
 - Conditional AI analysis (only if failures detected)
 
 **To Improve:**
+
 ```yaml
 # Use allowFailure to prevent blocking
 - id: fetch-metrics
@@ -575,6 +645,7 @@ app.get('/api/status', (req, res) => {
 ### Database (Future)
 
 When adding persistent storage:
+
 ```javascript
 // Use indexes for frequent queries
 db.incidents.createIndex({ timestamp: -1 });

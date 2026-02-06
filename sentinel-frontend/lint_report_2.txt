@@ -1,0 +1,132 @@
+
+> sentinel-frontend@0.1.0 lint
+> eslint
+
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\app\dashboard\page.tsx
+   8:10  warning  'mockMetrics' is defined but never used  @typescript-eslint/no-unused-vars
+  11:10  warning  'useState' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\app\demo\page.tsx
+  7:10  warning  'IncidentTimeline' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\app\signup\page.tsx
+  224:29   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  224:125  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\analytics\TrafficChart.tsx
+  3:32  warning  'YAxis' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\common\NotificationsModal.tsx
+  5:10  warning  'cn' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\common\Spotlight.tsx
+  3:17  warning  'useRef' is defined but never used     @typescript-eslint/no-unused-vars
+  3:25  warning  'useState' is defined but never used   @typescript-eslint/no-unused-vars
+  3:35  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\dashboard\HealthSummary.tsx
+  16:11  warning  'warningColor' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  18:11  warning  'serviceStatusColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\dashboard\MetricsCharts.tsx
+  12:5  warning  'BarChart' is defined but never used  @typescript-eslint/no-unused-vars
+  13:5  warning  'Bar' is defined but never used       @typescript-eslint/no-unused-vars
+  14:5  warning  'Legend' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\incidents\IncidentFilters.tsx
+  5:10  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\layout\Sidebar.tsx
+  129:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\layout\Sidebar.tsx:129:13
+  127 |     useEffect(() => {
+  128 |         if (mobileOpen) {
+> 129 |             setMobileOpen(false);
+      |             ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  130 |         }
+  131 |     }, [pathname, mobileOpen]);
+  132 |  react-hooks/set-state-in-effect
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\components\settings\SettingsTabs.tsx
+  4:10  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useIncidents.ts
+  94:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useIncidents.ts:94:9
+  92 |
+  93 |     useEffect(() => {
+> 94 |         fetchIncidents();
+     |         ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |         intervalRef.current = setInterval(fetchIncidents, 3000); // Poll every 3s
+  96 |         return () => {
+  97 |             if (intervalRef.current) clearInterval(intervalRef.current);  react-hooks/set-state-in-effect
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useLogs.ts
+  54:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useLogs.ts:54:9
+  52 |
+  53 |     useEffect(() => {
+> 54 |         fetchLogs();
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |         intervalRef.current = setInterval(fetchLogs, 3000);
+  56 |         return () => {
+  57 |             if (intervalRef.current) clearInterval(intervalRef.current);  react-hooks/set-state-in-effect
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useMetrics.ts
+  11:20  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  23:28  warning  'timeRange' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  55:35  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useWebSocket.ts
+  57:38  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\hooks\useWebSocket.ts:57:38
+  55 |   useEffect(() => {
+  56 |     if (!enabled) {
+> 57 |       if (status !== "disconnected") setStatus("disconnected");
+     |                                      ^^^^^^^^^ Avoid calling setState() directly within an effect
+  58 |       return;
+  59 |     }
+  60 |  react-hooks/set-state-in-effect
+  78:6   warning  React Hook useEffect has a missing dependency: 'status'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+
+C:\Open Source Project\sentinel-devops-agent\sentinel-frontend\lib\mockData.ts
+  1:10  warning  'Activity' is defined but never used       @typescript-eslint/no-unused-vars
+  1:20  warning  'Server' is defined but never used         @typescript-eslint/no-unused-vars
+  1:28  warning  'Database' is defined but never used       @typescript-eslint/no-unused-vars
+  1:38  warning  'Cloud' is defined but never used          @typescript-eslint/no-unused-vars
+  1:45  warning  'Shield' is defined but never used         @typescript-eslint/no-unused-vars
+  1:53  warning  'AlertTriangle' is defined but never used  @typescript-eslint/no-unused-vars
+  1:68  warning  'CheckCircle' is defined but never used    @typescript-eslint/no-unused-vars
+  1:81  warning  'XCircle' is defined but never used        @typescript-eslint/no-unused-vars
+
+Ô£û 33 problems (8 errors, 25 warnings)
+

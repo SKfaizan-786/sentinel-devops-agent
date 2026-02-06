@@ -8,7 +8,7 @@ export type TimeSeriesPoint = {
     errorRate: number;
     cpu: number;
     value?: number; // derived or legacy
-    [key: string]: any;
+    [key: string]: unknown;
 };
 
 export type ServiceMetrics = {
@@ -20,7 +20,7 @@ export type ServiceMetrics = {
     history: TimeSeriesPoint[];
 };
 
-export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
+export function useMetrics() {
     // Helper for initial history
     const initialHistory = Array(30).fill(0).map((_, i) => ({
         timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
@@ -52,7 +52,7 @@ export function useMetrics(timeRange: "1h" | "6h" | "24h" = "1h") {
                 const next = { ...prev };
 
                 // Map backend services to frontend
-                const serviceMap: any = {
+                const serviceMap: Record<string, { code?: number } | undefined> = {
                     "auth-service": data.services?.auth,
                     "payment-service": data.services?.payment,
                     "notification-service": data.services?.notification

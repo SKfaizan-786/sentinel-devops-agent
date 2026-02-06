@@ -1,5 +1,6 @@
 "use client";
 
+import { getStatusColor } from "@/lib/theme";
 import { Activity, CheckCircle, AlertTriangle, Zap } from "lucide-react";
 import { Spotlight } from "@/components/common/Spotlight";
 
@@ -11,6 +12,11 @@ interface HealthSummaryProps {
 }
 
 export function HealthSummary({ uptime, servicesUp, totalServices, activeIncidents }: HealthSummaryProps) {
+    const healthyColor = getStatusColor('healthy');
+    const warningColor = getStatusColor('warning');
+    const criticalColor = getStatusColor('critical');
+    const serviceStatusColor = getStatusColor('healthy'); // For Services Up standard color
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Spotlight className="p-4 bg-card border-border">
@@ -19,11 +25,11 @@ export function HealthSummary({ uptime, servicesUp, totalServices, activeInciden
                         <p className="text-sm text-muted-foreground font-medium">System Health</p>
                         <h3 className="text-2xl font-bold mt-1 text-foreground">{uptime}%</h3>
                     </div>
-                    <div className="p-2 bg-green-500/10 rounded-lg">
-                        <Activity className="h-5 w-5 text-green-500" />
+                    <div className={`p-2 rounded-lg ${healthyColor.bg}`}>
+                        <Activity className={`h-5 w-5 ${healthyColor.text}`} />
                     </div>
                 </div>
-                <div className="mt-4 flex items-center text-xs text-green-400">
+                <div className={`mt-4 flex items-center text-xs ${healthyColor.text}`}>
                     <Zap className="h-3 w-3 mr-1" />
                     <span>Operational</span>
                 </div>
@@ -53,15 +59,15 @@ export function HealthSummary({ uptime, servicesUp, totalServices, activeInciden
                         <p className="text-sm text-muted-foreground font-medium">Active Incidents</p>
                         <h3 className="text-2xl font-bold mt-1 text-foreground">{activeIncidents}</h3>
                     </div>
-                    <div className={`p-2 rounded-lg ${activeIncidents > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                    <div className={`p-2 rounded-lg ${activeIncidents > 0 ? criticalColor.bg : healthyColor.bg}`}>
                         {activeIncidents > 0 ? (
-                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            <AlertTriangle className={`h-5 w-5 ${criticalColor.text}`} />
                         ) : (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <CheckCircle className={`h-5 w-5 ${healthyColor.text}`} />
                         )}
                     </div>
                 </div>
-                <div className={`mt-4 text-xs ${activeIncidents > 0 ? "text-red-400 animate-pulse" : "text-green-400"}`}>
+                <div className={`mt-4 text-xs ${activeIncidents > 0 ? `${criticalColor.text} animate-pulse` : healthyColor.text}`}>
                     {activeIncidents > 0 ? "Requires attention" : "System Healthy"}
                 </div>
             </Spotlight>

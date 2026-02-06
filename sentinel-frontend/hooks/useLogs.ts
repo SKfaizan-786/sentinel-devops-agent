@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export type LogLevel = "info" | "warn" | "error" | "debug" | "success";
 
@@ -19,7 +19,7 @@ export function useLogs() {
     const [search, setSearch] = useState("");
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         if (isPaused) return;
         try {
             const res = await fetch("http://localhost:4000/api/activity");
@@ -28,6 +28,7 @@ export function useLogs() {
 
             // Transform backend logs to frontend format
             if (data.activity) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const formattedLogs: LogEntry[] = data.activity.map((entry: any) => {
                     let level: LogLevel = "info";
                     if (entry.type === 'alert' || entry.message.includes("CRITICAL") || entry.message.includes("down")) level = "error";
@@ -47,7 +48,7 @@ export function useLogs() {
         } catch (e) {
             console.error(e);
         }
-    };
+    }, [isPaused]);
 
     useEffect(() => {
         fetchLogs();
@@ -55,7 +56,7 @@ export function useLogs() {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [isPaused]);
+    }, [fetchLogs]);
 
     // Client-side filtering
     const filteredLogs = logs.filter(log => {

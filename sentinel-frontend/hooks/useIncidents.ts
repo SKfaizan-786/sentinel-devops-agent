@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Incident } from "@/lib/mockData";
 
 export function useIncidents() {
@@ -8,7 +8,7 @@ export function useIncidents() {
     const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const fetchIncidents = async () => {
+    const fetchIncidents = useCallback(async () => {
         try {
             // Fetch AI insights from Kestra (this contains the actual AI logs)
             const res = await fetch("http://localhost:4000/api/insights");
@@ -19,8 +19,8 @@ export function useIncidents() {
                 const latestInsight = data.insights[0];
 
                 // Parse AI analysis
-                let aiData: any = {};
-                let rawAnalysis = latestInsight.analysis || latestInsight.summary || "";
+                let aiData: { summary?: string; choices?: { message?: { content?: string } }[] } = {};
+                const rawAnalysis = latestInsight.analysis || latestInsight.summary || "";
 
                 try {
                     if (rawAnalysis.trim().startsWith('{')) {
@@ -31,7 +31,7 @@ export function useIncidents() {
                     } else {
                         aiData = { summary: rawAnalysis };
                     }
-                } catch (e) {
+                } catch {
                     aiData = { summary: rawAnalysis };
                 }
 
@@ -88,7 +88,7 @@ export function useIncidents() {
         } catch (e) {
             console.error("Failed to fetch incidents:", e);
         }
-    };
+    }, [activeIncidentId]);
 
     useEffect(() => {
         fetchIncidents();
@@ -96,7 +96,7 @@ export function useIncidents() {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, []);
+    }, [fetchIncidents]);
 
     return {
         incidents,

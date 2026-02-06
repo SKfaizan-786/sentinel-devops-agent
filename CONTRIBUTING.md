@@ -17,33 +17,37 @@ Please read and follow our [CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) before 
 ### Local Development Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/SKfaizan-786/sentinel-devops-agent.git
    cd sentinel-devops-agent
    ```
 
 2. **Install dependencies**
+
    ```bash
    # Frontend
    cd sentinel-frontend
    npm install
 
    # Backend
-   cd ../backend
+   cd backend
    npm install
 
    # CLI
-   cd ../cli
+   cd cli
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    # Create .env files where needed
    # For Kestra: Set SECRET_GROQ_API_KEY for AI analysis
    ```
 
 4. **Start the stack**
+
    ```bash
    # From root directory
    docker-compose up -d
@@ -55,6 +59,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) before 
    ```
 
 5. **Verify setup**
+
    ```bash
    # Open http://localhost:3000 for dashboard
    # Open http://localhost:9090 for Kestra UI
@@ -88,6 +93,7 @@ sentinel-devops-agent/
 ### 🐛 Bug Reports
 
 Found a bug? Create an issue with:
+
 - Clear title and description
 - Steps to reproduce
 - Expected vs actual behavior
@@ -99,6 +105,7 @@ Found a bug? Create an issue with:
 ### ✨ Feature Requests
 
 Have an idea? Open an issue describing:
+
 - What problem it solves
 - How it works
 - Why it's valuable
@@ -109,6 +116,7 @@ Have an idea? Open an issue describing:
 ### 📚 Documentation
 
 Help improve docs by:
+
 - Fixing typos or unclear sections
 - Adding examples
 - Clarifying APIs
@@ -121,6 +129,7 @@ Help improve docs by:
 #### Feature Development
 
 1. **Create a branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -132,12 +141,14 @@ Help improve docs by:
    - Keep functions small and focused
 
 3. **Write/update tests** (if applicable)
+
    ```bash
    npm run test
    npm run test:watch
    ```
 
 4. **Commit with clear messages**
+
    ```bash
    git commit -m "feat(dashboard): add service metrics panel"
    # Format: type(scope): description
@@ -145,6 +156,7 @@ Help improve docs by:
    ```
 
 5. **Push and create PR**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -159,6 +171,7 @@ Help improve docs by:
 6. **Address feedback** promptly
 
 **PR Template:**
+
 ```markdown
 ## Description
 Brief description of changes
@@ -234,6 +247,7 @@ export function MyComponent({ variant = "primary", children }: MyComponentProps)
 ### API Endpoints
 
 When adding endpoints:
+
 ```javascript
 // Express endpoint
 app.get('/api/new-endpoint', (req, res) => {
@@ -250,6 +264,7 @@ app.get('/api/new-endpoint', (req, res) => {
 ### Health Checks
 
 Update service monitoring in `backend/index.js`:
+
 ```javascript
 const services = [
   { name: 'service-name', url: 'http://service:port/health' }
@@ -259,6 +274,7 @@ const services = [
 ### Integration with Kestra
 
 Update workflow YAML files in `kestra-flows/`:
+
 ```yaml
 - id: new-task
   type: io.kestra.plugin.core.http.Request
@@ -284,6 +300,7 @@ export const newCommand = async (arg1, arg2) => {
 ```
 
 Register in `cli/index.js`:
+
 ```javascript
 program
   .command('newcommand')
@@ -335,6 +352,7 @@ npm run lint
 ## 🐛 Debugging Tips
 
 ### Frontend
+
 ```bash
 # Enable React DevTools
 # Check Network tab for API calls
@@ -342,6 +360,7 @@ npm run lint
 ```
 
 ### Backend
+
 ```bash
 # Check logs: docker logs backend
 # Use Postman/curl for API testing
@@ -349,6 +368,7 @@ npm run lint
 ```
 
 ### Kestra
+
 ```bash
 # UI at http://localhost:9090
 # Check execution logs for each workflow run
@@ -356,6 +376,7 @@ npm run lint
 ```
 
 ### CLI
+
 ```bash
 # Verbose output: DEBUG=* sentinel status
 # Test against local backend
@@ -398,6 +419,7 @@ npm run lint
 ## 🙏 Recognition
 
 Contributors will be recognized in:
+
 - [CONTRIBUTORS.md](CONTRIBUTORS.md)
 - GitHub's contributors page
 - Release notes for significant contributions
