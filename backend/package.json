@@ -11,6 +11,7 @@
     "axios": "^1.6.2",
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
+    "dockerode": "^4.0.9",
     "express": "^5.2.1"
   }
 }

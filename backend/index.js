@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const { listContainers, getContainerHealth } = require('./docker/client');
+const monitor = require('./docker/monitor');
+const healer = require('./docker/healer');
 
 const app = express();
 const PORT = 4000;
@@ -59,14 +62,14 @@ async function checkServiceHealth() {
       // Log the failure (both critical and degraded)
       const lastLog = activityLog[0];
       const statusText = code >= 500 ? 'DOWN' : 'DEGRADED';
-      const isDuplicate = lastLog && 
-        lastLog.message.includes(service.name.toUpperCase()) && 
+      const isDuplicate = lastLog &&
+        lastLog.message.includes(service.name.toUpperCase()) &&
         lastLog.message.includes(statusText);
 
       if (!isDuplicate) {
         activityLog.unshift({
           id: Date.now(),
-          message: code >= 500 
+          message: code >= 500
             ? `${service.name.toUpperCase()} service is DOWN (HTTP ${code})`
             : `${service.name.toUpperCase()} service is DEGRADED (HTTP ${code})`,
           type: 'alert',
@@ -188,6 +191,48 @@ app.post('/api/action/:service/:type', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// --- DOCKER ENDPOINTS ---
+
+app.get('/api/docker/containers', async (req, res) => {
+  try {
+    const containers = await listContainers();
+    // Start monitoring all discovered containers
+    containers.forEach(c => monitor.startMonitoring(c.id));
+    res.json({ containers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/docker/health/:id', async (req, res) => {
+  try {
+    const health = await getContainerHealth(req.params.id);
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/docker/metrics/:id', (req, res) => {
+  const metrics = monitor.getMetrics(req.params.id);
+  res.json(metrics || { error: 'No metrics available' });
+});
+
+app.post('/api/docker/restart/:id', async (req, res) => {
+  const result = await healer.restartContainer(req.params.id);
+  res.json(result);
+});
+
+app.post('/api/docker/recreate/:id', async (req, res) => {
+  const result = await healer.recreateContainer(req.params.id);
+  res.json(result);
+});
+
+app.post('/api/docker/scale/:service/:replicas', async (req, res) => {
+  const result = await healer.scaleService(req.params.service, req.params.replicas);
+  res.json(result);
 });
 
 app.listen(PORT, '0.0.0.0', () => {
