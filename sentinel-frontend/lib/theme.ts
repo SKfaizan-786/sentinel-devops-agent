@@ -54,7 +54,8 @@ export const severityColors = {
         dot: 'bg-orange-500'
     },
     critical: statusColors.critical,
-    info: statusColors.info
+    info: statusColors.info,
+    unknown: statusColors.unknown
 } as const;
 
 export type Status = keyof typeof statusColors;
@@ -65,5 +66,5 @@ export function getStatusColor(status: string): typeof statusColors[Status] {
 }
 
 export function getSeverityColor(severity: string): typeof severityColors[Severity] {
-    return severityColors[severity as Severity] || severityColors.low;
+    return severityColors[severity as Severity] || severityColors.unknown;
 }

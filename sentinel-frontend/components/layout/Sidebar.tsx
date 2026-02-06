@@ -59,6 +59,7 @@ const SidebarContent = ({ isMobile = false, collapsed, setCollapsed, setMobileOp
                 <button
                     onClick={() => setMobileOpen(false)}
                     className="p-2 rounded-lg hover:bg-white/10 text-muted-foreground"
+                    aria-label="Close menu"
                 >
                     <X className="h-5 w-5" />
                 </button>
@@ -103,6 +104,8 @@ const SidebarContent = ({ isMobile = false, collapsed, setCollapsed, setMobileOp
                 <button
                     onClick={() => setCollapsed(!collapsed)}
                     className="flex items-center justify-center w-full p-2 rounded-lg hover:bg-white/5 text-muted-foreground transition-colors"
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    aria-expanded={!collapsed}
                 >
                     {collapsed ? (
                         <ChevronRight className="h-5 w-5" />
