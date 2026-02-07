@@ -36,7 +36,7 @@ export default function DashboardPage() {
         }
     }, [metricsStatus, initialLoad]);
 
-    const isLoading = initialLoad && metricsStatus === "connecting";
+    const isLoading = initialLoad;
 
     const liveServices = useMemo(() => {
         return mockServices.map(service => {
