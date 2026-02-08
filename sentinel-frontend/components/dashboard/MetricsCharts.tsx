@@ -9,9 +9,6 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    BarChart,
-    Bar,
-    Legend,
 } from "recharts";
 import { ServiceMetrics } from "@/hooks/useMetrics";
 

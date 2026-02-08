@@ -1,15 +1,15 @@
 "use client";
 
 import { Incident } from "@/lib/mockData";
-import { getSeverityColor, getStatusColor } from "@/lib/theme";
+import { getSeverityColor } from "@/lib/theme";
 import {
     AlertTriangle,
     CheckCircle,
-    CircleX,
-    ChevronDown,
-    ChevronUp,
-    Zap,
+    XCircle,
     Clock,
+    Zap,
+    ChevronUp,
+    ChevronDown,
     Search
 } from "lucide-react";
 import { useState } from "react";
@@ -26,18 +26,12 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
 
     const getStatusIcon = () => {
         // Map incident status to theme status for color retrieval
-        const statusMap: Record<string, "healthy" | "warning" | "critical"> = {
-            "resolved": "healthy",
-            "in-progress": "warning",
-            "failed": "critical"
-        };
-        const themeStatus = statusMap[incident.status] || "unknown";
-        const color = getStatusColor(themeStatus);
+        // const themeStatus = "unknown";
 
         switch (incident.status) {
             case "resolved": return <CheckCircle className="h-5 w-5 text-green-500" />;
             case "in-progress": return <AlertTriangle className="h-5 w-5 text-orange-500" />;
-            case "failed": return <CircleX className="h-5 w-5 text-red-500" />;
+            case "failed": return <XCircle className="h-5 w-5 text-red-500" />;
         }
     };
 

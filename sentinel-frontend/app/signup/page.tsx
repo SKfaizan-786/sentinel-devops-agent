@@ -221,7 +221,7 @@ export default function SignupPage() {
                         className="mt-12 p-6 bg-white/5 rounded-2xl border border-white/10"
                     >
                         <p className="text-white/80 italic mb-4">
-                            "Sentinel reduced our MTTR by 85%. Our on-call engineers finally get to sleep through the night."
+                            &quot;Sentinel reduced our MTTR by 85%. Our on-call engineers finally get to sleep through the night.&quot;
                         </p>
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-purple-500" />

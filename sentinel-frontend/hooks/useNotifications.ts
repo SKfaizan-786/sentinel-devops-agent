@@ -18,7 +18,7 @@ export interface Notification {
   read: boolean;
 }
 
-interface NotificationState {
+export interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   addNotification: (

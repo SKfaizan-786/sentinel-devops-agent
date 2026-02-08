@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+
 
 // Mock types for our simulation
 type WebSocketMessage = {
@@ -21,11 +22,11 @@ interface UseWebSocketOptions {
  * In a real app, this would connect to the backend WebSocket server.
  */
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
-  const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
-  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-
   const { onMessage, enabled = true, simulationInterval = 2000 } = options;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [internalStatus, setInternalStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
+  // const themeStatus = statusMap[incident.status] || "unknown";nected";
+  const status = enabled ? internalStatus : "disconnected";
+  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
 
   // Simulation Logic
   const simulateMessage = useCallback(() => {
@@ -54,23 +55,22 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
 
   useEffect(() => {
     // 1. Handle disabled state
+    // 1. Handle disabled state - Reset internal status if needed when re-enabled
     if (!enabled) {
-      if (status !== "disconnected") {
-        setStatus("disconnected");
-      }
+      // No need to setStatus here as it is derived
       return;
     }
 
     // 2. Handle connection flow state machine
-    if (status === "disconnected") {
-      setStatus("connecting");
-    } else if (status === "connecting") {
+    if (internalStatus === "disconnected") {
+      setTimeout(() => setInternalStatus("connecting"), 0);
+    } else if (internalStatus === "connecting") {
       // Simulate connection delay
       const timer = setTimeout(() => {
-        setStatus("connected");
+        setInternalStatus("connected");
       }, 500);
       return () => clearTimeout(timer);
-    } else if (status === "connected") {
+    } else if (internalStatus === "connected") {
       // Start simulation loop
       const interval = setInterval(simulateMessage, simulationInterval);
 
@@ -78,7 +78,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
       // but returning the cleanup function is sufficient here.
       return () => clearInterval(interval);
     }
-  }, [enabled, status, simulationInterval, simulateMessage]);
+  }, [enabled, internalStatus, simulationInterval, simulateMessage]);
 
   return { status, lastMessage };
 }

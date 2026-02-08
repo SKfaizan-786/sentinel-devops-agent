@@ -13,9 +13,7 @@ interface HealthSummaryProps {
 
 export function HealthSummary({ uptime, servicesUp, totalServices, activeIncidents }: HealthSummaryProps) {
     const healthyColor = getStatusColor('healthy');
-    const warningColor = getStatusColor('warning');
     const criticalColor = getStatusColor('critical');
-    const serviceStatusColor = getStatusColor('healthy'); // For Services Up standard color
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

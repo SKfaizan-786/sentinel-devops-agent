@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container } from '../../hooks/useContainers';
-import { MoreHorizontal, Box, RefreshCw, Layers, Calendar, Network } from "lucide-react";
+import { Box, RefreshCw, Layers, Calendar, Network } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { cn } from "@/lib/utils";
 import { Spotlight } from "@/components/common/Spotlight";
@@ -30,9 +30,9 @@ export function ContainerCard({ container, onRestart }: ContainerCardProps) {
     const isHealthy = container.health === 'healthy';
 
     // Mock sparkline data since we don't have history yet
-    const mockTrend = React.useMemo(() =>
-        Array.from({ length: 12 }, () => 20 + Math.random() * 10),
-        []);
+    const [mockTrend] = React.useState(() =>
+        Array.from({ length: 12 }, () => 20 + Math.random() * 10)
+    );
 
     return (
         <Spotlight className="p-5 bg-card border-border hover:border-primary/20 transition-all group">

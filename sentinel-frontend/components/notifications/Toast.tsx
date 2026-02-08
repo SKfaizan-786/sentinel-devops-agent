@@ -1,116 +1,110 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, AlertTriangle, Info, AlertOctagon } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertOctagon, AlertTriangle, CheckCircle, Info, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const ToastItem = ({ notification, onDismiss }: { notification: Notification; onDismiss: (id: string) => void }) => {
-  const { id, type, title, message } = notification;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onDismiss(id);
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [id, onDismiss]);
-
-  const icons = {
-    info: <Info className="h-5 w-5 text-blue-400" />,
-    success: <CheckCircle className="h-5 w-5 text-green-400" />,
-    warning: <AlertTriangle className="h-5 w-5 text-yellow-400" />,
-    error: <AlertOctagon className="h-5 w-5 text-red-500" />,
-    incident: <AlertOctagon className="h-5 w-5 text-red-500 animate-pulse" />,
-    resolved: <CheckCircle className="h-5 w-5 text-green-400" />,
-  };
-
-  const bgStyles = {
-    info: "bg-blue-500/10 border-blue-500/20",
-    success: "bg-green-500/10 border-green-500/20",
-    warning: "bg-yellow-500/10 border-yellow-500/20",
-    error: "bg-red-500/10 border-red-500/20",
-    incident: "bg-red-500/20 border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]",
-    resolved: "bg-green-500/10 border-green-500/20",
-  };
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-      className={cn(
-        "pointer-events-auto flex w-full max-w-sm overflow-hidden rounded-lg border shadow-lg backdrop-blur-md mb-3",
-        bgStyles[type] || bgStyles.info
-      )}
-    >
-      <div className="flex w-full p-4 relative">
-        <div className="flex-shrink-0 pt-0.5">{icons[type]}</div>
-        <div className="ml-3 w-0 flex-1">
-          <p className="text-sm font-medium text-gray-100">{title}</p>
-          <p className="mt-1 text-sm text-gray-400">{message}</p>
-        </div>
-        <div className="ml-4 flex-shrink-0 flex">
-          <button
-            type="button"
-            className="inline-flex rounded-md text-gray-400 hover:text-white focus:outline-none"
-            onClick={() => onDismiss(id)}
-          >
-            <span className="sr-only">Close</span>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
+const ToastIcon = ({ type }: { type: Notification["type"] }) => {
+  switch (type) {
+    case "error":
+    case "incident":
+      return <AlertOctagon className="h-5 w-5 text-red-500" />;
+    case "warning":
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case "success":
+    case "resolved":
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    case "info":
+    default:
+      return <Info className="h-5 w-5 text-blue-500" />;
+  }
 };
 
 export const ToastContainer = () => {
-    const [visibleToasts, setVisibleToasts] = useState<Notification[]>([]);
+  const { notifications } = useNotifications();
+  const [visibleToasts, setVisibleToasts] = useState<Notification[]>([]);
+  const [mountedAt] = useState(() => Date.now());
 
-    useEffect(() => {
-        // Subscribe to the store to detect new notifications
-        const unsubscribe = useNotifications.subscribe(
-            (state, prevState) => {
-                // Check if a new notification was added
-                if (state.notifications.length > prevState.notifications.length) {
-                    const newest = state.notifications[0];
-                    // Only show if it's very recent (less than 1s ago) to avoid stale toasts
-                    if (Date.now() - newest.timestamp < 1000) {
-                         setVisibleToasts((prev) => {
-                            // Avoid duplicates
-                            if (prev.find(t => t.id === newest.id)) return prev;
-                            return [...prev, newest];
-                        });
-                    }
-                }
-            }
-        );
-        return () => unsubscribe();
-    }, []);
+  // Only show notifications that arrived AFTER the component mounted
+  // This prevents the user from being bombarded with old notifications on page load
+  useEffect(() => {
+    const latestNotification = notifications[0];
+    
+    // Check if there is a notification and if it's new (timestamp > mountedAt)
+    if (latestNotification && latestNotification.timestamp > mountedAt) {
+      
+      // Check if we already have this toast visible to avoid duplicates
+      // Avoid calling setState synchronously within effect
+      setTimeout(() => {
+        setVisibleToasts((prev) => {
+          if (prev.some((n) => n.id === latestNotification.id)) return prev;
+          
+          // Add to the START of the list (top of stack)
+        return [latestNotification, ...prev].slice(0, 5); // Limit to 5 visible toasts
+      });
+      }, 0);
+    }
+  }, [notifications, mountedAt]);
 
-    const handleDismiss = (id: string) => {
-        setVisibleToasts(prev => prev.filter(t => t.id !== id));
-    };
+  // Handle auto-dismissal
+  useEffect(() => {
+    if (visibleToasts.length > 0) {
+      // Find the oldest toast that needs to be removed?
+      // Actually, we should probably set a timeout for EACH toast.
+      // But a simple global timer that removes the oldest one is easier for now,
+      // though it might be slightly inaccurate if multiple come in fast.
+      // Better approach: filter out expired toasts.
+      
+      const timer = setInterval(() => {
+         const now = Date.now();
+         setVisibleToasts(prev => prev.filter(n => now - n.timestamp < 5000));
+      }, 1000);
 
-    return (
-        <div
-        aria-live="assertive"
-        className="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6 z-[100]"
-        >
-        <div className="flex w-full flex-col items-center space-y-4 sm:items-end">
-            <AnimatePresence mode="popLayout">
-            {visibleToasts.map((notification) => (
-                <ToastItem
-                    key={notification.id}
-                    notification={notification}
-                    onDismiss={handleDismiss}
-                />
-            ))}
-            </AnimatePresence>
-        </div>
-        </div>
-    );
-}
+      return () => clearInterval(timer);
+    }
+  }, [visibleToasts]);
+
+  const dismissToast = (id: string) => {
+    setVisibleToasts((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <AnimatePresence mode="popLayout">
+        {visibleToasts.map((toast) => (
+          <motion.div
+            key={toast.id}
+            layout
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            className={cn(
+              "pointer-events-auto w-80 rounded-lg border bg-background p-4 shadow-lg backdrop-blur-sm",
+              "border-border/50 bg-card/95 supports-[backdrop-filter]:bg-background/60"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <ToastIcon type={toast.type} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold">{toast.title}</h3>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                  {toast.message}
+                </p>
+              </div>
+              <button
+                onClick={() => dismissToast(toast.id)}
+                className="flex-shrink-0 -mr-1 -mt-1 p-1 text-muted-foreground/50 hover:text-foreground transition-colors rounded-sm hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};

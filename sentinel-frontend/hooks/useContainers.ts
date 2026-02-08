@@ -8,7 +8,7 @@ export interface Container {
     image: string;
     status: string;
     health: 'healthy' | 'unhealthy' | 'unknown';
-    ports: any[];
+    ports: { PrivatePort: number; PublicPort?: number; Type: string }[];
     created: string;
 }
 
@@ -24,9 +24,10 @@ export function useContainers() {
             const response = await axios.get(`${API_BASE}/api/docker/containers`);
             setContainers(response.data.containers);
             setError(null);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to fetch containers:", err);
-            setError(err.message || "Failed to load containers");
+            const message = err instanceof Error ? err.message : "Failed to load containers";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -37,10 +38,11 @@ export function useContainers() {
             await axios.post(`${API_BASE}/api/docker/restart/${id}`);
             // Await refresh to ensure UI is up to date vs swallowing error
             await fetchContainers();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to restart container:", err);
             // Propagate error to UI if needed, or set local error state
-            setError(err.message || "Failed to restart container");
+            const message = err instanceof Error ? err.message : "Failed to restart container";
+            setError(message);
             throw err;
         }
     };

@@ -40,12 +40,12 @@ export const logger = {
                     try {
                         // Dynamic import to avoid hard dependency
                         const Sentry = await import('@sentry/browser');
-                        if (Sentry && !(Sentry as any)._initialized) {
+                        if (Sentry && !(Sentry as unknown as { _initialized: boolean })._initialized) {
                             Sentry.init({ dsn });
-                            (Sentry as any)._initialized = true;
+                            (Sentry as unknown as { _initialized: boolean })._initialized = true;
                         }
                         Sentry.captureException(error, { extra: context });
-                    } catch (e) {
+                    } catch {
                         // Silently ignore if Sentry isn't installed or configured
                     }
                 })();

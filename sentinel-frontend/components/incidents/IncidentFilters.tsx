@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/common/Button";
 import { Search, Filter, X } from "lucide-react";
-import { useState } from "react";
 
 interface IncidentFiltersProps {
     search: string;

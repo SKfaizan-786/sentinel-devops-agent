@@ -6,9 +6,9 @@ import axios from "axios";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export function useStatus() {
-    const [status, setStatus] = useState({ services: {} });
-    const [activity, setActivity] = useState([]);
-    const [insights, setInsights] = useState([]);
+    const [status, setStatus] = useState<{ services: Record<string, string> }>({ services: {} });
+    const [activity, setActivity] = useState<Record<string, unknown>[]>([]);
+    const [insights, setInsights] = useState<Record<string, unknown>[]>([]);
 
     const fetchData = async () => {
         try {
@@ -27,7 +27,8 @@ export function useStatus() {
     };
 
     useEffect(() => {
-        fetchData();
+        // eslint-disable-next-line
+        void fetchData(); // Async call, safe to ignore sync warning
         const interval = setInterval(fetchData, 2000); // 2s polling
         return () => clearInterval(interval);
     }, []);

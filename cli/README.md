@@ -64,6 +64,39 @@ sentinel heal auth
 sentinel report
 ```
 
+## Testing
+
+Run all tests:
+```bash
+npm test
+```
+
+Run tests with coverage report:
+```bash
+npm run test:coverage
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+Run a specific test file:
+```bash
+npm test -- tests/status.test.js
+```
+
+### Test Structure
+
+```
+cli/tests/
+├── setup.js          # Shared mocks and utilities
+├── status.test.js    # Tests for sentinel status
+├── simulate.test.js  # Tests for sentinel simulate
+├── heal.test.js      # Tests for sentinel heal
+└── report.test.js    # Tests for sentinel report
+```
+
 ## Requirements
 
 - Node.js 18+

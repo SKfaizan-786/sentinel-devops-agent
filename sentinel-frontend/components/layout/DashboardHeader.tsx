@@ -2,16 +2,16 @@
 
 import { Bell, Search, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
-import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { NotificationCenter } from "../notifications/NotificationCenter";
 import { ProfileDropdown } from "@/components/common/ProfileDropdown";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications, NotificationState } from "@/hooks/useNotifications";
 
 export function DashboardHeader() {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
-    const unreadCount = useNotifications((state) => state.unreadCount);
+    const unreadCount = useNotifications((state: NotificationState) => state.unreadCount);
 
     return (
         <header className="h-16 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-30">

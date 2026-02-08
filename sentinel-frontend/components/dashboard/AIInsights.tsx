@@ -6,7 +6,7 @@ import { Spotlight } from "@/components/common/Spotlight";
 export interface AIInsightItem {
     id: number;
     analysis: string;
-    metrics?: any;
+    metrics?: Record<string, { code: number }>;
     summary?: string;
     timestamp: string;
 }
@@ -45,7 +45,7 @@ export function AIInsights({ insights }: AIInsightsProps) {
 
                         {latestInsight.metrics && (
                             <div className="grid grid-cols-2 gap-3 mt-4">
-                                {Object.entries(latestInsight.metrics).map(([key, val]: [string, any]) => (
+                                {Object.entries(latestInsight.metrics).map(([key, val]) => (
                                     <div key={key} className="bg-muted/50 p-2 rounded border border-border text-center">
                                         <div className="text-[10px] text-muted-foreground uppercase">{key}</div>
                                         <div className={`font-mono font-bold ${val.code >= 500 ? 'text-red-500' : 'text-green-500'}`}>

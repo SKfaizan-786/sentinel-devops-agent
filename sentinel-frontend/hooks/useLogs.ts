@@ -28,8 +28,7 @@ export function useLogs() {
 
             // Transform backend logs to frontend format
             if (data.activity) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const formattedLogs: LogEntry[] = data.activity.map((entry: any) => {
+                const formattedLogs: LogEntry[] = data.activity.map((entry: { type: string; message: string; id: number; timestamp: string }) => {
                     let level: LogLevel = "info";
                     if (entry.type === 'alert' || entry.message.includes("CRITICAL") || entry.message.includes("down")) level = "error";
                     else if (entry.type === 'success' || entry.message.includes("HEALTHY")) level = "success";
@@ -51,7 +50,8 @@ export function useLogs() {
     }, [isPaused]);
 
     useEffect(() => {
-        fetchLogs();
+        // eslint-disable-next-line
+        void fetchLogs(); // Async call, safe to ignore sync warning
         intervalRef.current = setInterval(fetchLogs, 3000);
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
