@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
   },
   "keywords": [
     "devops",
@@ -25,5 +27,8 @@
     "cli-table3": "^0.6.3",
     "commander": "^11.1.0",
     "figlet": "^1.7.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
