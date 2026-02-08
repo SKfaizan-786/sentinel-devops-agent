@@ -11,7 +11,8 @@ import { useIncidents } from "@/hooks/useIncidents";
 
 import { useContainers } from "@/hooks/useContainers";
 import { ContainerCard } from "@/components/dashboard/ContainerCard";
-import { useMemo } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useMemo, useEffect, useRef } from "react";
 
 export default function DashboardPage() {
     const { metrics } = useMetrics();
@@ -38,7 +39,7 @@ export default function DashboardPage() {
                     ...service,
                     latency: realTime.currentResponseTime,
                     cpu: realTime.currentCpu,
-                    uptime: currentUptime.toFixed(2) as any,
+                    uptime: Number(currentUptime.toFixed(2)),
                     status: (isDown ? "down" : (realTime.currentErrorRate > 0.2 ? "degraded" : "healthy")) as "down" | "degraded" | "healthy",
                     trend: newTrend.length > 0 ? newTrend : baseService.trend,
                 };
@@ -46,6 +47,32 @@ export default function DashboardPage() {
             return service;
         });
     }, [metrics]);
+
+    const { addNotification } = useNotifications();
+    const prevStatuses = useRef<Record<string, string>>({});
+
+    useEffect(() => {
+        liveServices.forEach(service => {
+            const prevStatus = prevStatuses.current[service.id];
+            const currentStatus = service.status;
+
+            if (prevStatus && prevStatus !== "down" && currentStatus === "down") {
+                addNotification({
+                    type: "incident",
+                    title: `Service Down: ${service.name}`,
+                    message: `${service.name} is not responding as of ${new Date().toLocaleTimeString()}`,
+                });
+            } else if (prevStatus === "down" && currentStatus !== "down") {
+                addNotification({
+                    type: "resolved",
+                    title: `Service Restored: ${service.name}`,
+                    message: `${service.name} is back online and healthy.`,
+                });
+            }
+            
+            prevStatuses.current[service.id] = currentStatus;
+        });
+    }, [liveServices, addNotification]);
 
     const activeIncident = incidents.find(i => i.id === activeIncidentId);
 

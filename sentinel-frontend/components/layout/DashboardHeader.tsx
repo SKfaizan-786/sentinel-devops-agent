@@ -2,14 +2,16 @@
 
 import { Bell, Search, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
-import { NotificationsModal } from "@/components/common/NotificationsModal";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { ProfileDropdown } from "@/components/common/ProfileDropdown";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export function DashboardHeader() {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+    const unreadCount = useNotifications((state) => state.unreadCount);
 
     return (
         <header className="h-16 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-30">
@@ -39,9 +41,11 @@ export function DashboardHeader() {
                     onClick={() => setNotificationsOpen(true)}
                 >
                     <Bell className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                    )}
                 </Button>
-                <NotificationsModal isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+                <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
                 <button
                     onClick={() => setProfileOpen(!profileOpen)}
