@@ -61,7 +61,8 @@ export const useNotifications = create<NotificationState>()(
             if (playPromise !== undefined) {
               playPromise.catch((error) => {
                 // Auto-play was prevented or file not found
-                console.warn("Audio playback failed:", error);
+                // checking for 404 specifically isn't easy, but this prevents crash
+                console.warn("Audio playback failed (possibly 404 or autoplay policy):", error);
               });
             }
           } catch (e) {

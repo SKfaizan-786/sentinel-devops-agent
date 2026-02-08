@@ -26,36 +26,41 @@ export const ToastContainer = () => {
   const { notifications } = useNotifications();
   const [visibleToasts, setVisibleToasts] = useState<Notification[]>([]);
   const [mountedAt] = useState(() => Date.now());
+  const processedIds = useState(() => new Set<string>())[0]; // Stable Set ref
+
+  // Register Service Worker
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .catch(err => console.error("Service Worker registration failed:", err));
+    }
+  }, []);
 
   // Only show notifications that arrived AFTER the component mounted
   // This prevents the user from being bombarded with old notifications on page load
   useEffect(() => {
-    const latestNotification = notifications[0];
-    
-    // Check if there is a notification and if it's new (timestamp > mountedAt)
-    if (latestNotification && latestNotification.timestamp > mountedAt) {
-      
-      // Check if we already have this toast visible to avoid duplicates
-      // Avoid calling setState synchronously within effect
-      setTimeout(() => {
-        setVisibleToasts((prev) => {
-          if (prev.some((n) => n.id === latestNotification.id)) return prev;
-          
-          // Add to the START of the list (top of stack)
-        return [latestNotification, ...prev].slice(0, 5); // Limit to 5 visible toasts
-      });
-      }, 0);
+    // Filter for new, unprocessed notifications
+    const newNotifications = notifications.filter(n => 
+        n.timestamp > mountedAt && !processedIds.has(n.id)
+    );
+
+    if (newNotifications.length > 0) {
+        // Mark as processed
+        newNotifications.forEach(n => processedIds.add(n.id));
+
+        // Add to visible toasts (newest first)
+        setTimeout(() => {
+            setVisibleToasts(prev => {
+                const updated = [...newNotifications, ...prev];
+                return updated.slice(0, 5); // Limit to 5
+            });
+        }, 0);
     }
-  }, [notifications, mountedAt]);
+  }, [notifications, mountedAt, processedIds]);
 
   // Handle auto-dismissal
   useEffect(() => {
     if (visibleToasts.length > 0) {
-      // Find the oldest toast that needs to be removed?
-      // Actually, we should probably set a timeout for EACH toast.
-      // But a simple global timer that removes the oldest one is easier for now,
-      // though it might be slightly inaccurate if multiple come in fast.
-      // Better approach: filter out expired toasts.
       
       const timer = setInterval(() => {
          const now = Date.now();

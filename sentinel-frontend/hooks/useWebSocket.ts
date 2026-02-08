@@ -24,7 +24,7 @@ interface UseWebSocketOptions {
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const { onMessage, enabled = true, simulationInterval = 2000 } = options;
   const [internalStatus, setInternalStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
-  // const themeStatus = statusMap[incident.status] || "unknown";nected";
+  // const themeStatus = statusMap[incident.status] || "unknown";
   const status = enabled ? internalStatus : "disconnected";
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
 

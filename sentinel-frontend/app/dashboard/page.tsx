@@ -19,7 +19,7 @@ import { ServiceGridSkeleton } from "@/components/dashboard/ServiceCardSkeleton"
 import { IncidentTimelineSkeleton } from "@/components/dashboard/IncidentTimelineSkeleton";
 
 export default function DashboardPage() {
-    const { metrics, status: metricsStatus } = useMetrics();
+    const { metrics } = useMetrics();
     const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents();
     const { containers, loading: containersLoading, restartContainer } = useContainers();
 
@@ -28,12 +28,16 @@ export default function DashboardPage() {
 
     useEffect(() => {
         // Clear initial load after first data arrives
-        if (metricsStatus === "connected" && initialLoad) {
-            // Small delay to prevent flash
-            const timer = setTimeout(() => setInitialLoad(false), 300);
+        if ((metrics || incidents.length > 0) && initialLoad) {
+            const timer = setTimeout(() => setInitialLoad(false), 0);
             return () => clearTimeout(timer);
         }
-    }, [metricsStatus, initialLoad]);
+
+        // Request notification permission if we have an active incident
+        if (activeIncidentId && "Notification" in window && Notification.permission === "default") {
+             void Notification.requestPermission();
+        }
+    }, [metrics, incidents, initialLoad, activeIncidentId]);
 
     const isLoading = initialLoad;
 

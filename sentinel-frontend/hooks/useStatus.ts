@@ -18,9 +18,10 @@ export function useStatus() {
                 axios.get(`${API_BASE}/api/insights`)
             ]);
 
-            setStatus(statusRes.data);
-            setActivity(activityRes.data.activity);
-            setInsights(insightsRes.data.insights);
+            // Simple debounce/dedupe: only update if data changed
+            setStatus(prev => JSON.stringify(prev) === JSON.stringify(statusRes.data) ? prev : statusRes.data);
+            setActivity(prev => JSON.stringify(prev) === JSON.stringify(activityRes.data.activity) ? prev : activityRes.data.activity);
+            setInsights(prev => JSON.stringify(prev) === JSON.stringify(insightsRes.data.insights) ? prev : insightsRes.data.insights);
         } catch (error) {
             console.error("Error fetching system status:", error);
         }
