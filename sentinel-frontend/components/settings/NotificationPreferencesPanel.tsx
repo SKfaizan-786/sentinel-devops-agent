@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import { Bell, Volume2, Clock } from 'lucide-react';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 

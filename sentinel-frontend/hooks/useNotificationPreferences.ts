@@ -22,7 +22,7 @@ export const useNotificationPreferences = create<
     updatePreferences: (updates: Partial<NotificationPreferences>) => void;
     isInDndPeriod: () => boolean;
   }
->(
+>()(
   persist(
     (set, get) => ({
       soundEnabled: true,
@@ -46,10 +46,10 @@ export const useNotificationPreferences = create<
 
         // Handle overnight DND periods (e.g., 22:00 to 08:00)
         if (startTime > endTime) {
-          return currentTime >= startTime || currentTime <= endTime;
+          return currentTime >= startTime || currentTime < endTime;
         }
 
-        return currentTime >= startTime && currentTime <= endTime;
+        return currentTime >= startTime && currentTime < endTime;
       },
     }),
     { name: 'notification-preferences' }

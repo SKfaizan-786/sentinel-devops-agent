@@ -52,8 +52,7 @@ export const useNotifications = create<NotificationState>()(
           'warning': 1,
           'error': 2,
           'incident': 2,
-          'resolved': 0,
-          'critical': 2
+          'resolved': 0
         };
         
         const notificationSeverity = severityMap[notification.type] || 0;
@@ -71,13 +70,11 @@ export const useNotifications = create<NotificationState>()(
           read: false,
         };
 
-        // Only add to toast if channel is enabled
-        if (prefs.channels.toast) {
-          set((state) => ({
-            notifications: [newNotification, ...state.notifications],
-            unreadCount: state.unreadCount + 1,
-          }));
-        }
+        // Always add to store for persistence
+        set((state) => ({
+          notifications: [newNotification, ...state.notifications],
+          unreadCount: state.unreadCount + 1,
+        }));
 
        
         // Play sound for critical alerts if enabled
