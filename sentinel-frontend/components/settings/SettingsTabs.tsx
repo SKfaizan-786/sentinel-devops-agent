@@ -1,11 +1,12 @@
 "use client";
 
-import { User, Bell, Key, ShieldAlert } from "lucide-react";
+import { User, Bell, Key, ShieldAlert, Settings } from "lucide-react";
 
 export function SettingsTabs({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) {
     const tabs = [
         { id: "profile", label: "Profile", icon: <User className="h-4 w-4" /> },
         { id: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+        { id: "notification-preferences", label: "Notification Preferences", icon: <Settings className="h-4 w-4" /> },
         { id: "api-keys", label: "API Keys", icon: <Key className="h-4 w-4" /> },
         { id: "danger", label: "Danger Zone", icon: <ShieldAlert className="h-4 w-4" /> },
     ];

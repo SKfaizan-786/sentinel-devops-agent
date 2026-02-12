@@ -3,6 +3,7 @@
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import { useState } from "react";
