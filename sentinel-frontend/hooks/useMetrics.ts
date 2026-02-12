@@ -20,7 +20,8 @@ export type ServiceMetrics = {
     history: TimeSeriesPoint[];
 };
 
-export function useMetrics() {
+export function useMetrics(options: { manual?: boolean } = {}) {
+    const { manual } = options;
     // Helper for initial history
     const initialHistory = Array(30).fill(0).map((_, i) => ({
         timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
@@ -117,12 +118,15 @@ export function useMetrics() {
 
     useEffect(() => {
         fetchMetrics(); // Initial fetch
-        intervalRef.current = setInterval(fetchMetrics, 2000); // Poll every 2s to match Kestra's fast pace via flow
+
+        if (!manual) {
+            intervalRef.current = setInterval(fetchMetrics, 2000); // Poll every 2s
+        }
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, []);
+    }, [manual]);
 
-    return { metrics, status };
+    return { metrics, status, refetch: fetchMetrics };
 }

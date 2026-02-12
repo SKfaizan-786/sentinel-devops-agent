@@ -14,7 +14,8 @@ export interface Container {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-export function useContainers() {
+export function useContainers(options: { manual?: boolean } = {}) {
+    const { manual } = options;
     const [containers, setContainers] = useState<Container[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -49,9 +50,16 @@ export function useContainers() {
 
     useEffect(() => {
         fetchContainers();
-        const interval = setInterval(fetchContainers, 5000);
-        return () => clearInterval(interval);
-    }, []);
+
+        let interval: NodeJS.Timeout;
+        if (!manual) {
+            interval = setInterval(fetchContainers, 5000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [manual]);
 
     return {
         containers,

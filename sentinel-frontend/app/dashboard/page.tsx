@@ -1,5 +1,6 @@
 "use client";
 
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { HealthSummary } from "@/components/dashboard/HealthSummary";
 import { ServiceGrid } from "@/components/dashboard/ServiceGrid";
 import { MetricsCharts } from "@/components/dashboard/MetricsCharts";
@@ -12,16 +13,22 @@ import { useIncidents } from "@/hooks/useIncidents";
 
 import { useContainers } from "@/hooks/useContainers";
 import { ContainerCard } from "@/components/dashboard/ContainerCard";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { MetricsChartsSkeleton } from "@/components/dashboard/ChartSkeleton";
 import { ServiceGridSkeleton } from "@/components/dashboard/ServiceCardSkeleton";
 import { IncidentTimelineSkeleton } from "@/components/dashboard/IncidentTimelineSkeleton";
 
 export default function DashboardPage() {
-    const { metrics } = useMetrics();
-    const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents();
-    const { containers, loading: containersLoading, restartContainer } = useContainers();
+    const { metrics, refetch: refetchMetrics } = useMetrics({ manual: true });
+    const { incidents, activeIncidentId, setActiveIncidentId, refetch: refetchIncidents } = useIncidents({ manual: true });
+    const { containers, loading: containersLoading, restartContainer, refetch: refetchContainers } = useContainers({ manual: true });
+
+    const handleRefresh = useCallback(() => {
+        refetchMetrics();
+        refetchIncidents();
+        refetchContainers();
+    }, [refetchMetrics, refetchIncidents, refetchContainers]);
 
     // Track initial load state (skeletons shown only on first load)
     const [initialLoad, setInitialLoad] = useState(true);
@@ -35,7 +42,7 @@ export default function DashboardPage() {
 
         // Request notification permission if we have an active incident
         if (activeIncidentId && "Notification" in window && Notification.permission === "default") {
-             void Notification.requestPermission();
+            void Notification.requestPermission();
         }
     }, [metrics, incidents, initialLoad, activeIncidentId]);
 
@@ -92,7 +99,7 @@ export default function DashboardPage() {
                     message: `${service.name} is back online and healthy.`,
                 });
             }
-            
+
             prevStatuses.current[service.id] = currentStatus;
         });
     }, [liveServices, addNotification]);
@@ -107,134 +114,139 @@ export default function DashboardPage() {
     return (
         <div className="space-y-8 pb-20">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Dashboard</h1>
-                <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
-            </div>
-
-            {/* Health Summary - Show skeleton during initial load */}
-            {isLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="p-4 rounded-xl bg-card border border-border">
-                            <Skeleton variant="text" className="w-20 h-3 mb-2" />
-                            <Skeleton variant="text" className="w-16 h-8" />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <HealthSummary
-                    uptime={realUptime}
-                    servicesUp={healthyServices}
-                    totalServices={totalServices}
-                    activeIncidents={incidents.filter(i => i.status !== "resolved").length}
-                />
-            )}
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Charts & Services (2/3 width) */}
-                <div className="lg:col-span-2 space-y-8">
-                    {/* Metrics Charts */}
-                    {isLoading ? (
-                        <MetricsChartsSkeleton />
-                    ) : (
-                        <MetricsCharts metrics={metrics} />
-                    )}
-
-                    {/* Services Section */}
+                <DashboardHeader onRefresh={handleRefresh} />
+                <div className="px-4 lg:px-6 py-6 space-y-8">
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-foreground">Monitored Services</h2>
-                            <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </span>
-                                Live Updates
-                            </span>
-                        </div>
-                        {isLoading ? (
-                            <ServiceGridSkeleton count={6} />
-                        ) : (
-                            <ServiceGrid services={liveServices} />
-                        )}
+                        <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Dashboard</h1>
+                        <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
                     </div>
 
-                    {/* Docker Containers Section */}
-                    {containersLoading ? (
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <Skeleton variant="text" className="w-36 h-6" />
-                                <Skeleton variant="rectangular" className="w-24 h-6 rounded" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[1, 2].map((i) => (
-                                    <div key={i} className="p-4 rounded-xl bg-card border border-border">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <Skeleton variant="circular" width={40} height={40} />
-                                            <div className="space-y-2 flex-1">
-                                                <Skeleton variant="text" className="w-24" />
-                                                <Skeleton variant="text" className="w-16" />
-                                            </div>
-                                        </div>
-                                        <Skeleton variant="text" className="w-full mb-2" />
-                                        <Skeleton variant="text" className="w-3/4" />
-                                    </div>
-                                ))}
-                            </div>
+                    {/* Health Summary - Show skeleton during initial load */}
+                    {isLoading ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="p-4 rounded-xl bg-card border border-border">
+                                    <Skeleton variant="text" className="w-20 h-3 mb-2" />
+                                    <Skeleton variant="text" className="w-16 h-8" />
+                                </div>
+                            ))}
                         </div>
-                    ) : containers.length > 0 && (
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-semibold text-foreground">Docker Containers</h2>
-                                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
-                                        {containers.length} Running
+                    ) : (
+                        <HealthSummary
+                            uptime={realUptime}
+                            servicesUp={healthyServices}
+                            totalServices={totalServices}
+                            activeIncidents={incidents.filter(i => i.status !== "resolved").length}
+                        />
+                    )}
+
+                    {/* Main Content Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Column: Charts & Services (2/3 width) */}
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Metrics Charts */}
+                            {isLoading ? (
+                                <MetricsChartsSkeleton />
+                            ) : (
+                                <MetricsCharts metrics={metrics} />
+                            )}
+
+                            {/* Services Section */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-semibold text-foreground">Monitored Services</h2>
+                                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                        Live Updates
                                     </span>
-                                </span>
+                                </div>
+                                {isLoading ? (
+                                    <ServiceGridSkeleton count={6} />
+                                ) : (
+                                    <ServiceGrid services={liveServices} />
+                                )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {containers.map(container => (
-                                    <ContainerCard
-                                        key={container.id}
-                                        container={container}
-                                        onRestart={restartContainer}
+
+                            {/* Docker Containers Section */}
+                            {containersLoading ? (
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <Skeleton variant="text" className="w-36 h-6" />
+                                        <Skeleton variant="rectangular" className="w-24 h-6 rounded" />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[1, 2].map((i) => (
+                                            <div key={i} className="p-4 rounded-xl bg-card border border-border">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <Skeleton variant="circular" width={40} height={40} />
+                                                    <div className="space-y-2 flex-1">
+                                                        <Skeleton variant="text" className="w-24" />
+                                                        <Skeleton variant="text" className="w-16" />
+                                                    </div>
+                                                </div>
+                                                <Skeleton variant="text" className="w-full mb-2" />
+                                                <Skeleton variant="text" className="w-3/4" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : containers.length > 0 && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-xl font-semibold text-foreground">Docker Containers</h2>
+                                        <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                                {containers.length} Running
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {containers.map(container => (
+                                            <ContainerCard
+                                                key={container.id}
+                                                container={container}
+                                                onRestart={restartContainer}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Column: Timeline & Reasoning (1/3 width) */}
+                        <div className="space-y-8">
+                            {/* Agent Reasoning (Sticky if active) */}
+                            {activeIncident && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h2 className="text-lg font-semibold text-primary">Sentinel AI Analysis</h2>
+                                        <button
+                                            onClick={() => setActiveIncidentId(null)}
+                                            className="text-xs text-muted-foreground hover:text-foreground"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                    <AgentReasoningPanel incident={activeIncident} />
+                                </div>
+                            )}
+
+                            {/* Incident Timeline */}
+                            <div>
+                                <h2 className="text-xl font-semibold text-foreground mb-4">Incident Timeline</h2>
+                                {isLoading ? (
+                                    <IncidentTimelineSkeleton count={3} />
+                                ) : (
+                                    <IncidentTimeline
+                                        incidents={incidents}
+                                        onViewReasoning={(id) => setActiveIncidentId(id)}
                                     />
-                                ))}
+                                )}
                             </div>
                         </div>
-                    )}
-                </div>
-
-                {/* Right Column: Timeline & Reasoning (1/3 width) */}
-                <div className="space-y-8">
-                    {/* Agent Reasoning (Sticky if active) */}
-                    {activeIncident && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="text-lg font-semibold text-primary">Sentinel AI Analysis</h2>
-                                <button
-                                    onClick={() => setActiveIncidentId(null)}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                            <AgentReasoningPanel incident={activeIncident} />
-                        </div>
-                    )}
-
-                    {/* Incident Timeline */}
-                    <div>
-                        <h2 className="text-xl font-semibold text-foreground mb-4">Incident Timeline</h2>
-                        {isLoading ? (
-                            <IncidentTimelineSkeleton count={3} />
-                        ) : (
-                            <IncidentTimeline
-                                incidents={incidents}
-                                onViewReasoning={(id) => setActiveIncidentId(id)}
-                            />
-                        )}
                     </div>
                 </div>
             </div>

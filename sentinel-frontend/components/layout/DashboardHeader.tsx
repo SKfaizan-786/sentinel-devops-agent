@@ -1,14 +1,22 @@
 "use client";
 
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, RotateCw, Pause, Play } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { ProfileDropdown } from "@/components/common/ProfileDropdown";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
 import { useNotifications, NotificationState } from "@/hooks/useNotifications";
+import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+    onRefresh?: () => void;
+}
+
+export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
+    const { enabled, updateEnabled, interval, updateInterval, manualRefresh } =
+        useAutoRefresh({ onRefresh: onRefresh || (() => { }) });
+
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
     const unreadCount = useNotifications((state: NotificationState) => state.unreadCount);
@@ -33,6 +41,43 @@ export function DashboardHeader() {
             <div className="md:hidden flex-1 pl-12" />
 
             <div className="flex items-center gap-4 relative">
+                {onRefresh && (
+                    <div className="flex items-center gap-2 mr-2 border-r pr-4 border-border">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={manualRefresh}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Refresh now"
+                        >
+                            <RotateCw className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => updateEnabled(!enabled)}
+                            className={enabled ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}
+                            title={enabled ? "Disable auto-refresh" : "Enable auto-refresh"}
+                        >
+                            {enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+
+                        {enabled && (
+                            <select
+                                value={interval}
+                                onChange={(e) => updateInterval(e.target.value as RefreshInterval)}
+                                className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground"
+                            >
+                                <option value="5s">5s</option>
+                                <option value="10s">10s</option>
+                                <option value="30s">30s</option>
+                                <option value="1m">1m</option>
+                                <option value="5m">5m</option>
+                            </select>
+                        )}
+                    </div>
+                )}
                 <ThemeToggle />
                 <Button
                     variant="ghost"

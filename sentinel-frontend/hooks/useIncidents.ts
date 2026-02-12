@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Incident } from "@/lib/mockData";
 
-export function useIncidents() {
+export function useIncidents(options: { manual?: boolean } = {}) {
+    const { manual } = options;
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -92,16 +93,21 @@ export function useIncidents() {
 
     useEffect(() => {
         fetchIncidents();
-        intervalRef.current = setInterval(fetchIncidents, 3000); // Poll every 3s
+
+        if (!manual) {
+            intervalRef.current = setInterval(fetchIncidents, 3000); // Poll every 3s
+        }
+
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [fetchIncidents]);
+    }, [fetchIncidents, manual]);
 
     return {
         incidents,
         activeIncidentId,
         setActiveIncidentId,
         connectionStatus: "connected",
+        refetch: fetchIncidents,
     };
 }
