@@ -26,6 +26,19 @@ let systemStatus = {
 
 let activityLog = [];
 let aiLogs = [];
+let nextLogId = 1;
+
+function logActivity(type, message) {
+  const entry = {
+    id: nextLogId++,
+    timestamp: new Date().toISOString(),
+    type,
+    message
+  };
+  activityLog.unshift(entry);
+  if (activityLog.length > 100) activityLog.pop(); // Keep last 100
+  console.log(`[LOG] ${type}: ${message}`);
+}
 
 // Service configuration
 const services = [
@@ -46,7 +59,13 @@ async function checkServiceHealth() {
   for (const service of services) {
     try {
       const response = await axios.get(service.url, { timeout: 30000 });
-      console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
+      // console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
+
+      const prevStatus = systemStatus.services[service.name].status;
+      if (prevStatus !== 'healthy' && prevStatus !== 'unknown') {
+        logActivity('success', `Service ${service.name} recovered to HEALTHY`);
+      }
+
       systemStatus.services[service.name] = {
         status: 'healthy',
         code: response.status,
@@ -54,9 +73,15 @@ async function checkServiceHealth() {
       };
     } catch (error) {
       const code = error.response?.status || 503;
-      console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
+      // console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
 
       const status = code >= 500 ? 'critical' : 'degraded';
+      const prevStatus = systemStatus.services[service.name].status;
+
+      if (prevStatus !== status) {
+        logActivity(status === 'critical' ? 'alert' : 'warn', `Service ${service.name} is ${status.toUpperCase()} (Code: ${code})`);
+      }
+
       systemStatus.services[service.name] = {
         status: status,
         code: code,
@@ -88,6 +113,7 @@ app.post('/api/kestra-webhook', (req, res) => {
   const { aiReport, metrics } = req.body;
   if (aiReport) {
     systemStatus.aiAnalysis = aiReport;
+    logActivity('info', 'Received new AI Analysis report');
   }
   systemStatus.lastUpdated = new Date();
 
@@ -96,9 +122,15 @@ app.post('/api/kestra-webhook', (req, res) => {
       if (systemStatus.services[serviceName]) {
         systemStatus.services[serviceName].code = metrics[serviceName].code || 0;
         const code = metrics[serviceName].code;
-        systemStatus.services[serviceName].status =
-          code >= 200 && code < 300 ? 'healthy' :
-            code >= 500 ? 'critical' : 'degraded';
+        const newStatus = code >= 200 && code < 300 ? 'healthy' :
+          code >= 500 ? 'critical' : 'degraded';
+
+        if (systemStatus.services[serviceName].status !== newStatus) {
+          const severity = newStatus === 'healthy' ? 'success' : (newStatus === 'critical' ? 'alert' : 'warn');
+          logActivity(severity, `Metric update: ${serviceName} is now ${newStatus}`);
+        }
+
+        systemStatus.services[serviceName].status = newStatus;
         systemStatus.services[serviceName].lastUpdated = new Date();
       }
     });
@@ -111,7 +143,12 @@ app.post('/api/action/:service/:type', async (req, res) => {
   const serviceMap = { 'auth': 3001, 'payment': 3002, 'notification': 3003 };
   const port = serviceMap[service];
 
-  if (!port) return res.status(400).json({ success: false, error: 'Invalid service' });
+  logActivity('info', `Triggering action '${type}' on service '${service}'`);
+
+  if (!port) {
+    logActivity('warn', `Failed action '${type}': Invalid service '${service}'`);
+    return res.status(400).json({ success: false, error: 'Invalid service' });
+  }
 
   try {
     let mode = 'healthy';
@@ -120,8 +157,10 @@ app.post('/api/action/:service/:type', async (req, res) => {
     if (type === 'slow') mode = 'slow';
 
     await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
+    logActivity('success', `Successfully executed '${type}' on ${service}`);
     res.json({ success: true, message: `${type} executed on ${service}` });
   } catch (error) {
+    logActivity('error', `Action '${type}' on ${service} failed: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });
