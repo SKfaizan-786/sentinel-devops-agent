@@ -13,9 +13,13 @@ interface LogExportModalProps {
 
 export function LogExportModal({ logs, isOpen, onClose }: LogExportModalProps) {
   const [format, setFormat] = useState<'csv' | 'json'>('csv');
-  const [filename, setFilename] = useState(`logs-${Date.now()}`);
+  // Use lazy initializer to avoid impure render
+  const [filename, setFilename] = useState(() => `logs-${Date.now()}`);
 
   const handleExport = () => {
+    // Sanitize and validate filename
+    const sanitizedFilename = filename.trim() || `logs-${Date.now()}`;
+    
     const data = format === 'csv' ? convertToCSV(logs) : convertToJSON(logs);
     const blob = new Blob([data], { 
       type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json' 
@@ -23,7 +27,7 @@ export function LogExportModal({ logs, isOpen, onClose }: LogExportModalProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.${format}`;
+    a.download = `${sanitizedFilename}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -91,7 +95,8 @@ export function LogExportModal({ logs, isOpen, onClose }: LogExportModalProps) {
           <div className="flex gap-2 pt-4">
             <button
               onClick={handleExport}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors font-medium"
+              disabled={!filename.trim()}
+              className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
             >
               <Download size={18} /> Export
             </button>
