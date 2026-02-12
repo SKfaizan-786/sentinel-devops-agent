@@ -2,6 +2,7 @@
 
 import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import { useState } from "react";
@@ -24,6 +25,7 @@ export default function SettingsPage() {
                 <div className="flex-1 min-h-[400px]">
                     {activeTab === "profile" && <ProfileSettings />}
                     {activeTab === "notifications" && <NotificationSettings />}
+                    {activeTab === "notification-preferences" && <NotificationPreferencesPanel />}
                     {activeTab === "api-keys" && <ApiKeySettings />}
                     {activeTab === "danger" && (
                         <div className="p-4 border border-red-500/20 bg-red-500/5 rounded-xl text-red-400 text-sm">
