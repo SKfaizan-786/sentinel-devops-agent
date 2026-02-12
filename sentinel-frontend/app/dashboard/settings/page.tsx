@@ -11,7 +11,6 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("profile");
 
     return (
-    return (
         <div>
             <DashboardHeader />
             <div className="p-4 lg:p-6">
@@ -41,6 +40,5 @@ export default function SettingsPage() {
                 </div>
             </div>
         </div>
-    );
     );
 }
