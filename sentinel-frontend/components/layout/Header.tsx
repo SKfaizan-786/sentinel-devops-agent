@@ -5,9 +5,12 @@ import { Button } from "@/components/common/Button";
 import { SentinelLogo } from "@/components/common/SentinelLogo";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWebSocketContext } from "@/lib/WebSocketContext";
+import { Wifi, WifiOff } from "lucide-react";
 
 export function Header() {
     const [scrolled, setScrolled] = useState(false);
+    const { isConnected } = useWebSocketContext();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -43,6 +46,14 @@ export function Header() {
                 </nav>
 
                 <div className="flex items-center gap-4">
+                    <div className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                        isConnected ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                    )} title={isConnected ? "System Connected" : "System Disconnected"}>
+                        {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                        <span className="hidden sm:inline">{isConnected ? "Online" : "Offline"}</span>
+                    </div>
+
                     <Link href="/login" className="hidden md:block text-sm font-medium hover:text-primary">
                         Login
                     </Link>

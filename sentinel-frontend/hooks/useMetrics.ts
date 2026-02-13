@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { useWebSocketContext } from "../lib/WebSocketContext";
 
 export type TimeSeriesPoint = {
     timestamp: string;
@@ -20,6 +21,20 @@ export type ServiceMetrics = {
     history: TimeSeriesPoint[];
 };
 
+export interface RemoteStatusService {
+    status: string;
+    code: number;
+    lastUpdated?: number | string;
+    [key: string]: unknown;
+}
+
+export interface RemoteStatus {
+    auth?: RemoteStatusService;
+    payment?: RemoteStatusService;
+    notification?: RemoteStatusService;
+    [key: string]: RemoteStatusService | undefined;
+}
+
 export function useMetrics() {
     // Helper for initial history
     const initialHistory = Array(30).fill(0).map((_, i) => ({
@@ -36,26 +51,38 @@ export function useMetrics() {
         "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: initialHistory },
     });
 
-    const [status, setStatus] = useState<string>("connecting");
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const { isConnected, lastMessage } = useWebSocketContext();
+    const [remoteStatus, setRemoteStatus] = useState<RemoteStatus>({});
 
-    const fetchMetrics = async () => {
-        try {
-            const res = await fetch("http://localhost:4000/api/status");
-            if (!res.ok) throw new Error("Failed to fetch");
-            const data = await res.json();
+    // Listen for WebSocket messages from Context
+    useEffect(() => {
+        if (!lastMessage) return;
 
-            setStatus("connected");
+        if (lastMessage.type === 'METRICS' || lastMessage.type === 'INIT') {
+            if (lastMessage.data.services) {
+                setRemoteStatus(lastMessage.data.services as unknown as RemoteStatus);
+            }
+        } else if (lastMessage.type === 'SERVICE_UPDATE') {
+            setRemoteStatus((prev) => ({
+                ...prev,
+                [lastMessage.data.name]: lastMessage.data as unknown as RemoteStatusService
+            }));
+        }
+    }, [lastMessage]);
+
+    // Update metrics loop (visuals + incorporating remote status)
+    useEffect(() => {
+        const updateMetrics = () => {
             const timestamp = new Date().toLocaleTimeString();
 
             setMetrics(prev => {
                 const next = { ...prev };
 
-                // Map backend services to frontend
-                const serviceMap: Record<string, { code?: number } | undefined> = {
-                    "auth-service": data.services?.auth,
-                    "payment-service": data.services?.payment,
-                    "notification-service": data.services?.notification
+                // Map backend services to frontend keys
+                const serviceMap: Record<string, RemoteStatusService | undefined> = {
+                    "auth-service": remoteStatus.auth,
+                    "payment-service": remoteStatus.payment,
+                    "notification-service": remoteStatus.notification
                 };
 
                 Object.keys(next).forEach((key, index) => {
@@ -81,7 +108,7 @@ export function useMetrics() {
                     }
 
                     // If real backend data says it's down (code != 200)
-                    if (backendData && backendData.code !== 200) {
+                    if (backendData && backendData.code !== 200 && backendData.code !== 0) {
                         errorRate = 1.0; // 100% error rate
                         responseTime = 0;
                         cpu = 0;
@@ -108,21 +135,22 @@ export function useMetrics() {
                 });
                 return next;
             });
-
-        } catch (error) {
-            console.error("Error fetching metrics:", error);
-            setStatus("error");
-        }
-    };
-
-    useEffect(() => {
-        fetchMetrics(); // Initial fetch
-        intervalRef.current = setInterval(fetchMetrics, 2000); // Poll every 2s to match Kestra's fast pace via flow
-
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
         };
+
+        const interval = setInterval(updateMetrics, 2000);
+        return () => clearInterval(interval);
+    }, [remoteStatus]);
+
+    // Initial Fetch fallback
+    useEffect(() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        fetch(`${apiUrl}/status`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.services) setRemoteStatus(data.services);
+            })
+            .catch(e => console.error("Initial metrics fetch failed", e));
     }, []);
 
-    return { metrics, status };
+    return { metrics, status: isConnected ? "connected" : "disconnected" };
 }
