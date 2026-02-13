@@ -1,107 +1,123 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Incident } from "@/lib/mockData";
+import { useWebSocketContext } from "../lib/WebSocketContext";
+
+interface AiAnalysisData {
+    summary: string;
+    choices?: { message: { content: string } }[];
+}
+
+interface InsightPayload {
+    id?: string | number;
+    analysis?: string;
+    summary?: string;
+    timestamp?: string;
+    [key: string]: unknown;
+}
 
 export function useIncidents() {
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const { isConnected, lastMessage } = useWebSocketContext();
 
-    const fetchIncidents = useCallback(async () => {
+    const processInsight = useCallback((insight: InsightPayload) => {
+        if (!insight) return;
+
+        // Parse AI analysis
+        let aiData: AiAnalysisData = { summary: "" };
+        const rawAnalysis = insight.analysis || insight.summary || "";
+
         try {
-            // Fetch AI insights from Kestra (this contains the actual AI logs)
-            const res = await fetch("http://localhost:4000/api/insights");
-            if (!res.ok) return;
-            const data = await res.json();
-
-            if (data.insights && Array.isArray(data.insights) && data.insights.length > 0) {
-                const latestInsight = data.insights[0];
-
-                // Parse AI analysis
-                let aiData: any = {};
-                const rawAnalysis = latestInsight.analysis || latestInsight.summary || "";
-
-                try {
-                    if (rawAnalysis.trim().startsWith('{')) {
-                        aiData = JSON.parse(rawAnalysis);
-                        if (aiData.choices?.[0]?.message?.content) {
-                            aiData.summary = aiData.choices[0].message.content;
-                        }
-                    } else {
-                        aiData = { summary: rawAnalysis };
-                    }
-                } catch {
-                    aiData = { summary: rawAnalysis };
-                }
-
-                const summaryUpper = (aiData.summary || "").toUpperCase();
-                const isCritical = summaryUpper.includes("CRITICAL") || summaryUpper.includes("FATAL");
-                const isDegraded = summaryUpper.includes("DEGRADED") || summaryUpper.includes("ERROR") || summaryUpper.includes("DOWN");
-
-                let status: "resolved" | "failed" = "resolved";
-                let title = "System Normal";
-                let severity: "info" | "warning" | "critical" = "info";
-
-                if (isCritical) {
-                    status = "failed";
-                    title = "System Critical";
-                    severity = "critical";
-                } else if (isDegraded) {
-                    status = "failed";
-                    title = "System Degraded";
-                    severity = "warning";
-                } else {
-                    // Healthy state
-                    status = "resolved";
-                    title = "System Healthy";
-                    severity = "info";
-                }
-
-                const incident: Incident = {
-                    id: latestInsight.id?.toString() || "latest",
-                    title: title,
-                    serviceId: "system",
-                    status: status,
-                    severity: severity,
-                    timestamp: latestInsight.timestamp || new Date().toISOString(),
-                    duration: status === "failed" ? "Action Required" : "Normal",
-                    rootCause: status === "failed" ? "Service Failure Detected" : "Routine Check",
-                    agentAction: "Monitoring",
-                    agentPredictionConfidence: 99,
-                    timeline: [],
-                    reasoning: aiData.summary || rawAnalysis || "No analysis available"
-                };
-
-                // Always show the latest incident (even if healthy)
-                setIncidents([incident]);
-
-                // Auto-open panel only if critical/degraded
-                if (!activeIncidentId && status === 'failed') {
-                    setActiveIncidentId(incident.id);
+            if (typeof rawAnalysis === 'string' && rawAnalysis.trim().startsWith('{')) {
+                const parsed = JSON.parse(rawAnalysis);
+                aiData = parsed;
+                if (parsed.choices?.[0]?.message?.content) {
+                    aiData.summary = parsed.choices[0].message.content;
                 }
             } else {
-                // No insights yet
-                setIncidents([]);
+                aiData = { summary: String(rawAnalysis) };
             }
-
-        } catch (e) {
-            console.error("Failed to fetch incidents:", e);
+        } catch {
+            aiData = { summary: String(rawAnalysis) };
         }
-    }, [activeIncidentId]);
 
-    useEffect(() => {
-        fetchIncidents();
-        intervalRef.current = setInterval(fetchIncidents, 3000); // Poll every 3s
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+        const summaryUpper = (aiData.summary || "").toUpperCase();
+        const isCritical = summaryUpper.includes("CRITICAL") || summaryUpper.includes("FATAL");
+        const isDegraded = summaryUpper.includes("DEGRADED") || summaryUpper.includes("ERROR") || summaryUpper.includes("DOWN");
+
+        let status: "resolved" | "failed" = "resolved";
+        let title = "System Normal";
+        let severity: "info" | "warning" | "critical" = "info";
+
+        if (isCritical) {
+            status = "failed";
+            title = "System Critical";
+            severity = "critical";
+        } else if (isDegraded) {
+            status = "failed";
+            title = "System Degraded";
+            severity = "warning";
+        }
+
+        const incident: Incident = {
+            id: insight.id?.toString() || Date.now().toString(),
+            title: title,
+            serviceId: "system",
+            status: status,
+            severity: severity,
+            timestamp: insight.timestamp || new Date().toISOString(),
+            duration: status === "failed" ? "Action Required" : "Normal",
+            rootCause: status === "failed" ? "Service Failure Detected" : "Routine Check",
+            agentAction: "Monitoring",
+            agentPredictionConfidence: 99,
+            timeline: [],
+            reasoning: aiData.summary || String(rawAnalysis) || "No analysis available"
         };
-    }, [fetchIncidents]);
+
+        setIncidents(prev => {
+            // Prevent duplicates
+            if (prev.some(i => i.id === incident.id)) return prev;
+            return [incident, ...prev];
+        });
+
+        // Auto-open panel only if critical/degraded
+        if (status === 'failed') {
+            setActiveIncidentId(incident.id);
+        }
+    }, []);
+
+    // Handle WebSocket Messages
+    useEffect(() => {
+        if (!lastMessage) return;
+
+        if (lastMessage.type === 'INCIDENT_NEW') {
+            processInsight(lastMessage.data);
+        } else if (lastMessage.type === 'INIT' && lastMessage.data.aiAnalysis) {
+            // Optional: Handle INIT data if structural match found
+        }
+    }, [lastMessage, processInsight]);
+
+    // Initial Fetch
+    useEffect(() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        fetch(`${apiUrl}/insights`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.insights && Array.isArray(data.insights)) {
+                    data.insights.forEach((insight: InsightPayload) => {
+                        processInsight(insight);
+                    });
+                }
+            })
+            .catch(e => console.error("Failed to fetch incidents:", e));
+    }, [processInsight]);
 
     return {
         incidents,
         activeIncidentId,
         setActiveIncidentId,
-        connectionStatus: "connected",
+        connectionStatus: isConnected ? "connected" : "disconnected",
     };
 }

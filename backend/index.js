@@ -1,3 +1,4 @@
+const { setupWebSocket } = require('./websocket');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -27,6 +28,9 @@ let systemStatus = {
 let activityLog = [];
 let aiLogs = [];
 
+// WebSocket Broadcaster
+let wsBroadcaster = { broadcast: () => { } };
+
 // Service configuration
 const services = [
   { name: 'auth', url: 'http://localhost:3001/health' },
@@ -42,29 +46,46 @@ const GRACE_PERIOD_MS = 60 * 1000; // 1 minute
 // Continuous health checking
 async function checkServiceHealth() {
   console.log('🔍 Checking service health...');
+  let hasChanges = false;
 
   for (const service of services) {
+    let newStatus, newCode;
     try {
       const response = await axios.get(service.url, { timeout: 30000 });
       console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
-      systemStatus.services[service.name] = {
-        status: 'healthy',
-        code: response.status,
-        lastUpdated: new Date()
-      };
+      newStatus = 'healthy';
+      newCode = response.status;
     } catch (error) {
       const code = error.response?.status || 503;
       console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
+      newStatus = code >= 500 ? 'critical' : 'degraded';
+      newCode = code;
+    }
 
-      const status = code >= 500 ? 'critical' : 'degraded';
+    if (
+      systemStatus.services[service.name].status !== newStatus ||
+      systemStatus.services[service.name].code !== newCode
+    ) {
       systemStatus.services[service.name] = {
-        status: status,
-        code: code,
+        status: newStatus,
+        code: newCode,
         lastUpdated: new Date()
       };
+      hasChanges = true;
+
+      // Broadcast individual service update
+      wsBroadcaster.broadcast('SERVICE_UPDATE', {
+        name: service.name,
+        ...systemStatus.services[service.name]
+      });
     }
   }
-  systemStatus.lastUpdated = new Date();
+
+  if (hasChanges) {
+    systemStatus.lastUpdated = new Date();
+    // Broadcast full metrics update
+    wsBroadcaster.broadcast('METRICS', systemStatus);
+  }
 }
 
 setInterval(checkServiceHealth, 5000);
@@ -88,6 +109,19 @@ app.post('/api/kestra-webhook', (req, res) => {
   const { aiReport, metrics } = req.body;
   if (aiReport) {
     systemStatus.aiAnalysis = aiReport;
+
+    // Create an incident/insight object
+    const insight = {
+      id: Date.now(),
+      timestamp: new Date(),
+      analysis: aiReport,
+      summary: aiReport
+    };
+    aiLogs.unshift(insight);
+    if (aiLogs.length > 50) aiLogs.pop();
+
+    // Broadcast new incident/insight
+    wsBroadcaster.broadcast('INCIDENT_NEW', insight);
   }
   systemStatus.lastUpdated = new Date();
 
@@ -102,6 +136,8 @@ app.post('/api/kestra-webhook', (req, res) => {
         systemStatus.services[serviceName].lastUpdated = new Date();
       }
     });
+    // Broadcast metrics update from webhook
+    wsBroadcaster.broadcast('METRICS', systemStatus);
   }
   res.json({ success: true });
 });
@@ -120,6 +156,10 @@ app.post('/api/action/:service/:type', async (req, res) => {
     if (type === 'slow') mode = 'slow';
 
     await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
+
+    // Force a health check to update status immediately
+    checkServiceHealth();
+
     res.json({ success: true, message: `${type} executed on ${service}` });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -237,6 +277,9 @@ app.post('/api/docker/scale/:service/:replicas', requireAuth, validateScaleParam
   res.json(result);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
 });
+
+// Setup WebSocket
+wsBroadcaster = setupWebSocket(server);

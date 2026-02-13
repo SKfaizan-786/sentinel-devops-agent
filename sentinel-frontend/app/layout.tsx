@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GlobalShortcuts } from "@/components/common/GlobalShortcuts";
 import { ToastContainer } from "../components/notifications/Toast";
+import { WebSocketProvider } from "@/lib/WebSocketContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,7 +66,9 @@ export default function RootLayout({
       >
         <GlobalShortcuts />
         <ToastContainer />
-        {children}
+        <WebSocketProvider>
+          {children}
+        </WebSocketProvider>
       </body>
     </html>
   );
