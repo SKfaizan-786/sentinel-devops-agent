@@ -26,6 +26,7 @@ const navItems = [
     { name: "Incidents", href: "/dashboard/incidents", icon: Activity },
     { name: "Logs", href: "/dashboard/logs", icon: FileText },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    { name: "Terms", href: "/terms", icon: FileText },
 ];
 
 interface SidebarContentProps {
