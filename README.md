@@ -287,7 +287,10 @@ sequenceDiagram
 
 - **Docker** & **Docker Compose** (v20+)
 - **Node.js** 18+ (for local development)
+- **PostgreSQL** 12+ (required for RBAC system - included in docker-compose)
 - **Groq API Key** ([Free at console.groq.com](https://console.groq.com))
+
+> **Note:** The RBAC system requires PostgreSQL. When using `docker-compose up`, PostgreSQL is automatically started. For local development, install PostgreSQL separately or use the containerized version.
 
 ### ⚡ One-Command Setup
 
@@ -296,13 +299,25 @@ sequenceDiagram
 git clone https://github.com/SKfaizan-786/sentinel-devops-agent.git
 cd sentinel-devops-agent
 
-# Start the entire stack
+# Set up environment variables
+cp backend/.env.example backend/.env
+# ⚠️  Edit backend/.env and set a strong JWT_SECRET before starting!
+
+# Start the entire stack (includes PostgreSQL for RBAC)
 docker-compose up -d
+
+# Initialize RBAC system (first time only)
+cd backend
+npm install
+npm run quick-setup
 
 # That's it! Access at:
 # 🌐 Dashboard: http://localhost:3000
 # 🤖 Kestra UI: http://localhost:9090
+# 📊 Backend API: http://localhost:4000
 ```
+
+> **⚠️ Security Warning:** The quick-setup creates a default admin account (`admin@example.com` / `password123`) for development. **Change this password immediately** in production environments!
 
 ### 🔧 Development Setup
 
@@ -310,20 +325,26 @@ docker-compose up -d
 <summary><b>Expand for full development guide</b></summary>
 
 ```bash
-# 1. Start infrastructure only
+# 1. Start infrastructure (includes PostgreSQL for RBAC)
 docker-compose up -d kestra postgres auth-service payment-service notification-service
 
-# 2. Start backend (in new terminal)
+# 2. Set up RBAC system
 cd backend
+cp .env.example .env
+# ⚠️  Edit .env and set JWT_SECRET to a strong random value:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm install
+npm run quick-setup  # Creates database schema and default admin
+
+# 3. Start backend (in same terminal)
 npm start
 
-# 3. Start frontend (in another terminal)
+# 4. Start frontend (in new terminal)
 cd ../sentinel-frontend
 npm install
 npm run dev
 
-# 4. Optional: Install CLI
+# 5. Optional: Install CLI
 cd ../cli
 npm install
 npm link
@@ -332,7 +353,13 @@ npm link
 # Dashboard: http://localhost:3000
 # Backend: http://localhost:4000
 # Kestra: http://localhost:9090
+# PostgreSQL: localhost:5432 (for RBAC)
 # CLI: sentinel status
+
+# ⚠️  Default admin credentials (DEVELOPMENT ONLY):
+# Email: admin@example.com
+# Password: password123
+# Change immediately in production!
 ```
 
 </details>

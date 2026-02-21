@@ -6,7 +6,9 @@ networks:
       com.docker.network.driver.mtu: 1500
 
 services:
-  # Postgres for Kestra
+  # PostgreSQL Database
+  # Used by both Kestra (workflow state) and Sentinel RBAC system
+  # Port 5432 exposed for local development access
   postgres:
     image: postgres:15
     container_name: kestra-postgres
@@ -26,6 +28,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # Note: For RBAC system, create separate database 'sentinel_rbac'
+    # Run: docker exec -it kestra-postgres createdb -U kestra sentinel_rbac
+    # Or use backend/quick-setup.js which handles this automatically
 
   # Kestra Workflow Orchestrator
   kestra:

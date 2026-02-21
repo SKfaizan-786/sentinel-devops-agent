@@ -1,11 +1,37 @@
+/**
+ * @fileoverview Authentication and authorization middleware for Sentinel RBAC system
+ * @module backend/auth/middleware
+ * @requires ./AuthService
+ * @requires ./RBACService
+ * @requires ./ApiKeyService
+ * @requires ./RateLimiterService
+ */
+
 const AuthService = require('./AuthService');
 const RBACService = require('./RBACService');
 const ApiKeyService = require('./ApiKeyService');
 const RateLimiterService = require('./RateLimiterService');
 
 /**
- * Middleware to require authentication
- * Validates JWT token and attaches user context to request
+ * Middleware to require JWT authentication
+ * Validates JWT token from Authorization header and attaches user context to request
+ * 
+ * @function requireAuth
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers.authorization - Bearer token in format "Bearer <token>"
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * // Usage in route
+ * router.get('/protected', requireAuth, (req, res) => {
+ *   console.log(req.user.userId); // User context available
+ * });
+ * 
+ * @throws {401} Missing or invalid authorization header
+ * @throws {401} Invalid or expired token
  */
 function requireAuth(req, res, next) {
   try {
@@ -37,8 +63,27 @@ function requireAuth(req, res, next) {
 }
 
 /**
- * Middleware to require specific permissions (AND logic)
- * All specified permissions must be present
+ * Middleware factory to require specific permissions (AND logic)
+ * All specified permissions must be present in user's permission set
+ * 
+ * @function requirePermissions
+ * @param {...string} permissions - One or more permission names required
+ * @returns {Function} Express middleware function
+ * 
+ * @example
+ * // Single permission
+ * router.post('/users', requireAuth, requirePermissions('users:write'), handler);
+ * 
+ * @example
+ * // Multiple permissions (all required)
+ * router.delete('/users/:id', 
+ *   requireAuth, 
+ *   requirePermissions('users:delete', 'admin:access'), 
+ *   handler
+ * );
+ * 
+ * @throws {401} Authentication required (no user context)
+ * @throws {403} Insufficient permissions (missing one or more required permissions)
  */
 function requirePermissions(...permissions) {
   return async (req, res, next) => {
@@ -67,8 +112,23 @@ function requirePermissions(...permissions) {
 }
 
 /**
- * Middleware to require any permission (OR logic)
- * At least one of the specified permissions must be present
+ * Middleware factory to require any permission (OR logic)
+ * At least one of the specified permissions must be present in user's permission set
+ * 
+ * @function requireAnyPermission
+ * @param {...string} permissions - One or more permission names (any one required)
+ * @returns {Function} Express middleware function
+ * 
+ * @example
+ * // User needs either read or write permission
+ * router.get('/data', 
+ *   requireAuth, 
+ *   requireAnyPermission('data:read', 'data:write'), 
+ *   handler
+ * );
+ * 
+ * @throws {401} Authentication required (no user context)
+ * @throws {403} Insufficient permissions (none of the required permissions present)
  */
 function requireAnyPermission(...permissions) {
   return async (req, res, next) => {
@@ -97,7 +157,19 @@ function requireAnyPermission(...permissions) {
 }
 
 /**
- * Middleware to require specific role
+ * Middleware factory to require specific role
+ * User must have the specified role assigned
+ * 
+ * @function requireRole
+ * @param {string} roleName - Name of the required role (e.g., 'Admin', 'Operator')
+ * @returns {Function} Express middleware function
+ * 
+ * @example
+ * // Only admins can access
+ * router.get('/admin/dashboard', requireAuth, requireRole('Admin'), handler);
+ * 
+ * @throws {401} Authentication required (no user context)
+ * @throws {403} Insufficient permissions (role not assigned to user)
  */
 function requireRole(roleName) {
   return (req, res, next) => {
@@ -125,7 +197,24 @@ function requireRole(roleName) {
 
 /**
  * Middleware for API key authentication
- * Validates API key from X-API-Key header
+ * Validates API key from X-API-Key header and attaches key context to request
+ * 
+ * @function requireApiKey
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers['x-api-key'] - API key in format "sk_<org>_<random>"
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * // Usage in route
+ * router.get('/api/data', requireApiKey, (req, res) => {
+ *   console.log(req.apiKey.userId); // API key context available
+ * });
+ * 
+ * @throws {401} Missing API key
+ * @throws {401} Invalid or expired API key
  */
 function requireApiKey(req, res, next) {
   try {
@@ -158,9 +247,30 @@ function requireApiKey(req, res, next) {
 }
 
 /**
- * Middleware for rate limiting
- * @param {number} maxRequests - Maximum requests allowed
+ * Middleware factory for rate limiting
+ * Limits number of requests per time window based on IP or user ID
+ * 
+ * @function rateLimit
+ * @param {number} maxRequests - Maximum requests allowed in time window
  * @param {number} windowMs - Time window in milliseconds
+ * @returns {Function} Express middleware function
+ * 
+ * @example
+ * // 5 requests per minute
+ * router.post('/auth/login', rateLimit(5, 60 * 1000), handler);
+ * 
+ * @example
+ * // 100 requests per hour
+ * router.get('/api/data', requireAuth, rateLimit(100, 60 * 60 * 1000), handler);
+ * 
+ * @throws {429} Too many requests (rate limit exceeded)
+ * 
+ * @description
+ * Adds the following headers to response:
+ * - X-RateLimit-Limit: Maximum requests allowed
+ * - X-RateLimit-Remaining: Requests remaining in current window
+ * - X-RateLimit-Reset: ISO timestamp when limit resets
+ * - Retry-After: Seconds until limit resets (only on 429)
  */
 function rateLimit(maxRequests, windowMs) {
   return async (req, res, next) => {
@@ -197,6 +307,28 @@ function rateLimit(maxRequests, windowMs) {
 /**
  * Middleware to check organization access
  * Ensures user belongs to the organization they're trying to access
+ * Validates organization ID from request params or body against user's organization
+ * 
+ * @function requireOrganization
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - URL parameters
+ * @param {string} [req.params.organizationId] - Organization ID from URL
+ * @param {Object} req.body - Request body
+ * @param {string} [req.body.organizationId] - Organization ID from body
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * // Protect organization-specific routes
+ * router.get('/orgs/:organizationId/users', 
+ *   requireAuth, 
+ *   requireOrganization, 
+ *   handler
+ * );
+ * 
+ * @throws {401} Authentication required (no user context)
+ * @throws {403} Access denied to this organization (cross-tenant access attempt)
  */
 function requireOrganization(req, res, next) {
   try {

@@ -155,10 +155,14 @@ async function quickSetup() {
     
     logInfo('Your RBAC system is ready to use!\n');
     
-    log('📝 Admin Credentials:', 'cyan');
+    log('📝 Admin Credentials (DEVELOPMENT ONLY):', 'cyan');
     logInfo('  Email: admin@example.com');
     logInfo('  Password: password123');
-    logWarning('  ⚠️  Change this password in production!\n');
+    log('\n⚠️  SECURITY WARNING:', 'red');
+    logWarning('  These are DEFAULT CREDENTIALS for development only!');
+    logWarning('  NEVER use these credentials in production!');
+    logWarning('  Change the password immediately after first login!');
+    logWarning('  Use POST /auth/password-reset-request to reset.\n');
     
     log('🚀 Next Steps:', 'cyan');
     logInfo('  1. Start the server:');
