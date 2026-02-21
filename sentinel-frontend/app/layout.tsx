@@ -1,9 +1,11 @@
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GlobalShortcuts } from "@/components/common/GlobalShortcuts";
 import { ToastContainer } from "../components/notifications/Toast";
 import { WebSocketProvider } from "@/lib/WebSocketContext";
+import { STORAGE_KEY } from "@/hooks/useTheme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,14 +62,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  var stored = localStorage.getItem('sentinel-theme');
+                  var stored = localStorage.getItem('${STORAGE_KEY}');
                   var theme = (stored === 'dark' || stored === 'light')
                     ? stored
                     : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 
 type Theme = 'dark' | 'light';
 
-const STORAGE_KEY = 'sentinel-theme';
+export const STORAGE_KEY = 'sentinel-theme';
 
 export function useTheme() {
-    const [theme, setTheme] = useState<Theme>('dark');
+    const [theme, setTheme] = useState<Theme | null>(null);
 
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -18,11 +18,11 @@ export function useTheme() {
     }, []);
 
     const toggleTheme = () => {
-        const newTheme: Theme = theme === 'dark' ? 'light' : 'dark';
+        const newTheme: Theme = (theme ?? 'dark') === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
         localStorage.setItem(STORAGE_KEY, newTheme);
         document.documentElement.classList.toggle('light', newTheme === 'light');
     };
 
-    return { theme, toggleTheme };
+    return { theme: theme ?? 'dark', toggleTheme, isThemeResolved: theme !== null };
 }
