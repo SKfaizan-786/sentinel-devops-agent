@@ -1,0 +1,17 @@
+{
+    "aws": {
+        "name": "AWS EC2 t3.medium",
+        "cpuHour": 0.0208,
+        "ramGBHour": 0.0052
+    },
+    "gcp": {
+        "name": "GCP e2-medium",
+        "cpuHour": 0.019,
+        "ramGBHour": 0.0025
+    },
+    "azure": {
+        "name": "Azure B-series",
+        "cpuHour": 0.021,
+        "ramGBHour": 0.0050
+    }
+}

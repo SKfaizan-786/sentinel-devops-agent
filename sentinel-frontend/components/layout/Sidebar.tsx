@@ -14,6 +14,7 @@ import {
     BarChart3,
     Menu,
     X,
+    CircleDollarSign,
 } from "lucide-react";
 import { SentinelLogo } from "@/components/common/SentinelLogo";
 import { useState, useEffect, useRef } from "react";
@@ -25,6 +26,7 @@ const navItems = [
     { name: "Services", href: "/dashboard/services", icon: Server },
     { name: "Incidents", href: "/dashboard/incidents", icon: Activity },
     { name: "Logs", href: "/dashboard/logs", icon: FileText },
+    { name: "FinOps", href: "/dashboard/finops", icon: CircleDollarSign },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Terms", href: "/terms", icon: FileText },
 ];

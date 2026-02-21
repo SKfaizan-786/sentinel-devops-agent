@@ -9,6 +9,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const monitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const finopsRoutes = require('./routes/finops.routes');
 
 // RBAC Routes
 const authRoutes = require('./routes/auth.routes');
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 4000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use('/api/finops', finopsRoutes);
 
 // RBAC Routes
 app.use('/auth', authRoutes);

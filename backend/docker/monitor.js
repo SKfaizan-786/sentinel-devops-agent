@@ -1,4 +1,5 @@
 const { docker } = require('./client');
+const store = require('../db/metrics-store');
 
 class ContainerMonitor {
     constructor() {
@@ -16,7 +17,12 @@ class ContainerMonitor {
             stream.on('data', (chunk) => {
                 try {
                     const stats = JSON.parse(chunk.toString());
-                    this.metrics.set(containerId, this.parseStats(stats));
+                    const parsed = this.parseStats(stats);
+                    this.metrics.set(containerId, parsed);
+                    store.push(containerId, {
+                        cpuPercent: parseFloat(parsed.cpu),
+                        memPercent: parseFloat(parsed.memory.percent)
+                    });
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
