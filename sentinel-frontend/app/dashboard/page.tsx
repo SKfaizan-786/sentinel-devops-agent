@@ -241,7 +241,7 @@ export default function DashboardPage() {
                             </span>
                         </div>
                         {isLoading ? (
-                            <ServiceGridSkeleton count={6} />
+                            <ServiceGridSkeleton count={mockServices.length} />
                         ) : (
                             <ServiceGrid services={liveServices} />
                         )}
