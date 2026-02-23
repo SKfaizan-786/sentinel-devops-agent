@@ -14,6 +14,7 @@ const healer = require('./docker/healer');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const postmortemRoutes = require('./routes/postmortem.routes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,7 @@ app.use(bodyParser.json());
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/postmortem', postmortemRoutes);
 
 // --- IN-MEMORY DATABASE ---
 let systemStatus = {
@@ -338,6 +340,9 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
 });
+
+// Make aiLogs available to routes
+app.locals.aiLogs = aiLogs;
 
 // Setup WebSocket
 wsBroadcaster = setupWebSocket(server);

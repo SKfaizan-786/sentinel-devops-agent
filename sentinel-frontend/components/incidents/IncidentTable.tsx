@@ -29,6 +29,8 @@ interface IncidentTableProps {
     onSort: (key: string) => void;
     sortConfig: SortConfig;
     onViewReasoning?: (id: string) => void;
+    onGeneratePostMortem?: (incidentId: string) => void;
+    isGeneratingPostMortem?: (incidentId: string) => boolean;
 }
 
 function SortIndicator({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
@@ -100,9 +102,11 @@ function formatTimestamp(timestamp: string): string {
 interface IncidentRowProps {
     incident: Incident;
     onViewReasoning?: (id: string) => void;
+    onGeneratePostMortem?: (incidentId: string) => void;
+    isGeneratingPostMortem?: (incidentId: string) => boolean;
 }
 
-function IncidentRow({ incident, onViewReasoning }: IncidentRowProps) {
+function IncidentRow({ incident, onViewReasoning, onGeneratePostMortem, isGeneratingPostMortem }: IncidentRowProps) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -148,7 +152,12 @@ function IncidentRow({ incident, onViewReasoning }: IncidentRowProps) {
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                <IncidentDetail incident={incident} onViewReasoning={onViewReasoning} />
+                                <IncidentDetail 
+                                    incident={incident} 
+                                    onViewReasoning={onViewReasoning}
+                                    onGeneratePostMortem={onGeneratePostMortem}
+                                    isGeneratingPostMortem={isGeneratingPostMortem}
+                                />
                             </motion.div>
                         </td>
                     </tr>
@@ -163,6 +172,8 @@ export function IncidentTable({
     onSort,
     sortConfig,
     onViewReasoning,
+    onGeneratePostMortem,
+    isGeneratingPostMortem,
 }: IncidentTableProps) {
     return (
         <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
@@ -196,6 +207,8 @@ export function IncidentTable({
                                 key={incident.id}
                                 incident={incident}
                                 onViewReasoning={onViewReasoning}
+                                onGeneratePostMortem={onGeneratePostMortem}
+                                isGeneratingPostMortem={isGeneratingPostMortem}
                             />
                         ))}
                     </tbody>

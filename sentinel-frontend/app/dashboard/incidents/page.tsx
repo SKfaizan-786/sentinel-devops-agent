@@ -4,7 +4,7 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { IncidentCard } from "@/components/dashboard/IncidentCard";
 import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Activity, Clock, AlertCircle, FileWarning } from "lucide-react";
+import { Activity, Clock, AlertCircle, FileWarning, Download, CheckCircle, XCircle } from "lucide-react";
 import { IncidentTable } from "@/components/incidents/IncidentTable";
 import { IncidentFilters } from "@/components/incidents/IncidentFilters";
 import { IncidentSearch } from "@/components/incidents/IncidentSearch";
@@ -12,6 +12,7 @@ import { IncidentExport } from "@/components/incidents/IncidentExport";
 import { TableSkeleton } from "@/components/incidents/TableSkeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { useIncidentHistory, FilterState, SortConfig } from "@/hooks/useIncidentHistory";
+import { usePostMortemGeneration } from "@/hooks/usePostMortemGeneration";
 
 const defaultFilters: FilterState = {
     services: [],
@@ -23,6 +24,10 @@ const defaultFilters: FilterState = {
 function IncidentsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { generatePostMortem, isGenerating, error: postMortemError, lastGenerated, downloadPostMortem } = usePostMortemGeneration();
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [showErrorMessage, setShowErrorMessage] = useState(false);
+    const [lastGeneratedIncidentId, setLastGeneratedIncidentId] = useState<number | null>(null);
 
     // Initialize state from URL params
     const [filters, setFilters] = useState<FilterState>(() => {
@@ -110,8 +115,75 @@ function IncidentsContent() {
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
+    const handleGeneratePostMortem = useCallback(async (incidentId: string) => {
+        // Convert string ID to number for API call
+        const numericId = typeof incidentId === 'string' ? parseInt(incidentId, 10) : incidentId;
+        
+        // Validate the ID is a valid number
+        if (!Number.isFinite(numericId) || numericId <= 0) {
+            console.error('Invalid incident ID:', incidentId);
+            setShowErrorMessage(true);
+            setTimeout(() => setShowErrorMessage(false), 5000);
+            return;
+        }
+        
+        try {
+            await generatePostMortem(numericId);
+            setLastGeneratedIncidentId(numericId);
+            setShowSuccessMessage(true);
+            setTimeout(() => setShowSuccessMessage(false), 5000);
+        } catch (error) {
+            setShowErrorMessage(true);
+            setTimeout(() => setShowErrorMessage(false), 5000);
+        }
+    }, [generatePostMortem]);
+
+    const handleDownloadPostMortem = useCallback(() => {
+        if (lastGeneratedIncidentId !== null) {
+            const generated = lastGenerated(lastGeneratedIncidentId);
+            if (generated?.postmortem?.filePath) {
+                const filename = generated.postmortem.filePath.split(/[/\\]/).pop() || 'postmortem.md';
+                downloadPostMortem(filename);
+            }
+        }
+    }, [lastGeneratedIncidentId, lastGenerated, downloadPostMortem]);
+
     return (
         <div className="container mx-auto max-w-7xl pb-20 space-y-6">
+            {/* Success/Error Messages */}
+            {showSuccessMessage && lastGeneratedIncidentId !== null && lastGenerated(lastGeneratedIncidentId) && (
+                <div className="fixed top-4 right-4 z-50 bg-green-500/10 border border-green-500/30 rounded-lg p-4 max-w-md">
+                    <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-green-400 mb-1">Post-Mortem Generated!</h4>
+                            <p className="text-xs text-muted-foreground mb-2">
+                                Successfully generated post-mortem for incident {lastGenerated(lastGeneratedIncidentId)?.postmortem.metadata.incidentId}
+                            </p>
+                            <button
+                                onClick={handleDownloadPostMortem}
+                                className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1"
+                            >
+                                <Download className="h-3 w-3" />
+                                Download Post-Mortem
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showErrorMessage && postMortemError && (
+                <div className="fixed top-4 right-4 z-50 bg-red-500/10 border border-red-500/30 rounded-lg p-4 max-w-md">
+                    <div className="flex items-start gap-3">
+                        <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-red-400 mb-1">Generation Failed</h4>
+                            <p className="text-xs text-muted-foreground">{postMortemError}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -217,6 +289,8 @@ function IncidentsContent() {
                         incidents={incidents}
                         onSort={handleSort}
                         sortConfig={sortConfig}
+                        onGeneratePostMortem={handleGeneratePostMortem}
+                        isGeneratingPostMortem={isGenerating}
                     />
                     {totalPages > 1 && (
                         <Pagination
