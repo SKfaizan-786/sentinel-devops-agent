@@ -115,7 +115,12 @@ class ContainerMonitor {
                 rx: this.formatBytes(stats.networks?.eth0?.rx_bytes || 0),
                 tx: this.formatBytes(stats.networks?.eth0?.tx_bytes || 0)
             },
-            timestamp: new Date()
+            timestamp: new Date(),
+            raw: {
+                cpuPercent,
+                memPercent,
+                memLimit
+            }
         };
     }
 

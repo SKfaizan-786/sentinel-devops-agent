@@ -35,6 +35,9 @@ const traceRoutes = require('./routes/traces.routes');
 // Contact Routes
 const contactRoutes = require('./routes/contact.routes');
 
+// Feedback Routes - Operational Memory
+const feedbackRoutes = require('./routes/feedback.routes');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -45,6 +48,8 @@ app.use(metricsMiddleware); // Metrics middleware
 
 // Rate limiters
 app.use('/api', apiLimiter);
+
+app.use('/api/feedback', feedbackRoutes);
 
 // Security Routes
 const securityRoutes = require('./routes/security.routes');

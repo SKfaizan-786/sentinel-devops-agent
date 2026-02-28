@@ -2,6 +2,9 @@ const { docker } = require('./client');
 const { scanImage } = require('../security/scanner');
 const { checkCompliance } = require('../security/policies');
 const { logActivity } = require('../services/incidents');
+const { generateFingerprint } = require('../lib/fingerprinting');
+const { storeIncident, findSimilar } = require('../db/incident-memory');
+const containerMonitor = require('./monitor');
 
 async function performSecurityPrecheck(containerId) {
     try {
@@ -25,9 +28,35 @@ async function performSecurityPrecheck(containerId) {
 }
 
 async function restartContainer(containerId) {
+    const startTime = Date.now();
+    let containerName = containerId;
+    
     try {
         const container = docker.getContainer(containerId);
+        const info = await container.inspect();
+        containerName = info.Name.replace(/^\//, '');
+
+        // --- Memory / Fingerprinting ---
+        // Get current metrics to add to fingerprint
+        const metrics = containerMonitor.getMetrics(containerId)?.raw || {};
         
+        // Check for similar past incidents to log "AI awareness"
+        const preFingerprint = generateFingerprint({ 
+            containerName, 
+            metrics: { 
+                cpuPercent: metrics.cpuPercent, 
+                memPercent: metrics.memPercent, 
+                restartCount: info.RestartCount 
+            },
+            logs: 'crash restart' // simulated log context
+        });
+        
+        const similarIncidents = findSimilar(preFingerprint);
+        if (similarIncidents.length > 0) {
+            console.log(`[Operational Memory] Found ${similarIncidents.length} similar incidents for ${containerName}. Top match resolved by: ${similarIncidents[0].resolution}`);
+        }
+        // -------------------------------
+
         // --- Security Check ---
         const securityCheck = await performSecurityPrecheck(containerId);
         if (securityCheck.blocked) {
@@ -38,6 +67,21 @@ async function restartContainer(containerId) {
         // ----------------------
 
         await container.restart({ t: 10 });
+        
+        // --- Store Incident Outcome ---
+        const mttr = Math.floor((Date.now() - startTime) / 1000);
+        storeIncident({
+            id: `inc-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            containerName,
+            fingerprint: preFingerprint,
+            summary: `Automated restart for ${containerName}`,
+            resolution: `Restarted container`,
+            actionTaken: 'restart',
+            outcome: 'resolved', // optimistically
+            mttrSeconds: mttr
+        });
+        // ------------------------------
+
         return { action: 'restart', success: true, containerId };
     } catch (error) {
         console.error(`Failed to restart container ${containerId}:`, error);
