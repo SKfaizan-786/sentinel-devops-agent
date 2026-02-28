@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, User, RotateCw, Pause, Play } from "lucide-react";
+import { Bell, Search, User, RotateCw, Pause, Play, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { ProfileDropdown } from "@/components/common/ProfileDropdown";
@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
 import { useNotifications, NotificationState } from "@/hooks/useNotifications";
 import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
+import { useWebSocketContext } from "@/lib/WebSocketContext";
 
 interface DashboardHeaderProps {
     onRefresh?: () => void;
@@ -16,6 +17,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
     const { enabled, updateEnabled, interval, updateInterval, manualRefresh } =
         useAutoRefresh({ onRefresh: onRefresh || (() => { }) });
+    const { isConnected } = useWebSocketContext();
 
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -46,6 +48,25 @@ export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
             <div className="md:hidden flex-1 pl-12" />
 
             <div className="flex items-center gap-4 relative">
+                {/* WebSocket Connection Status */}
+                <div className="flex items-center gap-1.5 mr-2 border-r pr-4 border-border" title={isConnected ? "WebSocket connected" : "WebSocket disconnected"}>
+                    {isConnected ? (
+                        <>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                            </span>
+                            <span className="text-xs font-medium text-emerald-400 hidden sm:inline">Live</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="relative flex h-2 w-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                            </span>
+                            <span className="text-xs font-medium text-red-400 hidden sm:inline">Offline</span>
+                        </>
+                    )}
+                </div>
                 {onRefresh && (
                     <div className="flex items-center gap-2 mr-2 border-r pr-4 border-border">
                         <Button

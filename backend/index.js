@@ -15,36 +15,36 @@ const { routeEvent } = require('./config/notifications');
 const pendingApprovals = new Map();
 
 function executeHealing(incident) {
-    logActivity('info', `Executing healing for incident ${incident.id}`);
-    routeEvent('healing.started', incident);
+  logActivity('info', `Executing healing for incident ${incident.id}`);
+  routeEvent('healing.started', incident);
 
-    setTimeout(() => {
-        logActivity('success', `Healing completed for incident ${incident.id}`);
-        routeEvent('healing.completed', incident);
-    }, 6000); // Simulate healing duration
+  setTimeout(() => {
+    logActivity('success', `Healing completed for incident ${incident.id}`);
+    routeEvent('healing.completed', incident);
+  }, 6000); // Simulate healing duration
 }
 
 function initiateHealingProtocol(incident) {
-    const incidentId = String(incident.id);
-    const configuredTimeout = Number(process.env.AUTO_HEAL_TIMEOUT_MS);
-    const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
-      ? configuredTimeout
-      : 5 * 60 * 1000;
-    const timeout = setTimeout(() => {
-        const approval = pendingApprovals.get(incidentId);
-        if (approval) {
-            pendingApprovals.delete(incidentId);
-            logActivity('warn', `Timeout reached for ${incidentId}, auto-proceeding with healing.`);
-            executeHealing(incident);
-        }
-    }, timeoutMs); // Configurable auto-proceed timeout
+  const incidentId = String(incident.id);
+  const configuredTimeout = Number(process.env.AUTO_HEAL_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : 5 * 60 * 1000;
+  const timeout = setTimeout(() => {
+    const approval = pendingApprovals.get(incidentId);
+    if (approval) {
+      pendingApprovals.delete(incidentId);
+      logActivity('warn', `Timeout reached for ${incidentId}, auto-proceeding with healing.`);
+      executeHealing(incident);
+    }
+  }, timeoutMs); // Configurable auto-proceed timeout
 
-    pendingApprovals.set(incidentId, {
-        incident,
-        timeout
-    });
+  pendingApprovals.set(incidentId, {
+    incident,
+    timeout
+  });
 
-    routeEvent('incident.detected', incident);
+  routeEvent('incident.detected', incident);
 }
 
 // New Services
@@ -95,7 +95,7 @@ app.use(bodyParser.json({
     req.rawBody = buf.toString('utf8');
   }
 }));
-app.use(express.urlencoded({ 
+app.use(express.urlencoded({
   extended: true,
   verify: (req, res, buf) => {
     req.rawBody = buf.toString('utf8');
@@ -138,6 +138,9 @@ function logActivity(type, message) {
   activityLog.unshift(entry);
   if (activityLog.length > 100) activityLog.pop(); // Keep last 100
   console.log(`[LOG] ${type}: ${message}`);
+
+  // Broadcast the new log entry to all connected WebSocket clients
+  wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
 }
 
 // WebSocket Broadcaster
@@ -195,13 +198,13 @@ async function checkServiceHealth() {
 
           // Trigger ChatOps Incident
           if (newStatus === 'critical') {
-              initiateHealingProtocol({
-                  id: `INC-${service.name}-${Date.now()}`,
-                  title: `Service Failure: ${service.name}`,
-                  description: `Healthcheck for ${service.name} repeatedly failing with code ${newCode}.`,
-                  type: 'service_crash',
-                  severity: 'High'
-              });
+            initiateHealingProtocol({
+              id: `INC-${service.name}-${Date.now()}`,
+              title: `Service Failure: ${service.name}`,
+              description: `Healthcheck for ${service.name} repeatedly failing with code ${newCode}.`,
+              type: 'service_crash',
+              severity: 'High'
+            });
           }
         }
 
@@ -250,7 +253,7 @@ app.get('/api/insights', (req, res) => {
 app.post('/api/kestra-webhook', (req, res) => {
   const { aiReport, metrics } = req.body;
   const systemStatus = serviceMonitor.getSystemStatus();
-  
+
   if (aiReport) {
     systemStatus.aiAnalysis = aiReport;
     // Create an incident/insight object
@@ -270,22 +273,22 @@ app.post('/api/kestra-webhook', (req, res) => {
 
     // Call routeEvent with the incident payload for ChatOps
     initiateHealingProtocol({
-        ...insight,
-        title: 'Application Insight Alert',
-        description: insight.summary,
-        type: 'ai_insight',
-        severity: 'Medium'
+      ...insight,
+      title: 'Application Insight Alert',
+      description: insight.summary,
+      type: 'ai_insight',
+      severity: 'Medium'
     });
     const newInsight = incidents.addAiLog(aiReport);
 
     incidents.logActivity('info', 'Received new AI Analysis report');
-    
+
     if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('INCIDENT_NEW', newInsight);
+      globalWsBroadcaster.broadcast('INCIDENT_NEW', newInsight);
     }
   }
   systemStatus.lastUpdated = new Date();
-  
+
   if (metrics) {
     Object.keys(metrics).forEach(serviceName => {
       if (systemStatus.services[serviceName]) {
@@ -305,7 +308,7 @@ app.post('/api/kestra-webhook', (req, res) => {
     });
 
     if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('METRICS', systemStatus);
+      globalWsBroadcaster.broadcast('METRICS', systemStatus);
     }
   }
 
@@ -347,68 +350,68 @@ const crypto = require('crypto');
 
 // Slack request signature verification middleware
 function verifySlackSignature(req, res, next) {
-    const slackSignature = req.headers['x-slack-signature'];
-    const slackTimestamp = req.headers['x-slack-request-timestamp'];
+  const slackSignature = req.headers['x-slack-signature'];
+  const slackTimestamp = req.headers['x-slack-request-timestamp'];
 
-    if (!slackSignature || !slackTimestamp) {
-        return res.status(401).json({ error: 'Verification failed - Missing headers' });
-    }
+  if (!slackSignature || !slackTimestamp) {
+    return res.status(401).json({ error: 'Verification failed - Missing headers' });
+  }
 
-    // Protect against replay attacks (5 min)
-    const time = Math.floor(Date.now() / 1000);
-    if (Math.abs(time - slackTimestamp) > 300) {
-        return res.status(401).json({ error: 'Verification failed - Timestamp too old' });
-    }
+  // Protect against replay attacks (5 min)
+  const time = Math.floor(Date.now() / 1000);
+  if (Math.abs(time - slackTimestamp) > 300) {
+    return res.status(401).json({ error: 'Verification failed - Timestamp too old' });
+  }
 
-    const sigBasestring = 'v0:' + slackTimestamp + ':' + req.rawBody;
-    const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
-    
-    if (!slackSigningSecret) {
-        console.warn('SLACK_SIGNING_SECRET is not set. Verification bypassed.');
-        return next();
-    }
+  const sigBasestring = 'v0:' + slackTimestamp + ':' + req.rawBody;
+  const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
 
-    const mySignature = 'v0=' + crypto.createHmac('sha256', slackSigningSecret).update(sigBasestring, 'utf8').digest('hex');
+  if (!slackSigningSecret) {
+    console.warn('SLACK_SIGNING_SECRET is not set. Verification bypassed.');
+    return next();
+  }
 
-    if (crypto.timingSafeEqual(Buffer.from(mySignature, 'utf8'), Buffer.from(slackSignature, 'utf8'))) {
-        next();
-    } else {
-        return res.status(401).json({ error: 'Verification failed - Signature mismatch' });
-    }
+  const mySignature = 'v0=' + crypto.createHmac('sha256', slackSigningSecret).update(sigBasestring, 'utf8').digest('hex');
+
+  if (crypto.timingSafeEqual(Buffer.from(mySignature, 'utf8'), Buffer.from(slackSignature, 'utf8'))) {
+    next();
+  } else {
+    return res.status(401).json({ error: 'Verification failed - Signature mismatch' });
+  }
 }
 
 app.post('/api/chatops/slack/actions', verifySlackSignature, (req, res) => {
-    try {
-        if (req.body && req.body.payload) {
-            const payload = JSON.parse(req.body.payload);
-            if (payload.type === 'block_actions') {
-                const action = payload.actions[0];
-                if (action && action.value) {
-                    const parts = action.value.split('_');
-                    const actionType = parts[0];
-                    const incidentId = parts.slice(1).join('_');
+  try {
+    if (req.body && req.body.payload) {
+      const payload = JSON.parse(req.body.payload);
+      if (payload.type === 'block_actions') {
+        const action = payload.actions[0];
+        if (action && action.value) {
+          const parts = action.value.split('_');
+          const actionType = parts[0];
+          const incidentId = parts.slice(1).join('_');
 
-                    const approval = pendingApprovals.get(incidentId);
-                    if (approval) {
-                        pendingApprovals.delete(incidentId);
-                        clearTimeout(approval.timeout); // Clear the auto-proceed timeout
+          const approval = pendingApprovals.get(incidentId);
+          if (approval) {
+            pendingApprovals.delete(incidentId);
+            clearTimeout(approval.timeout); // Clear the auto-proceed timeout
 
-                        if (actionType === 'approve') {
-                            executeHealing(approval.incident);
-                        } else if (actionType === 'decline') {
-                            logActivity('warn', `Healing manually declined for incident ${incidentId}`);
-                        }
-                    } else {
-                        console.warn(`ChatOps: Action taken on expired or non-existent incident ${incidentId}`);
-                    }
-                }
+            if (actionType === 'approve') {
+              executeHealing(approval.incident);
+            } else if (actionType === 'decline') {
+              logActivity('warn', `Healing manually declined for incident ${incidentId}`);
             }
+          } else {
+            console.warn(`ChatOps: Action taken on expired or non-existent incident ${incidentId}`);
+          }
         }
-        res.status(200).send();
-    } catch (e) {
-        console.error(`ChatOps Action Error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+      }
     }
+    res.status(200).send();
+  } catch (e) {
+    console.error(`ChatOps Action Error: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // --- DOCKER ENDPOINTS ---
@@ -421,67 +424,67 @@ const requireDockerAuth = (req, res, next) => {
 };
 
 app.get('/api/settings/notifications', requireDockerAuth, (req, res) => {
-    const settings = require('./config/notifications').getSettings();
-    const isConfigured = (url) => !!url;
-    res.json({
-        slackWebhook: isConfigured(settings.slackWebhook),
-        discordWebhook: isConfigured(settings.discordWebhook),
-        teamsWebhook: isConfigured(settings.teamsWebhook),
-        notifyOnNewIncident: settings.notifyOnNewIncident,
-        notifyOnHealing: settings.notifyOnHealing
-    });
+  const settings = require('./config/notifications').getSettings();
+  const isConfigured = (url) => !!url;
+  res.json({
+    slackWebhook: isConfigured(settings.slackWebhook),
+    discordWebhook: isConfigured(settings.discordWebhook),
+    teamsWebhook: isConfigured(settings.teamsWebhook),
+    notifyOnNewIncident: settings.notifyOnNewIncident,
+    notifyOnHealing: settings.notifyOnHealing
+  });
 });
 
 app.post('/api/settings/notifications', requireDockerAuth, (req, res) => {
-    const { slackWebhook, discordWebhook, teamsWebhook, notifyOnNewIncident, notifyOnHealing } = req.body;
-    
-    const updates = {};
-    if (slackWebhook !== undefined && typeof slackWebhook === 'string' && !slackWebhook.includes('...')) updates.slackWebhook = slackWebhook;
-    if (discordWebhook !== undefined && typeof discordWebhook === 'string' && !discordWebhook.includes('...')) updates.discordWebhook = discordWebhook;
-    if (teamsWebhook !== undefined && typeof teamsWebhook === 'string' && !teamsWebhook.includes('...')) updates.teamsWebhook = teamsWebhook;
-    if (notifyOnNewIncident !== undefined) updates.notifyOnNewIncident = notifyOnNewIncident === true || notifyOnNewIncident === 'true';
-    if (notifyOnHealing !== undefined) updates.notifyOnHealing = notifyOnHealing === true || notifyOnHealing === 'true';
-    
-    require('./config/notifications').updateSettings(updates);
-    
-    logActivity('info', 'Notification settings updated via Dashboard.');
-    res.json({ success: true, message: 'Settings saved successfully' });
+  const { slackWebhook, discordWebhook, teamsWebhook, notifyOnNewIncident, notifyOnHealing } = req.body;
+
+  const updates = {};
+  if (slackWebhook !== undefined && typeof slackWebhook === 'string' && !slackWebhook.includes('...')) updates.slackWebhook = slackWebhook;
+  if (discordWebhook !== undefined && typeof discordWebhook === 'string' && !discordWebhook.includes('...')) updates.discordWebhook = discordWebhook;
+  if (teamsWebhook !== undefined && typeof teamsWebhook === 'string' && !teamsWebhook.includes('...')) updates.teamsWebhook = teamsWebhook;
+  if (notifyOnNewIncident !== undefined) updates.notifyOnNewIncident = notifyOnNewIncident === true || notifyOnNewIncident === 'true';
+  if (notifyOnHealing !== undefined) updates.notifyOnHealing = notifyOnHealing === true || notifyOnHealing === 'true';
+
+  require('./config/notifications').updateSettings(updates);
+
+  logActivity('info', 'Notification settings updated via Dashboard.');
+  res.json({ success: true, message: 'Settings saved successfully' });
 });
 
 app.post('/api/settings/notifications/test', requireDockerAuth, async (req, res) => {
-    const { platform, webhookUrl } = req.body;
-    const testIncident = {
-        id: `MOCK-${Date.now()}`,
-        title: 'Mock Sentinel Test Event',
-        description: 'This is a test notification from Sentinel DevOps Agent to verify webhook configuration.',
-        status: 'incident.detected',
-        severity: 'Info',
-        type: 'sentinel.test'
-    };
+  const { platform, webhookUrl } = req.body;
+  const testIncident = {
+    id: `MOCK-${Date.now()}`,
+    title: 'Mock Sentinel Test Event',
+    description: 'This is a test notification from Sentinel DevOps Agent to verify webhook configuration.',
+    status: 'incident.detected',
+    severity: 'Info',
+    type: 'sentinel.test'
+  };
 
-    const currentSettings = require('./config/notifications').getSettings();
-    const tempConfig = { ...currentSettings };
+  const currentSettings = require('./config/notifications').getSettings();
+  const tempConfig = { ...currentSettings };
 
-    if (typeof webhookUrl === 'string' && webhookUrl !== 'true' && !webhookUrl.includes('...')) {
-        if (platform === 'slack') tempConfig.slackWebhook = webhookUrl;
-        if (platform === 'discord') tempConfig.discordWebhook = webhookUrl;
-        if (platform === 'teams') tempConfig.teamsWebhook = webhookUrl;
+  if (typeof webhookUrl === 'string' && webhookUrl !== 'true' && !webhookUrl.includes('...')) {
+    if (platform === 'slack') tempConfig.slackWebhook = webhookUrl;
+    if (platform === 'discord') tempConfig.discordWebhook = webhookUrl;
+    if (platform === 'teams') tempConfig.teamsWebhook = webhookUrl;
+  }
+
+  try {
+    if (platform === 'slack') {
+      await require('./integrations/slack').sendIncidentAlert(testIncident, tempConfig);
+    } else if (platform === 'discord') {
+      await require('./integrations/discord').sendIncidentAlert(testIncident, tempConfig);
+    } else if (platform === 'teams') {
+      await require('./integrations/teams').sendIncidentAlert(testIncident, tempConfig);
+    } else {
+      return res.status(400).json({ error: 'Unknown platform' });
     }
-
-    try {
-        if (platform === 'slack') {
-            await require('./integrations/slack').sendIncidentAlert(testIncident, tempConfig);
-        } else if (platform === 'discord') {
-            await require('./integrations/discord').sendIncidentAlert(testIncident, tempConfig);
-        } else if (platform === 'teams') {
-            await require('./integrations/teams').sendIncidentAlert(testIncident, tempConfig);
-        } else {
-            return res.status(400).json({ error: 'Unknown platform' });
-        }
-        res.json({ success: true, message: 'Test Successful' });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    res.json({ success: true, message: 'Test Successful' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 const validateId = (req, res, next) => {
@@ -516,6 +519,9 @@ app.get('/api/docker/containers', async (req, res) => {
         lastRestart: tracker.lastAttempt
       };
     });
+
+    // Broadcast container updates to all WebSocket clients
+    wsBroadcaster.broadcast('CONTAINER_UPDATE', { containers: enrichedContainers });
 
     res.json({ containers: enrichedContainers });
   } catch (error) {
@@ -578,6 +584,19 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
 
   try {
     const result = await healer.restartContainer(id);
+
+    // Broadcast updated containers after restart
+    try {
+      const containers = await listContainers();
+      const enriched = containers.map(c => ({
+        ...c,
+        metrics: monitor.getMetrics(c.id),
+        restartCount: (restartTracker.get(c.id) || { attempts: 0 }).attempts,
+        lastRestart: (restartTracker.get(c.id) || { lastAttempt: 0 }).lastAttempt
+      }));
+      wsBroadcaster.broadcast('CONTAINER_UPDATE', { containers: enriched });
+    } catch (_) { /* best-effort broadcast */ }
+
     res.json(result);
   } catch (error) {
     res.status(500).json(ERRORS.ACTION_FAILED().toJSON());
@@ -614,23 +633,23 @@ serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {
-    incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);
-    if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('K8S_EVENT', {
-            type: 'OOM',
-            pod,
-            message: `Pod ${pod.name} was OOMKilled`
-        });
-    }
+  incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('K8S_EVENT', {
+      type: 'OOM',
+      pod,
+      message: `Pod ${pod.name} was OOMKilled`
+    });
+  }
 });
 
 k8sWatcher.on('crashloop', (pod) => {
-    incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
-    if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('K8S_EVENT', {
-            type: 'CRASHLOOP',
-            pod,
-            message: `Pod ${pod.name} is in CrashLoopBackOff`
-        });
-    }
+  incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('K8S_EVENT', {
+      type: 'CRASHLOOP',
+      pod,
+      message: `Pod ${pod.name} is in CrashLoopBackOff`
+    });
+  }
 });
