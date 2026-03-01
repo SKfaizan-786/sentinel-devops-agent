@@ -50,27 +50,58 @@ async function recreateContainer(containerId) {
     }
 }
 
-async function scaleService(serviceName, replicas) {
-    try {
-        const service = docker.getService(serviceName);
-        const info = await service.inspect();
-        const version = info.Version.Index;
+async function scaleService(containerName, replicas) {
+  try {
+    const containers = await docker.listContainers({ all: true });
 
-        // Merge new replicas into existing spec
-        const spec = { ...info.Spec };
-        if (!spec.Mode) spec.Mode = {};
-        if (!spec.Mode.Replicated) spec.Mode.Replicated = {};
-        spec.Mode.Replicated.Replicas = parseInt(replicas, 10);
+    const sameService = containers.filter(c =>
+      c.Names.some(n => n.includes(containerName))
+    );
 
-        await service.update({
-            version: version,
-            ...spec
+    const currentCount = sameService.length;
+
+    // SCALE UP
+    if (replicas > currentCount) {
+
+      const baseContainer = docker.getContainer(sameService[0].Id);
+      const info = await baseContainer.inspect();
+
+      for (let i = currentCount; i < replicas; i++) {
+
+        const newName = `${containerName}-replica-${i}`;
+
+        const newContainer = await docker.createContainer({
+          Image: info.Config.Image,
+          name: newName,
+          Env: info.Config.Env,
+          HostConfig: info.HostConfig
         });
-        return { action: 'scale', replicas, success: true };
-    } catch (error) {
-        console.error(`Failed to scale service ${serviceName}:`, error);
-        return { action: 'scale', replicas, success: false, error: error.message };
+
+        await newContainer.start();
+
+        console.log(`Replica created: ${newName}`);
+      }
     }
+
+    // SCALE DOWN
+    if (replicas < currentCount) {
+
+      for (let i = replicas; i < currentCount; i++) {
+
+        const container = docker.getContainer(sameService[i].Id);
+        await container.stop();
+        await container.remove();
+
+        console.log(`Replica removed: ${sameService[i].Names[0]}`);
+      }
+    }
+
+    return { success: true };
+
+  } catch (err) {
+    console.error("Scaling error:", err.message);
+    return { success: false, error: err.message };
+  }
 }
 
 module.exports = { restartContainer, recreateContainer, scaleService };

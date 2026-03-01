@@ -23,9 +23,15 @@ class ContainerMonitor {
             });
 
             stream.on('error', (err) => {
-                console.error(`Stream error for ${containerId}:`, err);
-                this.stopMonitoring(containerId);
-            });
+    // Ignore expected 404 when container is removed
+    if (err.statusCode === 404 || err.reason === 'no such container') {
+        this.stopMonitoring(containerId);
+        return;
+    }
+
+    console.error(`Stream error for ${containerId}:`, err.message);
+    this.stopMonitoring(containerId);
+});
 
             stream.on('end', () => {
                 this.stopMonitoring(containerId);
@@ -77,18 +83,18 @@ class ContainerMonitor {
         }
 
         return {
-            cpu: cpuPercent.toFixed(2),
-            memory: {
-                usage: this.formatBytes(memUsage),
-                limit: this.formatBytes(memLimit),
-                percent: memPercent.toFixed(2)
-            },
-            network: {
-                rx: this.formatBytes(stats.networks?.eth0?.rx_bytes || 0),
-                tx: this.formatBytes(stats.networks?.eth0?.tx_bytes || 0)
-            },
-            timestamp: new Date()
-        };
+    cpu: parseFloat(cpuPercent.toFixed(2)),
+    memory: {
+        usage: this.formatBytes(memUsage),
+        limit: this.formatBytes(memLimit),
+        percent: parseFloat(memPercent.toFixed(2))
+    },
+    network: {
+        rx: this.formatBytes(stats.networks?.eth0?.rx_bytes || 0),
+        tx: this.formatBytes(stats.networks?.eth0?.tx_bytes || 0)
+    },
+    timestamp: new Date()
+};
     }
 
     formatBytes(bytes) {

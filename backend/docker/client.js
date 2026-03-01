@@ -41,9 +41,18 @@ async function getContainerHealth(containerId) {
       failingStreak: info.State.Health?.FailingStreak || 0,
       log: info.State.Health?.Log?.slice(-5) || []
     };
+
   } catch (error) {
-    console.error(`Error getting health for ${containerId}:`, error);
-    return { status: 'unknown', failingStreak: 0, log: [] };
+
+    // 🔹 Ignore expected 404 when container was recreated/removed
+    if (error.statusCode === 404 || error.reason === 'no such container') {
+      return { status: 'removed', failingStreak: 0, log: [] };
+    }
+
+    // 🔹 Only log unexpected errors
+    console.error(`Unexpected health error for ${containerId}:`, error.message);
+
+    return { status: 'error', failingStreak: 0, log: [] };
   }
 }
 
