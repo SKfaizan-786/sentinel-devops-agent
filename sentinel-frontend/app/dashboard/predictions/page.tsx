@@ -79,13 +79,6 @@ export default function PredictionsPage() {
                         // If high risk, show forecast
                         const isRisky = prediction && prediction.probability > RISK_THRESHOLD;
 
-                        // Mock history for forecast visualization
-                        // In real app, pass actual metrics history
-                        const mockHistory = Array(20).fill(0).map((_, i) => ({
-                            timestamp: `${i}m ago`,
-                            value: 50 + Math.random() * 20 + (isRisky ? i * 2 : 0)
-                        }));
-
                         return (
                             <Spotlight key={container.id} className={`p-6 ${isRisky ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>
                                 <div className="flex justify-between items-start mb-4">
@@ -111,7 +104,7 @@ export default function PredictionsPage() {
                                      </div>
                                 </div>
 
-                                {isRisky && (
+                                {isRisky && prediction.history && prediction.history.length > 0 && (
                                     <div className="bg-background rounded-lg p-4 border border-border mt-4">
                                         <div className="flex items-center gap-2 mb-2 text-amber-500">
                                             <TrendingUp className="h-4 w-4" />
@@ -120,10 +113,10 @@ export default function PredictionsPage() {
                                         <p className="text-sm mb-4">{prediction.reason}</p>
                                         
                                         <ForecastChart 
-                                            history={mockHistory} 
+                                            history={prediction.history} 
                                             label="Resource Usage Trend"
                                             threshold={90}
-                                            prediction={{ slope: 2, timeToFailure: prediction.estimatedFailureInSeconds || 300 }}
+                                            prediction={{ slope: prediction.slope || 0, timeToFailure: prediction.estimatedFailureInSeconds || 300 }}
                                         />
                                     </div>
                                 )}

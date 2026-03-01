@@ -1,4 +1,5 @@
 const { docker } = require('./client');
+const store = require('../db/metrics-store');
 const { scanImage } = require('../security/scanner');
 const EventEmitter = require('events');
 const metricsStore = require('../db/metrics-store');
@@ -9,6 +10,7 @@ class ContainerMonitor extends EventEmitter {
         super();
         this.metrics = new Map();
         this.watchers = new Map();
+        this.lastStorePush = new Map();
         this.securityTimers = new Map();
         this.restartCounts = new Map();
         this.containerNames = new Map();
@@ -29,7 +31,7 @@ class ContainerMonitor extends EventEmitter {
             this.containerNames.set(containerId, data.Name.replace(/^\//, ''));
 
             const stream = await container.stats({ stream: true });
-            
+
             this.watchers.set(containerId, stream);
 
             // Schedule periodic scans after successful stream setup
@@ -55,23 +57,22 @@ class ContainerMonitor extends EventEmitter {
                         }
                     }
 
-                    // Push to metrics store for prediction
-                    metricsStore.push(containerId, {
-                        cpuPercent: parsed.raw.cpuPercent,
-                        memPercent: parsed.raw.memPercent,
-                        restartCount: this.restartCounts.get(containerId) || 0
-                    });
+                    if (!this.lastPredictTimes) this.lastPredictTimes = new Map();
+                    const lastPredict = this.lastPredictTimes.get(containerId) || 0;
 
-                    // Run prediction
-                    const prediction = predictContainer(containerId);
-                    if (prediction && prediction.probability > 0.3) {
-                        const enrichedPrediction = {
-                            ...prediction,
-                            containerName: this.containerNames.get(containerId)
-                        };
-                        this.emit('prediction', enrichedPrediction);
+                    if (now - lastPredict > 5000) {
+                        metricsStore.push(containerId, { 
+                            cpuPercent: parsed.raw.cpuPercent, 
+                            memPercent: parsed.raw.memPercent, 
+                            restartCount: this.restartCounts.get(containerId) || 0 
+                        });
+
+                        const prediction = predictContainer(containerId);
+                        if (prediction && prediction.probability > 0.3) {
+                            this.emit('prediction', { ...prediction, containerName: this.containerNames.get(containerId) });
+                        }
+                        this.lastPredictTimes.set(containerId, now);
                     }
-
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
@@ -86,7 +87,7 @@ class ContainerMonitor extends EventEmitter {
             stream.on('end', () => {
                 this.stopMonitoring(containerId);
             });
-            
+
             // watchers.set was moved up
         } catch (error) {
             console.error(`Failed to start monitoring ${containerId}:`, error);
@@ -97,9 +98,10 @@ class ContainerMonitor extends EventEmitter {
     stopMonitoring(containerId) {
         if (this.watchers.has(containerId)) {
             const stream = this.watchers.get(containerId);
-            if (stream.destroy) stream.destroy();
+            if (stream && stream.destroy) stream.destroy();
             this.watchers.delete(containerId);
             this.metrics.delete(containerId);
+            this.lastStorePush.delete(containerId);
             metricsStore.clear(containerId);
         }
         if (this.securityTimers.has(containerId)) {
@@ -117,7 +119,7 @@ class ContainerMonitor extends EventEmitter {
         const timer = setInterval(() => {
             scanImage(imageId).catch(err => console.error(`[Security] Periodic scan failed for ${containerId}:`, err.message));
         }, interval);
-        
+
         this.securityTimers.set(containerId, timer);
     }
 
@@ -165,7 +167,8 @@ class ContainerMonitor extends EventEmitter {
             timestamp: new Date(),
             raw: {
                 cpuPercent,
-                memPercent
+                memPercent,
+                memLimit
             }
         };
     }
