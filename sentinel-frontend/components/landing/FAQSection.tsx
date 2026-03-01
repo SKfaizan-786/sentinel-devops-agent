@@ -163,7 +163,7 @@ function PremiumCard({
   };
 
   return (
-    <motion.div
+    <motion.button
       ref={ref}
       layout
       style={{ x, y }}
@@ -177,7 +177,9 @@ function PremiumCard({
         resetMagnet();
       }}
       onClick={onClick}
-      className="relative rounded-2xl p-[1px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 cursor-pointer transition-all duration-300"
+      aria-expanded={isExpanded}
+      aria-controls={`faq-answer-${index}`}
+      className="relative rounded-2xl p-[1px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 cursor-pointer transition-all duration-300 w-full text-left"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
@@ -245,6 +247,7 @@ function PremiumCard({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative z-10"
+              id={`faq-answer-${index}`}
             >
               <div className="mt-4 pt-4 border-t border-white/10">
                 <p className="text-gray-300 leading-relaxed">
@@ -255,6 +258,6 @@ function PremiumCard({
           )}
         </AnimatePresence>
       </motion.div>
-    </motion.div>
+    </motion.button>
   );
 }
