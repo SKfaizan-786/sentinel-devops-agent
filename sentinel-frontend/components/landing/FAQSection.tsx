@@ -37,6 +37,7 @@ const HOVER_DELAY_MS = 300; // Delay before opening dropdown
 export function FAQSection() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [expandedByClick, setExpandedByClick] = useState<Set<number>>(new Set());
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleHoverEnter = (index: number) => {
@@ -57,14 +58,23 @@ export function FAQSection() {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
-    setExpandedIndex(null);
+    // Only collapse if not expanded by click
+    if (expandedIndex !== null && !expandedByClick.has(expandedIndex)) {
+      setExpandedIndex(null);
+    }
   };
 
   const toggleExpanded = (index: number) => {
     if (expandedIndex === index) {
       setExpandedIndex(null);
+      setExpandedByClick(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
     } else {
       setExpandedIndex(index);
+      setExpandedByClick(prev => new Set(prev).add(index));
     }
   };
 
@@ -178,7 +188,7 @@ function PremiumCard({
       }}
       onClick={onClick}
       aria-expanded={isExpanded}
-      aria-controls={`faq-answer-${index}`}
+      {...(isExpanded && { "aria-controls": `faq-answer-${index}` })}
       className="relative rounded-2xl p-[1px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 cursor-pointer transition-all duration-300 w-full text-left"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -202,7 +212,7 @@ function PremiumCard({
         layout
         className={`relative bg-white/5 backdrop-blur-xl border rounded-2xl p-6 overflow-hidden transition-all duration-300 ${
           isHovered 
-            ? "border-cyan-400/50 bg-white/8" 
+            ? "border-cyan-400/50 bg-white/10" 
             : "border-white/10 bg-white/5"
         }`}
       >
