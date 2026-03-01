@@ -37,7 +37,7 @@ const HOVER_DELAY_MS = 300; // Delay before opening dropdown
 export function FAQSection() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [expandedByClick, setExpandedByClick] = useState<Set<number>>(new Set());
+  const [expandedByClickIndex, setExpandedByClickIndex] = useState<number | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleHoverEnter = (index: number) => {
@@ -49,6 +49,7 @@ export function FAQSection() {
     // Set delay before expanding
     hoverTimeoutRef.current = setTimeout(() => {
       setExpandedIndex(index);
+      setExpandedByClickIndex(null); // hover-driven expansion
     }, HOVER_DELAY_MS);
   };
 
@@ -59,7 +60,7 @@ export function FAQSection() {
       clearTimeout(hoverTimeoutRef.current);
     }
     // Only collapse if not expanded by click
-    if (expandedIndex !== null && !expandedByClick.has(expandedIndex)) {
+    if (expandedIndex !== null && expandedByClickIndex !== expandedIndex) {
       setExpandedIndex(null);
     }
   };
@@ -67,14 +68,10 @@ export function FAQSection() {
   const toggleExpanded = (index: number) => {
     if (expandedIndex === index) {
       setExpandedIndex(null);
-      setExpandedByClick(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(index);
-        return newSet;
-      });
+      setExpandedByClickIndex(null);
     } else {
       setExpandedIndex(index);
-      setExpandedByClick(prev => new Set(prev).add(index));
+      setExpandedByClickIndex(index); // mark as click-driven expansion
     }
   };
 
