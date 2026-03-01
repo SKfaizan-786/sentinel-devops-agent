@@ -4,6 +4,13 @@ const client = require('../kubernetes/client');
 const healer = require('../kubernetes/healer');
 const watcher = require('../kubernetes/watcher');
 const { logActivity } = require('../services/incidents');
+const { validateQuery, validateBody } = require('../validation/middleware');
+const {
+  podQuerySchema,
+  deploymentQuerySchema,
+  eventsQuerySchema,
+  watchPodsSchema,
+} = require('../validation/kubernetes.validation');
 
 // Initialize client if not already
 client.init().catch(err => console.error('K8s client init failed on route load:', err.message));
@@ -17,32 +24,32 @@ router.get('/namespaces', async (req, res) => {
     }
 });
 
-router.get('/pods', async (req, res) => {
+router.get('/pods', validateQuery(podQuerySchema), async (req, res) => {
     const { namespace } = req.query;
     try {
-        const pods = await client.getPods(namespace || 'default');
+        const pods = await client.getPods(namespace);
         res.json(pods);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-router.get('/deployments', async (req, res) => {
+router.get('/deployments', validateQuery(deploymentQuerySchema), async (req, res) => {
     const { namespace } = req.query;
     try {
-        const deployments = await client.getDeployments(namespace || 'default');
+        const deployments = await client.getDeployments(namespace);
         res.json(deployments);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-router.get('/events', async (req, res) => {
+router.get('/events', validateQuery(eventsQuerySchema), async (req, res) => {
     const { namespace } = req.query;
     try {
         // We'll use coreApi to list events
         if (!client.initialized) await client.init();
-        const response = await client.coreApi.listNamespacedEvent(namespace || 'default');
+        const response = await client.coreApi.listNamespacedEvent(namespace);
         
         const events = response.body.items.map(event => ({
              type: event.type,
@@ -63,7 +70,7 @@ router.get('/events', async (req, res) => {
     }
 });
 
-router.post('/watch/pods', async (req, res) => {
+router.post('/watch/pods', validateBody(watchPodsSchema), async (req, res) => {
     const { namespace } = req.body;
     // This endpoint initiates watching for SSE/WebSocket on the frontend, 
     // but the actual data stream is likely handled via WebSocket or SSE.

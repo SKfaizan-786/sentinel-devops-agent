@@ -111,9 +111,9 @@ async function checkServiceHealth() {
   }
 }
 
-function startMonitoring(intervalMs = 5000) {
+async function startMonitoring(intervalMs = 5000) {
+    await checkServiceHealth();
     setInterval(checkServiceHealth, intervalMs);
-    checkServiceHealth();
 }
 
 function updateServiceStatus(serviceName, statusData) {

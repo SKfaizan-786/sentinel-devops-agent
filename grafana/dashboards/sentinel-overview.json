@@ -8,7 +8,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(sentinel_service_health) / count(sentinel_service_health) * 100",
+          "expr": "sum(sentinel_service_health) / count(sentinel_service_health) * 100 or vector(0)",
           "legendFormat": "Health %"
         }
       ],
@@ -42,7 +42,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "sum(rate(sentinel_healing_actions_total{outcome='success'}[1h])) / sum(rate(sentinel_healing_actions_total[1h])) * 100"
+          "expr": "sum(rate(sentinel_healing_actions_total{outcome='success'}[1h])) / sum(rate(sentinel_healing_actions_total[1h])) * 100 or vector(0)"
         }
       ]
     }
