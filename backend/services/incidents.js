@@ -25,8 +25,8 @@ function getAiLogs() {
 
 function addAiLog(report) {
     const insight = {
-        id: Date.now(),
-        timestamp: new Date(),
+        id: nextLogId++,
+        timestamp: new Date().toISOString(),
         analysis: report,
         summary: report
     };

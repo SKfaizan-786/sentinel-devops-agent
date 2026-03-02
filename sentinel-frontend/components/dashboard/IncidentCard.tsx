@@ -15,6 +15,8 @@ import {
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/common/Button";
+import { FeedbackButtons } from "@/components/incidents/FeedbackButtons";
+import { SimilarIncidents } from "@/components/incidents/SimilarIncidents";
 
 interface IncidentCardProps {
     incident: Incident;
@@ -98,6 +100,38 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                 <div className="flex items-center gap-2">
                                     <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
                                         <div
+                                            className="h-full bg-green-500 rounded-full"
+                                            style={{ width: `${(incident.confidence ?? 0.85) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-gray-400">{(incident.confidence ?? 0.85) * 100}%</span>
+                                </div>
+                            </div>
+
+                            {/* Operational Memory / Similar Incidents */}
+                            {incident.similarIncidents && (
+                                <SimilarIncidents incidents={incident.similarIncidents} />
+                            )}
+
+                            {/* Feedback */}
+                            <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => onViewReasoning && onViewReasoning(incident.id)}
+                                >
+                                    <Search className="mr-2 h-4 w-4" />
+                                    View Agent Reasoning
+                                </Button>
+                                <FeedbackButtons incidentId={incident.id} />
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
                                             className="h-full bg-primary"
                                             style={{ width: `${incident.agentPredictionConfidence}%` }}
                                         />

@@ -9,7 +9,6 @@ const { v4: uuidv4 } = require('uuid');
 
 // Valid values
 const VALID_WINDOWS = ['1day', '7days', '1month'];
-const VALID_TARGETS = [99, 99.5, 99.9, 99.95, 99.99];
 
 // In-memory SLO store
 const sloStore = new Map();
@@ -26,8 +25,8 @@ function validate(data) {
 
     if (data.targetAvailability === undefined || typeof data.targetAvailability !== 'number') {
         errors.push('targetAvailability is required and must be a number');
-    } else if (!VALID_TARGETS.includes(data.targetAvailability)) {
-        errors.push(`targetAvailability must be one of: ${VALID_TARGETS.join(', ')}`);
+    } else if (data.targetAvailability < 90 || data.targetAvailability > 99.999) {
+        errors.push('targetAvailability must be between 90 and 99.999');
     }
 
     if (!data.trackingWindow || !VALID_WINDOWS.includes(data.trackingWindow)) {
@@ -59,7 +58,7 @@ function create(data) {
         targetAvailability: data.targetAvailability,
         trackingWindow: data.trackingWindow,
         includeScheduledMaintenance: data.includeScheduledMaintenance || false,
-        alertThreshold: data.alertThreshold ?? 0.25,
+        alertThreshold: data.alertThreshold || 0.25,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     };
@@ -98,7 +97,7 @@ function update(id, data) {
         return null;
     }
 
-    const merged = { ...existing, ...data, id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
+    const merged = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
     const errors = validate(merged);
     if (errors.length > 0) {
         throw new Error(`Validation failed: ${errors.join('; ')}`);
@@ -150,9 +149,7 @@ function seedDemoData() {
         },
     ];
 
-    for (const slo of demoSLOs) {
-        create(slo);
-    }
+    demoSLOs.forEach(slo => create(slo));
 }
 
 // Auto-seed

@@ -1,6 +1,6 @@
 "use client";
 
-
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Activity, Clock, AlertCircle, FileWarning } from "lucide-react";
@@ -112,6 +112,7 @@ function IncidentsContent() {
 
     return (
         <div className="w-full max-w-full overflow-x-hidden">
+            <DashboardHeader />
             <div className="container mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 pb-20 space-y-4 sm:space-y-6">
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-2 sm:px-0">

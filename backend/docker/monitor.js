@@ -1,9 +1,13 @@
-const { hostManager } = require('./client');
+const { docker } = require('./client');
+const store = require('../db/metrics-store');
+const { scanImage } = require('../security/scanner');
 
 class ContainerMonitor {
     constructor() {
         this.metrics = new Map();
         this.watchers = new Map();
+        this.lastStorePush = new Map();
+        this.securityTimers = new Map();
     }
 
     async startMonitoring(compoundId) {
@@ -18,13 +22,32 @@ class ContainerMonitor {
         }
 
         try {
-            const container = hostData.client.getContainer(containerId);
+            const container = docker.getContainer(containerId);
+            const data = await container.inspect();
+            const imageId = data.Image;
+
             const stream = await container.stats({ stream: true });
+
+            this.watchers.set(containerId, stream);
+
+            // Schedule periodic scans after successful stream setup
+            this.scheduleSecurityScan(containerId, imageId);
 
             stream.on('data', (chunk) => {
                 try {
                     const stats = JSON.parse(chunk.toString());
-                    this.metrics.set(compoundId, this.parseStats(stats));
+                    const parsed = this.parseStats(stats);
+                    this.metrics.set(containerId, parsed);
+
+                    const now = Date.now();
+                    const lastPush = this.lastStorePush.get(containerId) || 0;
+                    if (now - lastPush >= 60_000) {
+                        store.push(containerId, {
+                            cpuPercent: parseFloat(parsed.cpu),
+                            memPercent: parseFloat(parsed.memory.percent)
+                        });
+                        this.lastStorePush.set(containerId, now);
+                    }
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
@@ -39,19 +62,37 @@ class ContainerMonitor {
                 this.stopMonitoring(compoundId);
             });
 
-            this.watchers.set(compoundId, stream);
+            // watchers.set was moved up
         } catch (error) {
-            console.error(`Failed to start monitoring ${compoundId}:`, error);
+            console.error(`Failed to start monitoring ${containerId}:`, error);
+            this.stopMonitoring(containerId); // Clean up any timers/watchers
         }
     }
 
-    stopMonitoring(compoundId) {
-        if (this.watchers.has(compoundId)) {
-            const stream = this.watchers.get(compoundId);
-            if (stream.destroy) stream.destroy();
-            this.watchers.delete(compoundId);
-            this.metrics.delete(compoundId);
+    stopMonitoring(containerId) {
+        const stream = this.watchers.get(containerId);
+        if (stream && stream.destroy) stream.destroy();
+        this.watchers.delete(containerId);
+        this.metrics.delete(containerId);
+        this.lastStorePush.delete(containerId);
+        store.clear(containerId);
+        if (this.securityTimers.has(containerId)) {
+            clearInterval(this.securityTimers.get(containerId));
+            this.securityTimers.delete(containerId);
         }
+    }
+
+    scheduleSecurityScan(containerId, imageId) {
+        // Run scan immediately if not cached recently (scanner internally checks cache)
+        scanImage(imageId).catch(err => console.error(`[Security] Automated scan failed for ${containerId}:`, err.message));
+
+        // Schedule periodic scans (e.g., daily)
+        const interval = 24 * 60 * 60 * 1000;
+        const timer = setInterval(() => {
+            scanImage(imageId).catch(err => console.error(`[Security] Periodic scan failed for ${containerId}:`, err.message));
+        }, interval);
+
+        this.securityTimers.set(containerId, timer);
     }
 
     parseStats(stats) {
@@ -89,7 +130,12 @@ class ContainerMonitor {
                 rx: this.formatBytes(stats.networks?.eth0?.rx_bytes || 0),
                 tx: this.formatBytes(stats.networks?.eth0?.tx_bytes || 0)
             },
-            timestamp: new Date()
+            timestamp: new Date(),
+            raw: {
+                cpuPercent,
+                memPercent,
+                memLimit
+            }
         };
     }
 

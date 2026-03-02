@@ -60,6 +60,7 @@ export function Header() {
     { href: "#how-it-works", label: "How It Works" },
     { href: "#faqs", label: "FAQs" },
     { href: "/demo", label: "Live Demo" },
+    { href: "/contact", label: "Contact" },
     { href: "/contributors", label: "Contributors" },
   ];
 

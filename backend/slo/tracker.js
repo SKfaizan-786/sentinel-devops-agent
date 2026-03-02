@@ -62,13 +62,6 @@ function clearAll() {
 }
 
 /**
- * Clear tracked data for a specific service.
- */
-function clearService(serviceId) {
-    downtimeStore.delete(serviceId);
-}
-
-/**
  * Seed demo downtime data for demonstration purposes.
  */
 function seedDemoData() {
@@ -135,6 +128,5 @@ module.exports = {
     getIncidents,
     getAllIncidents,
     clearAll,
-    clearService,
     seedDemoData,
 };
