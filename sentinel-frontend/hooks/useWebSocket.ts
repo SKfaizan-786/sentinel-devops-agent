@@ -76,9 +76,9 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
       if (!isMountedRef.current) return;
-      console.warn("WebSocket connection error — will retry automatically");
+      console.error("WebSocket error:", error);
       // ws.close() will be called, triggering onclose
     };
 

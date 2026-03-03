@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
     AreaChart,
     Area,
@@ -19,6 +20,11 @@ interface SLOChartProps {
 }
 
 export function SLOChart({ data, alertThreshold = 25, className = "" }: SLOChartProps) {
+    // Per-instance gradient ID to avoid SVG <defs> collision when
+    // multiple SLOChart components are rendered on the same page.
+    const instanceId = useId();
+    const gradientId = `budgetGradient-${instanceId.replace(/:/g, "")}`;
+
     if (!data || data.length === 0) {
         return (
             <div className={`flex items-center justify-center h-[250px] text-muted-foreground text-sm ${className}`}>
@@ -51,10 +57,10 @@ export function SLOChart({ data, alertThreshold = 25, className = "" }: SLOChart
                     Budget:{" "}
                     <span
                         className={`font-bold ${d.budgetPercent <= 25
-                                ? "text-red-400"
-                                : d.budgetPercent <= 50
-                                    ? "text-amber-400"
-                                    : "text-emerald-400"
+                            ? "text-red-400"
+                            : d.budgetPercent <= 50
+                                ? "text-amber-400"
+                                : "text-emerald-400"
                             }`}
                     >
                         {d.budgetPercent}%
@@ -72,7 +78,7 @@ export function SLOChart({ data, alertThreshold = 25, className = "" }: SLOChart
             <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
-                        <linearGradient id="budgetGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor={gradientColor} stopOpacity={0.3} />
                             <stop offset="95%" stopColor={gradientColor} stopOpacity={0.02} />
                         </linearGradient>
@@ -113,7 +119,7 @@ export function SLOChart({ data, alertThreshold = 25, className = "" }: SLOChart
                         dataKey="budgetPercent"
                         stroke={gradientColor}
                         strokeWidth={2}
-                        fill="url(#budgetGradient)"
+                        fill={`url(#${gradientId})`}
                         animationDuration={1500}
                     />
                 </AreaChart>

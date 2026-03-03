@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useWebSocketContext } from '@/lib/WebSocketContext';
 
 export interface Container {
     id: string;
@@ -18,12 +17,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 export function useContainers(options: { manual?: boolean } = {}) {
     const { manual } = options;
     const [containers, setContainers] = useState<Container[]>([]);
-    const [loading, setLoading] = useState(!manual);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { lastMessage } = useWebSocketContext();
 
-    const fetchContainers = useCallback(async () => {
-        setLoading(true);
+    const fetchContainers = async () => {
         try {
             const response = await axios.get(`${API_BASE}/api/docker/containers`);
             setContainers(response.data.containers);
@@ -35,37 +32,34 @@ export function useContainers(options: { manual?: boolean } = {}) {
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
     const restartContainer = async (id: string) => {
         try {
             await axios.post(`${API_BASE}/api/docker/restart/${id}`);
-            // The backend will broadcast CONTAINER_UPDATE via WebSocket after restart,
-            // so we don't need to manually refetch here.
+            // Await refresh to ensure UI is up to date vs swallowing error
+            await fetchContainers();
         } catch (err: unknown) {
             console.error("Failed to restart container:", err);
+            // Propagate error to UI if needed, or set local error state
             const message = err instanceof Error ? err.message : "Failed to restart container";
             setError(message);
             throw err;
         }
     };
 
-    // Auto-fetch on mount only when not in manual mode
     useEffect(() => {
-        if (!manual) {
-            fetchContainers();
-        }
-    }, [manual, fetchContainers]);
+        fetchContainers();
 
-    // React to WebSocket CONTAINER_UPDATE messages for real-time updates
-    useEffect(() => {
-        if (!lastMessage || lastMessage.type !== 'CONTAINER_UPDATE') return;
-        const data = lastMessage.data;
-        if (data.containers && Array.isArray(data.containers)) {
-            setContainers(data.containers as Container[]);
-            setLoading(false);
+        let interval: NodeJS.Timeout;
+        if (!manual) {
+            interval = setInterval(fetchContainers, 5000);
         }
-    }, [lastMessage]);
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [manual]);
 
     return {
         containers,

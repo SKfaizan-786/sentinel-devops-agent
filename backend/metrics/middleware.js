@@ -7,8 +7,7 @@ function metricsMiddleware(req, res, next) {
     const duration = (Date.now() - start) / 1000;
     let path = req.route?.path || req.path;
     
-    // Normalize paths to avoid high cardinality (replace IDs with :id)
-    // Matches numeric IDs and typical UUIDs
+    // Normalize paths too avoid high cardinality for Prometheus labels
     path = path.replace(/\/\d+/g, '/:id')
                .replace(/\/[0-9a-fA-F-]{36}/g, '/:id');
     

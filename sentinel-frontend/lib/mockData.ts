@@ -32,10 +32,6 @@ export interface Incident {
     logs?: string[];
     reasoning?: string;
     affectedServices?: string[];
-    
-    // Memory
-    confidence?: number;
-    similarIncidents?: { id: string; summary: string; score: number; mttrSeconds: number; outcome?: string }[];
 }
 
 //

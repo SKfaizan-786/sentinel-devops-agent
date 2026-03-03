@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 const { hostManager } = require('./client');
 const { scanImage } = require('../security/scanner');
 const { checkCompliance } = require('../security/policies');
@@ -74,8 +75,19 @@ async function restartContainer(compoundId) {
             return { action: 'restart', success: false, containerId: compoundId, error: errorMsg, blocked: true };
         }
         // ----------------------
+=======
+const { hostManager } = require('./client');
 
+async function restartContainer(compoundId) {
+    try {
+        const { hostId, containerId } = hostManager.parseId(compoundId);
+        const hostData = hostManager.get(hostId);
+        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
+>>>>>>> parent of 608787c (merge this branch)
+
+        const container = hostData.client.getContainer(containerId);
         await container.restart({ t: 10 });
+<<<<<<< HEAD
 
         // --- Store Incident Outcome ---
         const mttr = Math.floor((Date.now() - startTime) / 1000);
@@ -101,6 +113,9 @@ async function restartContainer(containerId) {
         await container.restart({ t: 10 });
         return { action: 'restart', success: true, containerId };
 >>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
+=======
+        return { action: 'restart', success: true, containerId: compoundId };
+>>>>>>> parent of 608787c (merge this branch)
     } catch (error) {
         console.error(`Failed to restart container ${containerId}:`, error);
         return { action: 'restart', success: false, containerId, error: error.message };
@@ -109,6 +124,7 @@ async function restartContainer(containerId) {
 
 async function recreateContainer(containerId) {
     try {
+<<<<<<< HEAD
         const container = docker.getContainer(containerId);
 <<<<<<< HEAD
         // Note: inspect is done inside performSecurityPrecheck, but recreate needs info later?
@@ -123,14 +139,24 @@ async function recreateContainer(containerId) {
             return { action: 'recreate', success: false, containerId, error: errorMsg, blocked: true };
         }
         // ----------------------
+=======
+        const { hostId, containerId } = hostManager.parseId(compoundId);
+        const hostData = hostManager.get(hostId);
+        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
+>>>>>>> parent of 608787c (merge this branch)
 
+        const container = hostData.client.getContainer(containerId);
         const info = await container.inspect();
+<<<<<<< HEAD
 =======
         const info = await container.inspect();
 
 >>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
         // Prepare new configuration
         // Use proper mapping for NetworkingConfig from validated inspection
+=======
+
+>>>>>>> parent of 608787c (merge this branch)
         const networkingConfig = {
             EndpointsConfig: info.NetworkSettings.Networks
         };

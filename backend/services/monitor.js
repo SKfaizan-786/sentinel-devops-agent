@@ -154,10 +154,16 @@ async function checkServiceHealth() {
   }
 }
 
+<<<<<<< HEAD
 async function startMonitoring(intervalMs = 5000) {
   initializeSystemStatus();
   await checkServiceHealth();
   setInterval(checkServiceHealth, intervalMs);
+=======
+function startMonitoring(intervalMs = 5000) {
+    setInterval(checkServiceHealth, intervalMs);
+    checkServiceHealth();
+>>>>>>> parent of 608787c (merge this branch)
 }
 
 function updateServiceStatus(serviceName, statusData, clusterId = 'local') {
