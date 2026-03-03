@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import figlet from 'figlet';
 import { showStatus, runAction, generateReport } from './src/commands.js';
+import { validateConfigCommand } from './src/config-check.js';
 
 const program = new Command();
 
@@ -50,6 +51,14 @@ program
     .description('Generate AI Incident Report markdown file')
     .action(async () => {
         await generateReport();
+    });
+
+// Command: sentinel config:validate
+program
+    .command('config:validate')
+    .description('Validate all environment variables and configuration')
+    .action(async () => {
+        await validateConfigCommand();
     });
 
 program.parse(process.argv);

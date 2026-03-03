@@ -1,7 +1,6 @@
 "use client";
 
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { IncidentCard } from "@/components/dashboard/IncidentCard";
 import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Activity, Clock, AlertCircle, FileWarning } from "lucide-react";
@@ -12,6 +11,7 @@ import { IncidentExport } from "@/components/incidents/IncidentExport";
 import { TableSkeleton } from "@/components/incidents/TableSkeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { useIncidentHistory, FilterState, SortConfig } from "@/hooks/useIncidentHistory";
+import { Button } from "@/components/common/Button";
 
 const defaultFilters: FilterState = {
     services: [],
@@ -52,13 +52,13 @@ function IncidentsContent() {
     const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
     const [pageSize, setPageSize] = useState(Number(searchParams.get("pageSize")) || 10);
 
-    const { incidents, isLoading, totalCount, totalActive, totalCritical, allServices } = useIncidentHistory({
-            filters,
-            search,
-            sort: sortConfig,
-            page,
-            pageSize,
-        });
+    const { incidents, allFilteredIncidents, isLoading, totalCount, totalActive, totalCritical, allServices } = useIncidentHistory({
+        filters,
+        search,
+        sort: sortConfig,
+        page,
+        pageSize,
+    });
 
     // Sync URL with state
     useEffect(() => {
@@ -112,6 +112,7 @@ function IncidentsContent() {
 
     return (
         <div className="w-full max-w-full overflow-x-hidden">
+            <DashboardHeader />
             <div className="container mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 pb-20 space-y-4 sm:space-y-6">
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-2 sm:px-0">
@@ -121,7 +122,17 @@ function IncidentsContent() {
                             Comprehensive log of all system incidents and agent remediations.
                         </p>
                     </div>
-                    <IncidentExport incidents={incidents} disabled={isLoading} />
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="default"
+                            shortcutHint="N"
+                            onClick={() => router.push('/dashboard/incidents/new')}
+                            className="bg-primary hover:bg-primary/90 hidden sm:flex"
+                        >
+                            New Incident
+                        </Button>
+                        <IncidentExport incidents={incidents} disabled={isLoading} />
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -154,7 +165,7 @@ function IncidentsContent() {
                         </div>
                         <div className="text-2xl font-bold text-white truncate">
                             {(() => {
-                                const resolvedIncidents = incidents.filter(
+                                const resolvedIncidents = allFilteredIncidents.filter(
                                     (i) => i.status === "resolved" && i.duration !== "N/A"
                                 );
                                 if (resolvedIncidents.length === 0) return "—";

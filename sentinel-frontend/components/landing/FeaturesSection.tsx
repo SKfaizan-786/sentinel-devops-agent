@@ -33,7 +33,7 @@ const features = [
 
 export function FeaturesSection() {
     return (
-        <section className="py-24 relative overflow-hidden">
+        <section className="py-24 relative overflow-hidden flex items-center justify-center">
             <div className="container px-4 md:px-6 relative z-10">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">

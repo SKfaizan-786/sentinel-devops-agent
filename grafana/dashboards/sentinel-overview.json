@@ -1,0 +1,50 @@
+{
+  "title": "Sentinel Overview",
+  "uid": "sentinel-overview",
+  "panels": [
+    {
+      "title": "Service Health",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(sentinel_service_health) / count(sentinel_service_health) * 100 or vector(0)",
+          "legendFormat": "Health %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 80, "color": "yellow" },
+              { "value": 95, "color": "green" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Active Incidents by Severity",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by(severity) (sentinel_active_incidents)",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "title": "Healing Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(sentinel_healing_actions_total{outcome='success'}[1h])) / sum(rate(sentinel_healing_actions_total[1h])) * 100 or vector(0)"
+        }
+      ]
+    }
+  ]
+}
