@@ -79,6 +79,9 @@ const contactRoutes = require('./routes/contact.routes');
 // Feedback Routes - Operational Memory
 const feedbackRoutes = require('./routes/feedback.routes');
 
+// Reasoning Routes - AI Transparency
+const reasoningRoutes = require('./routes/reasoning.routes');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -118,6 +121,9 @@ app.use('/api/traces', traceRoutes);
 
 // Contact Routes
 app.use('/api', contactRoutes);
+
+// Reasoning Routes - AI Transparency
+app.use('/api/reasoning', requireAuth, reasoningRoutes);
 
 // --- IN-MEMORY DATABASE ---
 let systemStatus = {
