@@ -8,11 +8,11 @@ const { ERRORS } = errorsModule;
 
 const printError = (err) => {
     if (err && err.name === 'SentinelError') {
-        console.error('\n' + chalk.bold('Message: ') + err.message);
+        console.error('\n' + chalk.bold('Failed: ') + err.message);
         console.error(chalk.bold('Reason: ') + err.reason);
         console.error(chalk.bold('Solution: ') + err.solution + '\n');
     } else {
-        console.error('\n' + chalk.bold('Message: ') + (err?.message || 'Unknown error occurred.') + '\n');
+        console.error('\n' + chalk.bold('Failed: ') + (err?.message || 'Unknown error occurred.') + '\n');
     }
 };
 
@@ -76,7 +76,6 @@ export const runAction = async (service, actionType) => {
         const result = await triggerAction(service, actionType);
         console.log(chalk.green(`Success: ${result.message}`));
     } catch (err) {
-        console.log(chalk.red(`Failed: ${err?.message || 'Unknown error occurred.'}`));
         printError(err);
     }
 };

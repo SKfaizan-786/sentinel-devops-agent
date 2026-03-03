@@ -305,32 +305,21 @@ describe('Security Routes - Docker & Compliance Tests', () => {
     it('should require security:write permission', async () => {
       const app2 = express();
       app2.use(bodyParser.json());
-
-      // Mock middleware without write permission
-      const mockAuth = require('../../auth/middleware');
-      const originalRequirePermissions = mockAuth.requirePermissions;
-      mockAuth.requirePermissions = (...perms) => (req, res, next) => {
-        if (perms.includes('security:write')) {
-          return res.status(403).json({ error: 'Insufficient permissions' });
+      app2.use((req, res, next) => {
+        if (req.headers.authorization) {
+          req.user = { permissions: ['security:read'] };
         }
         next();
-      };
-
-      // Re-require the router to get updated middleware
-      delete require.cache[require.resolve('../../routes/security.routes')];
-      const securityRoutes2 = require('../../routes/security.routes');
-      app2.use('/api/security', securityRoutes2);
+      });
+      app2.use('/api/security', securityRoutes);
 
       const response = await request(app2)
         .post('/api/security/policies')
         .set('Authorization', 'Bearer valid-token')
         .send({ allowedSeverities: ['low'], scanFrequency: '0 * * * *', requireCompliancePass: true })
-        .expect(401);
+        .expect(403);
 
       expect(response.body).toHaveProperty('error');
-
-      // Restore
-      mockAuth.requirePermissions = originalRequirePermissions;
     });
 
     it('should handle policy validation errors', async () => {
@@ -348,7 +337,7 @@ describe('Security Routes - Docker & Compliance Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    it('should reject blocklist policy update payload', async () => {
+    it('should reject blocklist policy update payload with 400', async () => {
       const policies = require('../../security/policies');
       policies.updatePolicy.mockImplementation((newPolicy) => newPolicy);
 
