@@ -34,7 +34,7 @@ export function HowItWorks() {
                     <p className="text-muted-foreground">From detection to resolution in seconds.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative flex items-center justify-center">
                     {/* Connecting Line (Desktop) */}
                     <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 

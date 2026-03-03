@@ -34,27 +34,32 @@ export function useIncidents(options: { manual?: boolean } = {}) {
         }
     }, [lastMessage]);
 
-    // Initial Fetch
+    // Initial Fetch — with AbortController to prevent state updates after unmount
     useEffect(() => {
+        if (manual) return;
+
+        const controller = new AbortController();
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-        fetch(`${apiUrl}/insights`)
+
+        fetch(`${apiUrl}/insights`, { signal: controller.signal })
             .then(res => res.json())
             .then(data => {
                 if (data.insights && Array.isArray(data.insights)) {
                     const newIncidents = data.insights.map((i: InsightPayload) => parseInsight(i));
                     setIncidents(prev => {
-                        // Simple merge avoiding duplicates could be expensive for large lists, 
-                        // but okay for small lengths.
-                        // Or just set initial load if empty?
-                        // Let's prepend unique ones.
                         const existingIds = new Set(prev.map(p => p.id));
                         const uniqueNew = newIncidents.filter((n: Incident) => !existingIds.has(n.id));
                         return [...uniqueNew, ...prev];
                     });
                 }
             })
-            .catch(e => console.error("Failed to fetch incidents:", e));
-    }, []);
+            .catch(e => {
+                if (e.name === 'AbortError') return; // Expected on unmount
+                console.error("Failed to fetch incidents:", e);
+            });
+
+        return () => controller.abort();
+    }, [manual]);
 
     return {
         incidents,

@@ -1,0 +1,28 @@
+{
+  "title": "Sentinel Incidents",
+  "uid": "sentinel-incidents",
+  "panels": [
+    {
+      "title": "Incident Rate (1h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(sentinel_incidents_total[1h])",
+          "legendFormat": "{{service}} - {{severity}}"
+        }
+      ]
+    },
+    {
+      "title": "Active Incidents Per Service",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (service) (sentinel_active_incidents)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    }
+  ]
+}

@@ -16,15 +16,18 @@ const INTERVAL_MAP: Record<RefreshInterval, number> = {
 };
 
 export function useAutoRefresh({ onRefresh, intervalPreference = '30s' }: UseAutoRefreshProps) {
-    const [enabled, setEnabled] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return localStorage.getItem('autoRefreshEnabled') === 'true';
-    });
+    // Always start with consistent defaults to avoid hydration mismatch
+    const [enabled, setEnabled] = useState(false);
+    const [interval, setInterval] = useState<RefreshInterval>(intervalPreference);
 
-    const [interval, setInterval] = useState<RefreshInterval>(() => {
-        if (typeof window === 'undefined') return '30s';
-        return (localStorage.getItem('autoRefreshInterval') as RefreshInterval) || intervalPreference;
-    });
+    // Sync from localStorage after mount (client-only)
+    useEffect(() => {
+        const storedEnabled = localStorage.getItem('autoRefreshEnabled');
+        if (storedEnabled === 'true') setEnabled(true);
+
+        const storedInterval = localStorage.getItem('autoRefreshInterval') as RefreshInterval | null;
+        if (storedInterval && storedInterval in INTERVAL_MAP) setInterval(storedInterval);
+    }, []);
 
     const [isPageHidden, setIsPageHidden] = useState(false);
 
