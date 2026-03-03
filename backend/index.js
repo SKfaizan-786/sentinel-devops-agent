@@ -15,6 +15,7 @@ const { hostManager, listContainers, getContainerHealth } = require('./docker/cl
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
 const { routeEvent } = require('./config/notifications');
+const { loadServicesConfig, getAllServices, getClusterIds } = require('./config/services');
 
 const pendingApprovals = new Map();
 
@@ -120,16 +121,6 @@ app.use('/api/traces', traceRoutes);
 app.use('/api', contactRoutes);
 
 // --- IN-MEMORY DATABASE ---
-let systemStatus = {
-  services: {
-    auth: { status: 'unknown', code: 0, lastUpdated: null },
-    payment: { status: 'unknown', code: 0, lastUpdated: null },
-    notification: { status: 'unknown', code: 0, lastUpdated: null }
-  },
-  aiAnalysis: "Waiting for AI report...",
-  lastUpdated: new Date()
-};
-
 let activityLog = [];
 let aiLogs = [];
 let nextLogId = 1;
@@ -152,100 +143,29 @@ function logActivity(type, message) {
 // WebSocket Broadcaster
 let wsBroadcaster = { broadcast: () => { } };
 
-// Service configuration
-const services = [
-  { name: 'auth', url: 'http://localhost:3001/health' },
-  { name: 'payment', url: 'http://localhost:3002/health' },
-  { name: 'notification', url: 'http://localhost:3003/health' }
-];
-
 // Smart Restart Tracking
 const restartTracker = new Map(); // containerId -> { attempts: number, lastAttempt: number }
 const MAX_RESTARTS = 3;
 const GRACE_PERIOD_MS = 60 * 1000; // 1 minute
 
-// Continuous health checking
-let isChecking = false;
-
-async function checkServiceHealth() {
-  if (isChecking) return;
-  isChecking = true;
-
-  try {
-    console.log('🔍 Checking service health...');
-    let hasChanges = false;
-
-    for (const service of services) {
-      let newStatus, newCode;
-      try {
-        const response = await axios.get(service.url, { timeout: 30000 });
-        console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
-        newStatus = 'healthy';
-        newCode = response.status;
-      } catch (error) {
-        const code = error.response?.status || 503;
-        console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
-        newStatus = code >= 500 ? 'critical' : 'degraded';
-        newCode = code;
-      }
-
-      if (
-        systemStatus.services[service.name].status !== newStatus ||
-        systemStatus.services[service.name].code !== newCode
-      ) {
-        const prevStatus = systemStatus.services[service.name].status;
-
-        // Log Status Changes
-        if (newStatus === 'healthy' && prevStatus !== 'healthy' && prevStatus !== 'unknown') {
-          logActivity('success', `Service ${service.name} recovered to HEALTHY`);
-        } else if (newStatus !== 'healthy' && prevStatus !== newStatus) {
-          const severity = newStatus === 'critical' ? 'alert' : 'warn';
-          logActivity(severity, `Service ${service.name} is ${newStatus.toUpperCase()} (Code: ${newCode})`);
-
-          // Trigger ChatOps Incident
-          if (newStatus === 'critical') {
-            initiateHealingProtocol({
-              id: `INC-${service.name}-${Date.now()}`,
-              title: `Service Failure: ${service.name}`,
-              description: `Healthcheck for ${service.name} repeatedly failing with code ${newCode}.`,
-              type: 'service_crash',
-              severity: 'High'
-            });
-          }
-        }
-
-        systemStatus.services[service.name] = {
-          status: newStatus,
-          code: newCode,
-          lastUpdated: new Date()
-        };
-        hasChanges = true;
-
-        // Broadcast individual service update
-        wsBroadcaster.broadcast('SERVICE_UPDATE', {
-          name: service.name,
-          ...systemStatus.services[service.name]
-        });
-      }
-    }
-
-    if (hasChanges) {
-      systemStatus.lastUpdated = new Date();
-      // Broadcast full metrics update
-      wsBroadcaster.broadcast('METRICS', systemStatus);
-    }
-  } finally {
-    isChecking = false;
-  }
-}
-
-setInterval(checkServiceHealth, 5000);
-checkServiceHealth();
-
 // --- ENDPOINTS FOR FRONTEND ---
 
 app.get('/api/status', (req, res) => {
   res.json(serviceMonitor.getSystemStatus());
+});
+
+app.get('/api/services', (req, res) => {
+  res.json({ services: serviceMonitor.getAllServicesInfo() });
+});
+
+app.get('/api/clusters', (req, res) => {
+  const config = loadServicesConfig();
+  const clusters = getClusterIds(config).map(id => ({
+    id,
+    label: config.clusters[id].label,
+    region: config.clusters[id].region
+  }));
+  res.json({ clusters });
 });
 
 app.get('/api/activity', (req, res) => {
@@ -254,6 +174,44 @@ app.get('/api/activity', (req, res) => {
 
 app.get('/api/insights', (req, res) => {
   res.json({ insights: incidents.getAiLogs().slice(0, 20) });
+});
+
+// --- REMOTE AGENT ENDPOINTS ---
+const AGENT_WEBHOOK_SECRET = process.env.AGENT_WEBHOOK_SECRET;
+
+function verifyAgentAuth(req, res, next) {
+  const agentSecret = req.headers['x-agent-secret'];
+  
+  if (!AGENT_WEBHOOK_SECRET) {
+    console.warn('AGENT_WEBHOOK_SECRET not configured, agent auth bypassed');
+    return next();
+  }
+  
+  if (!agentSecret || agentSecret !== AGENT_WEBHOOK_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid agent secret' });
+  }
+  
+  next();
+}
+
+app.post('/api/agent/metrics', verifyAgentAuth, (req, res) => {
+  const { clusterId, services, timestamp } = req.body;
+  
+  if (!clusterId || !services) {
+    return res.status(400).json({ error: 'Missing required fields: clusterId, services' });
+  }
+  
+  const success = serviceMonitor.handleAgentMetrics({
+    clusterId,
+    services,
+    timestamp: timestamp || new Date()
+  });
+  
+  if (success) {
+    res.json({ success: true, message: 'Metrics processed' });
+  } else {
+    res.status(400).json({ error: 'Failed to process metrics' });
+  }
 });
 
 app.post('/api/kestra-webhook', (req, res) => {
