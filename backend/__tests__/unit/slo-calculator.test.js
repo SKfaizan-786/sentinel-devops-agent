@@ -84,7 +84,7 @@ describe('SLO Calculator - Unit Tests', () => {
       expect(budget.budgetPercent).toBeGreaterThan(0);
     });
 
-    it('should return warning status when budget is low', () => {
+    it('should return critical status when budget is low', () => {
       const sloDefinition = {
         targetAvailability: 99.9,
         trackingWindow: '1month',
@@ -254,7 +254,7 @@ describe('SLO Calculator - Unit Tests', () => {
       expect(burndown[burndown.length - 1].budgetPercent).toBeLessThan(100);
     });
 
-    it('should return 30 points by default', () => {
+    it('should return 31 points by default', () => {
       const sloDefinition = {
         targetAvailability: 99.9,
         trackingWindow: '1month',

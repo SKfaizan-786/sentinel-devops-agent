@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { hostManager } = require('../docker/client');
-const { isSwarmMode, listSwarmServices } = require('../docker/swarm');
+const { listSwarmServices } = require('../docker/swarm');
 const containerMonitor = require('../docker/monitor');
 
 // GET /api/hosts

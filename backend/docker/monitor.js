@@ -28,25 +28,25 @@ class ContainerMonitor {
 
             const stream = await container.stats({ stream: true });
 
-            this.watchers.set(containerId, stream);
+            this.watchers.set(compoundId, stream);
 
             // Schedule periodic scans after successful stream setup
-            this.scheduleSecurityScan(containerId, imageId);
+            this.scheduleSecurityScan(compoundId, imageId);
 
             stream.on('data', (chunk) => {
                 try {
                     const stats = JSON.parse(chunk.toString());
                     const parsed = this.parseStats(stats);
-                    this.metrics.set(containerId, parsed);
+                    this.metrics.set(compoundId, parsed);
 
                     const now = Date.now();
-                    const lastPush = this.lastStorePush.get(containerId) || 0;
+                    const lastPush = this.lastStorePush.get(compoundId) || 0;
                     if (now - lastPush >= 60_000) {
-                        store.push(containerId, {
+                        store.push(compoundId, {
                             cpuPercent: parseFloat(parsed.cpu),
                             memPercent: parseFloat(parsed.memory.percent)
                         });
-                        this.lastStorePush.set(containerId, now);
+                        this.lastStorePush.set(compoundId, now);
                     }
                 } catch (e) {
                     // Ignore parse errors from partial chunks
@@ -64,35 +64,35 @@ class ContainerMonitor {
 
             // watchers.set was moved up
         } catch (error) {
-            console.error(`Failed to start monitoring ${containerId}:`, error);
-            this.stopMonitoring(containerId); // Clean up any timers/watchers
+            console.error(`Failed to start monitoring ${compoundId}:`, error);
+            this.stopMonitoring(compoundId); // Clean up any timers/watchers
         }
     }
 
-    stopMonitoring(containerId) {
-        const stream = this.watchers.get(containerId);
+    stopMonitoring(compoundId) {
+        const stream = this.watchers.get(compoundId);
         if (stream && stream.destroy) stream.destroy();
-        this.watchers.delete(containerId);
-        this.metrics.delete(containerId);
-        this.lastStorePush.delete(containerId);
-        store.clear(containerId);
-        if (this.securityTimers.has(containerId)) {
-            clearInterval(this.securityTimers.get(containerId));
-            this.securityTimers.delete(containerId);
+        this.watchers.delete(compoundId);
+        this.metrics.delete(compoundId);
+        this.lastStorePush.delete(compoundId);
+        store.clear(compoundId);
+        if (this.securityTimers.has(compoundId)) {
+            clearInterval(this.securityTimers.get(compoundId));
+            this.securityTimers.delete(compoundId);
         }
     }
 
-    scheduleSecurityScan(containerId, imageId) {
+    scheduleSecurityScan(compoundId, imageId) {
         // Run scan immediately if not cached recently (scanner internally checks cache)
-        scanImage(imageId).catch(err => console.error(`[Security] Automated scan failed for ${containerId}:`, err.message));
+        scanImage(imageId).catch(err => console.error(`[Security] Automated scan failed for ${compoundId}:`, err.message));
 
         // Schedule periodic scans (e.g., daily)
         const interval = 24 * 60 * 60 * 1000;
         const timer = setInterval(() => {
-            scanImage(imageId).catch(err => console.error(`[Security] Periodic scan failed for ${containerId}:`, err.message));
+            scanImage(imageId).catch(err => console.error(`[Security] Periodic scan failed for ${compoundId}:`, err.message));
         }, interval);
 
-        this.securityTimers.set(containerId, timer);
+        this.securityTimers.set(compoundId, timer);
     }
 
     parseStats(stats) {

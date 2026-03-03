@@ -34,7 +34,7 @@ async function performSecurityPrecheck(compoundId) {
         }
         return { blocked: false };
     } catch (e) {
-        console.error(`Security precheck failed for ${containerId}:`, e.message);
+        console.error(`Security precheck failed for ${compoundId}:`, e.message);
         // Fail open or closed? Usually fail closed for security.
         return { blocked: true, error: `Security check error: ${e.message}` };
     }
@@ -42,7 +42,7 @@ async function performSecurityPrecheck(compoundId) {
 
 async function restartContainer(compoundId) {
     const startTime = Date.now();
-    let containerName = containerId;
+    let containerName = compoundId;
     const incidentId = `inc-${Date.now()}-${Math.floor(Math.random()*1000)}`;
     
     try {
@@ -63,7 +63,7 @@ async function restartContainer(compoundId) {
 
         // --- Memory / Fingerprinting ---
         // Get current metrics to add to fingerprint
-        const metrics = containerMonitor.getMetrics(containerId)?.raw || {};
+        const metrics = containerMonitor.getMetrics(compoundId)?.raw || {};
         
         // Emit: Evidence collected - Metrics
         const cpuPercent = Number.isFinite(metrics.cpuPercent) ? metrics.cpuPercent : null;
@@ -156,7 +156,7 @@ async function restartContainer(compoundId) {
             confidence: 0.5
         });
 
-        const securityCheck = await performSecurityPrecheck(containerId);
+        const securityCheck = await performSecurityPrecheck(compoundId);
         if (securityCheck.blocked) {
              const errorMsg = securityCheck.error;
              console.error(errorMsg);
@@ -233,7 +233,7 @@ async function restartContainer(compoundId) {
 
         return { action: 'restart', success: true, containerId, incidentId };
     } catch (error) {
-        console.error(`Failed to restart container ${containerId}:`, error);
+        console.error(`Failed to restart container ${compoundId}:`, error);
         
         emitReasoningSafe(incidentId, {
             type: 'conclusion_reached',
@@ -246,18 +246,22 @@ async function restartContainer(compoundId) {
             }
         });
         
-        return { action: 'restart', success: false, containerId, error: error.message, incidentId };
+        return { action: 'restart', success: false, containerId: compoundId, error: error.message, incidentId };
     }
 }
 
-async function recreateContainer(containerId) {
+async function recreateContainer(compoundId) {
     const incidentId = `inc-${Date.now()}-${Math.floor(Math.random()*1000)}`;
     try {
-        const container = docker.getContainer(containerId);
+        const { hostId, containerId } = hostManager.parseId(compoundId);
+        const hostData = hostManager.get(hostId);
+        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
+
+        const container = hostData.client.getContainer(containerId);
         
         emitReasoningSafe(incidentId, {
             type: 'investigation_started',
-            description: `Started investigating container for recreation: ${containerId}`,
+            description: `Started investigating container for recreation: ${compoundId}`,
             confidence: 0.0
         });
         
@@ -268,7 +272,7 @@ async function recreateContainer(containerId) {
             confidence: 0.5
         });
 
-        const securityCheck = await performSecurityPrecheck(containerId);
+        const securityCheck = await performSecurityPrecheck(compoundId);
         if (securityCheck.blocked) {
              const errorMsg = securityCheck.error;
              console.error(errorMsg);
@@ -340,7 +344,7 @@ async function recreateContainer(containerId) {
 
         return { action: 'recreate', success: true, newId: newContainer.id, incidentId };
     } catch (error) {
-        console.error(`Failed to recreate container ${containerId}:`, error);
+        console.error(`Failed to recreate container ${compoundId}:`, error);
         
         emitReasoningSafe(incidentId, {
             type: 'conclusion_reached',
@@ -349,7 +353,7 @@ async function recreateContainer(containerId) {
             evidence: { action: 'recreate', status: 'failed', error: error.message }
         });
         
-        return { action: 'recreate', success: false, containerId, error: error.message, incidentId };
+        return { action: 'recreate', success: false, containerId: compoundId, error: error.message, incidentId };
     }
 }
 
@@ -374,7 +378,11 @@ async function scaleService(serviceName, replicas) {
             confidence: 0.0
         });
 
-        const service = docker.getService(serviceName);
+        const connected = hostManager.getConnected();
+        if (connected.length === 0) throw new Error('No connected Docker hosts available');
+        const hostClient = connected[0].client;
+
+        const service = hostClient.getService(serviceName);
         const info = await service.inspect();
         const version = info.Version.Index;
         const currentReplicas = info.Spec.Mode?.Replicated?.Replicas ?? 1;
