@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 const { hostManager } = require('./client');
 const store = require('../db/metrics-store');
 const { scanImage } = require('../security/scanner');
@@ -9,6 +10,9 @@ const { docker } = require('./client');
 =======
 const { hostManager } = require('./client');
 >>>>>>> parent of 608787c (merge this branch)
+=======
+const { hostManager } = require('./client');
+>>>>>>> parent of 850077c (Merge branch 'main' into deployment)
 
 class ContainerMonitor {
     constructor() {
@@ -22,6 +26,7 @@ class ContainerMonitor {
         try {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             const container = hostData.client.getContainer(containerId);
             const data = await container.inspect();
             const imageId = data.Image;
@@ -32,11 +37,15 @@ class ContainerMonitor {
 =======
             const container = hostData.client.getContainer(containerId);
 >>>>>>> parent of 608787c (merge this branch)
+=======
+            const container = hostData.client.getContainer(containerId);
+>>>>>>> parent of 850077c (Merge branch 'main' into deployment)
             const stream = await container.stats({ stream: true });
 
             stream.on('data', (chunk) => {
                 try {
                     const stats = JSON.parse(chunk.toString());
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
                     const parsed = this.parseStats(stats);
@@ -57,6 +66,9 @@ class ContainerMonitor {
 =======
                     this.metrics.set(compoundId, this.parseStats(stats));
 >>>>>>> parent of 608787c (merge this branch)
+=======
+                    this.metrics.set(compoundId, this.parseStats(stats));
+>>>>>>> parent of 850077c (Merge branch 'main' into deployment)
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
@@ -71,6 +83,7 @@ class ContainerMonitor {
                 this.stopMonitoring(containerId);
             });
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
             // watchers.set was moved up
@@ -120,6 +133,23 @@ class ContainerMonitor {
         }
     }
 
+=======
+            this.watchers.set(compoundId, stream);
+        } catch (error) {
+            console.error(`Failed to start monitoring ${compoundId}:`, error);
+        }
+    }
+
+    stopMonitoring(compoundId) {
+        if (this.watchers.has(compoundId)) {
+            const stream = this.watchers.get(compoundId);
+            if (stream.destroy) stream.destroy();
+            this.watchers.delete(compoundId);
+            this.metrics.delete(compoundId);
+        }
+    }
+
+>>>>>>> parent of 850077c (Merge branch 'main' into deployment)
     parseStats(stats) {
         // Calculate CPU percentage safely
         let cpuPercent = 0.0;

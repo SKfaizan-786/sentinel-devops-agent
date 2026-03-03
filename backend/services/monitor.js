@@ -155,6 +155,7 @@ async function checkServiceHealth() {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 async function startMonitoring(intervalMs = 5000) {
   initializeSystemStatus();
   await checkServiceHealth();
@@ -164,6 +165,11 @@ function startMonitoring(intervalMs = 5000) {
     setInterval(checkServiceHealth, intervalMs);
     checkServiceHealth();
 >>>>>>> parent of 608787c (merge this branch)
+=======
+function startMonitoring(intervalMs = 5000) {
+    setInterval(checkServiceHealth, intervalMs);
+    checkServiceHealth();
+>>>>>>> parent of 850077c (Merge branch 'main' into deployment)
 }
 
 function updateServiceStatus(serviceName, statusData, clusterId = 'local') {
