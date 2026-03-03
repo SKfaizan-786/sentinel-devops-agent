@@ -272,14 +272,47 @@ function loadCoverageData() {
 }
 
 function loadTestResults() {
-  // Mock data - in real implementation, parse Jest JSON output
+  // Attempt to load real Jest JSON output; fall back to neutral values if unavailable
+  const possiblePaths = [
+    path.join(__dirname, '../coverage/jest-results.json'),
+    path.join(__dirname, '../jest-results.json'),
+  ];
+
+  for (const resultsPath of possiblePaths) {
+    try {
+      if (fs.existsSync(resultsPath)) {
+        const data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+
+        const total = data.numTotalTests || 0;
+        const passed = data.numPassedTests || 0;
+        const failed =
+          data.numFailedTests != null
+            ? data.numFailedTests
+            : Math.max(total - passed, 0);
+
+        return {
+          total,
+          passed,
+          failed,
+          // Breakdown by test type is repository-specific; use total as a generic bucket
+          unit: total,
+          integration: 0,
+          e2e: 0,
+        };
+      }
+    } catch (error) {
+      console.warn('Could not load test results from', resultsPath + ':', error.message);
+    }
+  }
+
+  console.warn('No Jest JSON results file found; using placeholder test statistics.');
   return {
-    total: 45,
-    passed: 42,
-    failed: 3,
-    unit: 18,
-    integration: 15,
-    e2e: 12,
+    total: 0,
+    passed: 0,
+    failed: 0,
+    unit: 0,
+    integration: 0,
+    e2e: 0,
   };
 }
 
