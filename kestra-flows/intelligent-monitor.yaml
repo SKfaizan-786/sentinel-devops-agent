@@ -27,6 +27,12 @@ tasks:
         uri: http://notification-service:3003/health
         allowFailure: true
 
+      - id: get-containers
+        type: io.kestra.plugin.core.http.Request
+        uri: http://host.docker.internal:4000/api/docker/containers
+        method: GET
+        allowFailure: true
+
 
   # 2. Check if any service is down
   - id: check-failures
@@ -57,12 +63,20 @@ tasks:
         message: "🚑 AUTH SERVICE DOWN - HEALING NOW..."
       - id: restart-auth
         type: io.kestra.plugin.core.http.Request
-        uri: http://auth-service:3001/simulate/healthy
+        uri: "http://host.docker.internal:4000/api/docker/try-restart/{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"auth-service\") | .id') | first | replace('\"', '') | default('auth-service') }}"
         method: POST
         allowFailure: true
-      - id: log-auth-healed
-        type: io.kestra.plugin.core.log.Log
-        message: "✅ AUTH SERVICE HEALED!"
+      - id: check-auth-restart
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['restart-auth'].code | default(500)) == 429 }}"
+        then:
+          - id: log-auth-rate-limited
+            type: io.kestra.plugin.core.log.Log
+            message: "⚠️ RATE LIMITED: Max retries exceeded for AUTH SERVICE. Manual intervention required!"
+        else:
+          - id: log-auth-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ AUTH SERVICE RESTART ISSUED!"
 
   # 4. Auto-healing for Payment Service
   - id: heal-payment
@@ -74,12 +88,20 @@ tasks:
         message: "🚑 PAYMENT SERVICE DOWN - HEALING NOW..."
       - id: restart-payment
         type: io.kestra.plugin.core.http.Request
-        uri: http://payment-service:3002/simulate/healthy
+        uri: "http://host.docker.internal:4000/api/docker/try-restart/{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"payment-service\") | .id') | first | replace('\"', '') | default('payment-service') }}"
         method: POST
         allowFailure: true
-      - id: log-payment-healed
-        type: io.kestra.plugin.core.log.Log
-        message: "✅ PAYMENT SERVICE HEALED!"
+      - id: check-payment-restart
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['restart-payment'].code | default(500)) == 429 }}"
+        then:
+          - id: log-payment-rate-limited
+            type: io.kestra.plugin.core.log.Log
+            message: "⚠️ RATE LIMITED: Max retries exceeded for PAYMENT SERVICE. Manual intervention required!"
+        else:
+          - id: log-payment-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ PAYMENT SERVICE RESTART ISSUED!"
 
   # 5. Auto-healing for Notification Service
   - id: heal-notify
@@ -91,12 +113,20 @@ tasks:
         message: "🚑 NOTIFICATION SERVICE DOWN - HEALING NOW..."
       - id: restart-notify
         type: io.kestra.plugin.core.http.Request
-        uri: http://notification-service:3003/simulate/healthy
+        uri: "http://host.docker.internal:4000/api/docker/try-restart/{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"notification-service\") | .id') | first | replace('\"', '') | default('notification-service') }}"
         method: POST
         allowFailure: true
-      - id: log-notify-healed
-        type: io.kestra.plugin.core.log.Log
-        message: "✅ NOTIFICATION SERVICE HEALED!"
+      - id: check-notify-restart
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ (outputs['restart-notify'].code | default(500)) == 429 }}"
+        then:
+          - id: log-notify-rate-limited
+            type: io.kestra.plugin.core.log.Log
+            message: "⚠️ RATE LIMITED: Max retries exceeded for NOTIFICATION SERVICE. Manual intervention required!"
+        else:
+          - id: log-notify-healed
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ NOTIFICATION SERVICE RESTART ISSUED!"
 
   # 6. AI Analysis (Optional - only if API key is set)
   - id: ai-analysis
