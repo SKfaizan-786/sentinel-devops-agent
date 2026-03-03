@@ -12,10 +12,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useIncidents } from "@/hooks/useIncidents";
 
 import { useContainers } from "@/hooks/useContainers";
-import { useHosts } from "@/hooks/useHosts";
 import { ContainerCard } from "@/components/dashboard/ContainerCard";
-import { HostSelector } from "@/components/dashboard/HostSelector";
-import { HostHealthCard } from "@/components/dashboard/HostHealthCard";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { MetricsChartsSkeleton } from "@/components/dashboard/ChartSkeleton";
@@ -26,13 +23,10 @@ export default function DashboardPage() {
     const { metrics } = useMetrics();
     const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents({ manual: true });
     const { containers, loading: containersLoading, restartContainer, refetch: refetchContainers } = useContainers({ manual: true });
-    const { hosts, loading: hostsLoading, refetch: refetchHosts } = useHosts({ manual: true });
-    const [selectedHostId, setSelectedHostId] = useState<string>('all');
 
     const handleRefresh = useCallback(() => {
         refetchContainers();
-        refetchHosts();
-    }, [refetchContainers, refetchHosts]);
+    }, [refetchContainers]);
 
     // Track initial load state (skeletons shown only on first load)
     const [initialLoad, setInitialLoad] = useState(true);
@@ -125,6 +119,7 @@ export default function DashboardPage() {
                         <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
                     </div>
 
+<<<<<<< HEAD
                     {/* Hosts Summary and Selector */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border">
                         <HostSelector
@@ -155,6 +150,8 @@ export default function DashboardPage() {
                         return null;
                     })()}
 
+=======
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
                     {/* Health Summary - Show skeleton during initial load */}
                     {isLoading ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -219,15 +216,13 @@ export default function DashboardPage() {
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {containers
-                                            .filter(c => selectedHostId === 'all' || c.hostInfo?.id === selectedHostId)
-                                            .map(container => (
-                                                <ContainerCard
-                                                    key={container.id}
-                                                    container={container}
-                                                    onRestart={restartContainer}
-                                                />
-                                            ))}
+                                        {containers.map(container => (
+                                            <ContainerCard
+                                                key={container.id}
+                                                container={container}
+                                                onRestart={restartContainer}
+                                            />
+                                        ))}
                                     </div>
                                 </div>
                             )}

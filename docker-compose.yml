@@ -115,13 +115,12 @@ services:
     restart: always
 
   # 5. The Backend API (Bridge)
+  # COMMENTED OUT - Running locally with node index.js
   # backend:
   #   build: ./backend
   #   container_name: sentinel-backend
   #   environment:
   #     DOCKER_ENV: "true"
-  #     # Example multi-host configuration:
-  #     # HOSTS_CONFIG: '[{"id":"local","label":"Local Host","type":"local","socketPath":"/var/run/docker.sock"},{"id":"remote1","label":"Remote Swarm","type":"remote","host":"tcp://192.168.1.100","port":2376}]'
   #   ports:
   #     - "4000:4000"
   #   networks:

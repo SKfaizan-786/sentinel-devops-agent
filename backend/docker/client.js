@@ -1,6 +1,6 @@
 const Docker = require('dockerode');
-const { Client } = require('ssh2');
 
+<<<<<<< HEAD
 /**
  * DockerHostManager manages multihost environment configurations and lifecycle.
  */
@@ -67,6 +67,11 @@ class DockerHostManager {
 }
 
 const hostManager = new DockerHostManager();
+=======
+const docker = new Docker({
+  socketPath: process.env.DOCKER_SOCKET || (process.platform === 'win32' ? '//./pipe/docker_engine' : '/var/run/docker.sock')
+});
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
 
 /**
  * Retrieves containers mapped across all available hosts with rich metadata.
@@ -74,60 +79,43 @@ const hostManager = new DockerHostManager();
  * @returns {Promise<Array>}
  */
 async function listContainers(filters = {}) {
-  const connectedHosts = hostManager.getConnected();
-  const results = await Promise.allSettled(
-    connectedHosts.map(async (hostData) => {
-      try {
-        const containers = await hostData.client.listContainers({
-          all: true,
-          filters: {
-            label: ['sentinel.monitor=true'],
-            ...filters
-          }
-        });
-
-        return containers.map(container => ({
-          id: `${hostData.id}:${container.Id}`,
-          displayId: container.Id.slice(0, 12),
-          name: container.Names[0].replace('/', ''),
-          image: container.Image,
-          status: container.State,
-          health: container.Status.includes('unhealthy') ? 'unhealthy' :
-            container.Status.includes('healthy') ? 'healthy' : 'unknown',
-          ports: container.Ports,
-          created: new Date(container.Created * 1000),
-          hostInfo: {
-            id: hostData.id,
-            label: hostData.label,
-            type: hostData.type
-          }
-        }));
-      } catch (error) {
-        console.error(`Error listing containers for host ${hostData.id}:`, error);
-        return [];
+  try {
+    const containers = await docker.listContainers({
+      all: true,
+      filters: {
+        label: ['sentinel.monitor=true'],
+        ...filters
       }
-    })
-  );
+    });
 
-  return results
-    .filter(r => r.status === 'fulfilled')
-    .flatMap(r => r.value);
+    return containers.map(container => ({
+      id: container.Id,
+      displayId: container.Id.slice(0, 12),
+      name: container.Names[0].replace('/', ''),
+      image: container.Image,
+      status: container.State,
+      health: container.Status.includes('unhealthy') ? 'unhealthy' :
+        container.Status.includes('healthy') ? 'healthy' : 'unknown',
+      ports: container.Ports,
+      created: new Date(container.Created * 1000)
+    }));
+  } catch (error) {
+    console.error("Error listing containers:", error);
+    return [];
+  }
 }
 
+<<<<<<< HEAD
 /**
  * Introspects health for container using a unified compoundID.
  * @param {string} compoundId The id structured {host}:{containerId}
  */
 async function getContainerHealth(compoundId) {
+=======
+async function getContainerHealth(containerId) {
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
   try {
-    const { hostId, containerId } = hostManager.parseId(compoundId);
-    const hostData = hostManager.get(hostId);
-
-    if (!hostData || !hostData.client) {
-      throw new Error(`Host ${hostId} is not connected`);
-    }
-
-    const container = hostData.client.getContainer(containerId);
+    const container = docker.getContainer(containerId);
     const info = await container.inspect();
 
     return {
@@ -136,9 +124,9 @@ async function getContainerHealth(compoundId) {
       log: info.State.Health?.Log?.slice(-5) || []
     };
   } catch (error) {
-    console.error(`Error getting health for ${compoundId}:`, error);
+    console.error(`Error getting health for ${containerId}:`, error);
     return { status: 'unknown', failingStreak: 0, log: [] };
   }
 }
 
-module.exports = { hostManager, listContainers, getContainerHealth };
+module.exports = { docker, listContainers, getContainerHealth };

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const { hostManager } = require('./client');
 const { scanImage } = require('../security/scanner');
 const { checkCompliance } = require('../security/policies');
@@ -91,15 +92,25 @@ async function restartContainer(compoundId) {
         // ------------------------------
 
         return { action: 'restart', success: true, containerId: compoundId };
+=======
+const { docker } = require('./client');
+
+async function restartContainer(containerId) {
+    try {
+        const container = docker.getContainer(containerId);
+        await container.restart({ t: 10 });
+        return { action: 'restart', success: true, containerId };
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
     } catch (error) {
-        console.error(`Failed to restart container ${compoundId}:`, error);
-        return { action: 'restart', success: false, containerId: compoundId, error: error.message };
+        console.error(`Failed to restart container ${containerId}:`, error);
+        return { action: 'restart', success: false, containerId, error: error.message };
     }
 }
 
-async function recreateContainer(compoundId) {
+async function recreateContainer(containerId) {
     try {
         const container = docker.getContainer(containerId);
+<<<<<<< HEAD
         // Note: inspect is done inside performSecurityPrecheck, but recreate needs info later?
         // Ah, duplicate inspect is better than polluting logic.
         // Or reuse info? For now, keep it simple.
@@ -114,14 +125,19 @@ async function recreateContainer(compoundId) {
         // ----------------------
 
         const info = await container.inspect();
+=======
+        const info = await container.inspect();
+
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
         // Prepare new configuration
         // Use proper mapping for NetworkingConfig from validated inspection
         const networkingConfig = {
             EndpointsConfig: info.NetworkSettings.Networks
         };
 
+        // Create new container first
         const newName = `${info.Name.replace('/', '')}-new`;
-        const newContainer = await hostData.client.createContainer({
+        const newContainer = await docker.createContainer({
             Image: info.Config.Image,
             name: newName,
             ...info.Config,
@@ -131,22 +147,25 @@ async function recreateContainer(compoundId) {
 
         await newContainer.start();
 
+        // Now safely remove the old one if it was running
         if (info.State.Running) {
             await container.stop();
         }
         await container.remove();
 
+        // Rename new container to old name
         await newContainer.rename({ name: info.Name.replace('/', '') });
 
-        return { action: 'recreate', success: true, newId: `${hostId}:${newContainer.id}` };
+        return { action: 'recreate', success: true, newId: newContainer.id };
     } catch (error) {
-        console.error(`Failed to recreate container ${compoundId}:`, error);
-        return { action: 'recreate', success: false, containerId: compoundId, error: error.message };
+        console.error(`Failed to recreate container ${containerId}:`, error);
+        return { action: 'recreate', success: false, containerId, error: error.message };
     }
 }
 
-async function scaleService(serviceName, replicas, hostId = 'local') {
+async function scaleService(serviceName, replicas) {
     try {
+<<<<<<< HEAD
         let hostData = hostManager.get(hostId);
         if (!hostData) {
             const connected = hostManager.getConnected();
@@ -157,9 +176,13 @@ async function scaleService(serviceName, replicas, hostId = 'local') {
         if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
 
         const service = hostData.client.getService(serviceName);
+=======
+        const service = docker.getService(serviceName);
+>>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
         const info = await service.inspect();
         const version = info.Version.Index;
 
+        // Merge new replicas into existing spec
         const spec = { ...info.Spec };
         if (!spec.Mode) spec.Mode = {};
         if (!spec.Mode.Replicated) spec.Mode.Replicated = {};
