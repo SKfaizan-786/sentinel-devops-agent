@@ -3,8 +3,6 @@
  * Tests the complete detection -> healing -> verification flow
  */
 
-const { EventEmitter } = require('events');
-
 // Mock dependencies
 jest.mock('../../docker/client', () => ({
   hostManager: {
@@ -64,12 +62,11 @@ jest.mock('../../docker/monitor', () => ({
 
 describe('Integration: Healing Cycle', () => {
   let healer;
-  let incidents;
 
   beforeEach(() => {
     jest.clearAllMocks();
     healer = require('../../docker/healer');
-    incidents = require('../../services/incidents');
+    require('../../services/incidents');
   });
 
   describe('Complete Healing Flow', () => {
@@ -124,8 +121,6 @@ describe('Integration: Healing Cycle', () => {
     });
 
     it('should measure MTTR (Mean Time To Recovery)', async () => {
-      const startTime = Date.now();
-
       await healer.restartContainer('test-container');
 
       const { storeIncident } = require('../../db/incident-memory');
