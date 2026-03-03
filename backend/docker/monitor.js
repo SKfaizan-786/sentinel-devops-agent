@@ -2,6 +2,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 const { hostManager } = require('./client');
 const store = require('../db/metrics-store');
 const { scanImage } = require('../security/scanner');
@@ -17,6 +18,9 @@ const { hostManager } = require('./client');
 =======
 const { hostManager } = require('./client');
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+const { hostManager } = require('./client');
+>>>>>>> parent of 608787c (merge this branch)
 
 class ContainerMonitor {
     constructor() {
@@ -28,6 +32,7 @@ class ContainerMonitor {
         if (this.watchers.has(containerId)) return;
 
         try {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -48,11 +53,15 @@ class ContainerMonitor {
 =======
             const container = hostData.client.getContainer(containerId);
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+            const container = hostData.client.getContainer(containerId);
+>>>>>>> parent of 608787c (merge this branch)
             const stream = await container.stats({ stream: true });
 
             stream.on('data', (chunk) => {
                 try {
                     const stats = JSON.parse(chunk.toString());
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -81,6 +90,9 @@ class ContainerMonitor {
 =======
                     this.metrics.set(compoundId, this.parseStats(stats));
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+                    this.metrics.set(compoundId, this.parseStats(stats));
+>>>>>>> parent of 608787c (merge this branch)
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
@@ -95,6 +107,7 @@ class ContainerMonitor {
                 this.stopMonitoring(containerId);
             });
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -180,6 +193,23 @@ class ContainerMonitor {
     }
 
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+            this.watchers.set(compoundId, stream);
+        } catch (error) {
+            console.error(`Failed to start monitoring ${compoundId}:`, error);
+        }
+    }
+
+    stopMonitoring(compoundId) {
+        if (this.watchers.has(compoundId)) {
+            const stream = this.watchers.get(compoundId);
+            if (stream.destroy) stream.destroy();
+            this.watchers.delete(compoundId);
+            this.metrics.delete(compoundId);
+        }
+    }
+
+>>>>>>> parent of 608787c (merge this branch)
     parseStats(stats) {
         // Calculate CPU percentage safely
         let cpuPercent = 0.0;

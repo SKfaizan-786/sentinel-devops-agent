@@ -13,6 +13,7 @@ const healer = require('./docker/healer');
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 const { routeEvent } = require('./config/notifications');
 const { loadServicesConfig, getAllServices, getClusterIds } = require('./config/services');
 
@@ -56,6 +57,8 @@ function initiateHealingProtocol(incident) {
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
 =======
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+>>>>>>> parent of 608787c (merge this branch)
 
 // New Services
 const serviceMonitor = require('./services/monitor');
@@ -203,6 +206,7 @@ app.post('/api/kestra-webhook', (req, res) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       globalWsBroadcaster.broadcast('INCIDENT_NEW', newInsight);
 =======
         globalWsBroadcaster.broadcast('INCIDENT_NEW', insight);
@@ -216,6 +220,9 @@ app.post('/api/kestra-webhook', (req, res) => {
 =======
       globalWsBroadcaster.broadcast('INCIDENT_NEW', insight);
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+      globalWsBroadcaster.broadcast('INCIDENT_NEW', insight);
+>>>>>>> parent of 608787c (merge this branch)
     }
   }
   systemStatus.lastUpdated = new Date();
@@ -255,6 +262,7 @@ app.post('/api/action/:service/:type', async (req, res) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   incidents.logActivity('info', `Triggering action '${type}' on service '${service}'`);
 =======
   incidents.logActivity('info', ERRORS.SERVICE_NOT_FOUND(service).toJSON()ervice}'`);
@@ -266,6 +274,8 @@ app.post('/api/action/:service/:type', async (req, res) => {
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
 =======
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+>>>>>>> parent of 608787c (merge this branch)
   if (!port) {
     incidents.logActivity('warn', `Failed action '${type}': Invalid service '${service}'`);
     return res.status(400).json({ success: false, error: 'Invalid service' });
@@ -285,6 +295,7 @@ app.post('/api/action/:service/:type', async (req, res) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     incidents.logActivity('success', `Successfully executed '${type}' on ${service}`);
 =======
     incidents.logActivityERRORS.ACTION_FAILED().toJSON()pe}' on ${service}`);
@@ -298,6 +309,9 @@ app.post('/api/action/:service/:type', async (req, res) => {
 =======
     incidents.logActivity('info', `Action '${type}' executed on ${service}`);
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+    incidents.logActivity('info', `Action '${type}' executed on ${service}`);
+>>>>>>> parent of 608787c (merge this branch)
     res.json({ success: true, message: `${type} executed on ${service}` });
   } catch (error) {
     incidents.logActivity('error', `Action '${type}' on ${service} failed: ${error.message}`);
@@ -319,6 +333,7 @@ const validateId = (req, res, next) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   if (!req.params.id || typeof req.params.id !== 'string' || req.params.id.length < 1) {
     return res.status(400).json(ERRORS.INVALID_ID().toJSON());
 =======
@@ -336,11 +351,16 @@ const validateId = (req, res, next) => {
   if (!req.params.id) {
     return res.status(400).json({ error: 'Invalid ID' });
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+  if (!req.params.id) {
+    return res.status(400).json({ error: 'Invalid ID' });
+>>>>>>> parent of 608787c (merge this branch)
   }
   next();
 };
 
 const validateScaleParams = (req, res, next) => {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -371,6 +391,11 @@ const validateScaleParams = (req, res, next) => {
   if (!req.params.service || isNaN(replicas) || replicas < 0 || replicas > 100) {
     return res.status(400).json({ error: 'Invalid scale parameters' });
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+  const replicas = parseInt(req.params.replicas, 10);
+  if (!req.params.service || isNaN(replicas) || replicas < 0 || replicas > 100) {
+    return res.status(400).json({ error: 'Invalid scale parameters' });
+>>>>>>> parent of 608787c (merge this branch)
   }
   next();
 };
@@ -407,6 +432,7 @@ app.get('/api/docker/healERRORS.DOCKER_CONNECTION().toJSON()nc (req, res) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     res.status(500).json(ERRORS.DOCKER_CONNECTION().toJSON());
 =======
     res.status(500).json({ error: error.message });
@@ -422,6 +448,9 @@ app.get('/api/docker/healERRORS.DOCKER_CONNECTION().toJSON()nc (req, res) => {
 =======
     res.status(500).json({ error: error.message });
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+    res.status(500).json({ error: error.message });
+>>>>>>> parent of 608787c (merge this branch)
   }
   res.json(metrics
 });
@@ -445,6 +474,7 @@ app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (re
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     return res.status(429).json(ERRORS.MAX_RESTARTS_EXCEEDED().toJSON());
 =======
   if (now - tracker.lastAttempt ERRORS.MAX_RESTARTS_EXCEEDED().toJSON());
@@ -458,6 +488,9 @@ app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (re
 =======
     return res.status(429).json({ error: 'Max restarts exceeded' });
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+    return res.status(429).json({ error: 'Max restarts exceeded' });
+>>>>>>> parent of 608787c (merge this branch)
   }
 
   tracker.attempts++;
@@ -562,6 +595,7 @@ k8sWatcher.on('oom', (pod) => {
     }
 });
 
+<<<<<<< HEAD
 k8sWatcher.on('crashloop', (pod) => {
     incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
     if (globalWsBroadcaster) {
@@ -588,6 +622,8 @@ k8sWatcher.watchEvents('default', (event) => {
 >>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
 
 
+=======
+>>>>>>> parent of 608787c (merge this branch)
   k8sWatcher.on('crashloop', (pod) => {
     incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
     if (globalWsBroadcaster) {
@@ -616,6 +652,7 @@ k8sWatcher.watchEvents('default', (event) => {
   serviceMonitor.startMonitoring();
   startCollectors(); // Start Prometheus collectors
 })(); // End of server start IIFE
+<<<<<<< HEAD
 =======
   if (globalWsBroadcaster) {
     globalWsBroadcaster.broadcast('K8S_POD_UPDATE', { type, pod });
@@ -645,3 +682,5 @@ startCollectors(); // Start Prometheus collectors
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
 =======
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
+=======
+>>>>>>> parent of 608787c (merge this branch)
