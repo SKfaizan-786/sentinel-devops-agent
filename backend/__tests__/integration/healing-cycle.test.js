@@ -153,22 +153,35 @@ describe('Integration: Healing Cycle', () => {
     it('should continue healing even if one container fails', async () => {
       const { hostManager } = require('../../docker/client');
 
-      // Make second container fail
-      let callCount = 0;
+      // Make second container (container-2) fail deterministically
       hostManager.get.mockImplementation(() => {
-        callCount++;
-        if (callCount === 2) return null; // Fail second call
         return {
           client: {
-            getContainer: jest.fn(() => ({
-              inspect: jest.fn(async () => ({
-                Id: 'test',
-                Name: '/test',
+            getContainer: jest.fn((id) => {
+              // Common inspect behavior for all containers
+              const inspect = jest.fn(async () => ({
+                Id: id,
+                Name: `/${id}`,
                 Image: 'test:latest',
                 State: { Running: true },
-              })),
-              restart: jest.fn(async () => {}),
-            })),
+              }));
+
+              // For container-2, simulate a restart failure
+              if (id === 'container-2') {
+                return {
+                  inspect,
+                  restart: jest.fn(async () => {
+                    throw new Error('Failed to restart container-2');
+                  }),
+                };
+              }
+
+              // Other containers restart successfully
+              return {
+                inspect,
+                restart: jest.fn(async () => {}),
+              };
+            }),
           },
         };
       });
