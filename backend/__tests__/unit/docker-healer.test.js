@@ -5,11 +5,28 @@
 
 const { MockDockerClient } = require('../mocks/docker.mock');
 
+// Ensure the mocked Docker client returns all fields required by healer.restartContainer
+const dockerClientWithInspect = {
+  ...MockDockerClient.docker,
+  inspect: jest.fn(async (...args) => {
+    const info = await MockDockerClient.docker.inspect(...args);
+    return {
+      Name: info && info.Name ? info.Name : '/test-container',
+      Image: info && info.Image ? info.Image : 'test-image:latest',
+      RestartCount:
+        info && typeof info.RestartCount === 'number'
+          ? info.RestartCount
+          : 0,
+      ...info,
+    };
+  }),
+};
+
 // Mock dependencies
 jest.mock('../../docker/client', () => ({
   hostManager: {
     parseId: jest.fn((id) => ({ hostId: 'local', containerId: id })),
-    get: jest.fn(() => ({ client: MockDockerClient.docker })),
+    get: jest.fn(() => ({ client: dockerClientWithInspect })),
   },
 }));
 
