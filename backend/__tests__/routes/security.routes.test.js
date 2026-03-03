@@ -337,8 +337,9 @@ describe('Security Routes - Docker & Compliance Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    it('should reject blocklist policy update payload with 400', async () => {
+    it('should accept valid blocklist policy update payload with 200', async () => {
       const policies = require('../../security/policies');
+      policies.updatePolicy.mockReset();
       policies.updatePolicy.mockImplementation((newPolicy) => newPolicy);
 
       const newPolicy = {
@@ -352,7 +353,7 @@ describe('Security Routes - Docker & Compliance Tests', () => {
         .post('/api/security/policies')
         .set('Authorization', 'Bearer valid-token')
         .send(newPolicy)
-        .expect(400);
+        .expect(200);
 
       expect(policies.updatePolicy).toHaveBeenCalled();
     });

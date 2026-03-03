@@ -54,7 +54,7 @@ function getAllIncidents() {
         }
     }
     return all
-        .sort((a, b) => (b.event.resolvedAt - a.event.resolvedAt) || (b.idx - a.idx))
+        .sort((a, b) => (b.event.resolvedAt - a.event.resolvedAt) || (a.idx - b.idx))
         .map((entry) => entry.event);
 }
 

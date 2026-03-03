@@ -82,11 +82,7 @@ router.post('/watch/pods', validateBody(watchPodsSchema), async (req, res) => {
     // For now, we can just ensure the watcher is started.
     
     try {
-        // We'll rely on the main app to hook up the watcher events to the websocket.
-        // Or we can start it here.
-        // Note: watcher.watchPods requires a callback.
-        
-        // This endpoint might just be to confirm we are interested in a namespace?
+        watcher.watchPods(namespace, () => {});
         res.json({ success: true, message: `Watching namespace ${namespace}` });
     } catch (error) {
         res.status(500).json({ error: error.message });

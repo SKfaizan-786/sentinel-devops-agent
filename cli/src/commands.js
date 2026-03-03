@@ -115,7 +115,9 @@ export const generateReport = async () => {
             } else if (!healthyStart) {
                 healthyStart = item.timestamp;
             }
-            lastStatus = 'healthy';
+            if (isHealthy) {
+                lastStatus = 'healthy';
+            }
         });
 
         // Generate report

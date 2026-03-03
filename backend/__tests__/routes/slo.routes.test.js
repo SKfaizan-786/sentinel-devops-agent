@@ -459,17 +459,18 @@ describe('SLO Routes - Unit & Integration Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    it('should create downtime event for invalid SLO id lookup', async () => {
+    it('should return 404 for invalid SLO id lookup', async () => {
       const sloModel = require('../../models/slo-definition');
+      sloModel.getById.mockReset();
       sloModel.getById.mockReturnValueOnce(null);
 
       const response = await request(app)
         .post('/api/slo/invalid-id/downtime')
         .set('Authorization', 'Bearer valid-token')
         .send({ downtimeMinutes: 30 })
-        .expect(201);
+        .expect(404);
 
-      expect(response.body).toHaveProperty('event');
+      expect(response.body).toHaveProperty('error');
     });
 
     it('should require authentication and slo:write permission', async () => {
@@ -483,7 +484,7 @@ describe('SLO Routes - Unit & Integration Tests', () => {
   });
 
   describe('GET /api/slo/:id/burndown - Get burndown data', () => {
-    it('should return 404 for burndown chart data on mocked id', async () => {
+    it('should return burndown chart data for valid SLO id', async () => {
       const sloModel = require('../../models/slo-definition');
       const calculator = require('../../slo/calculator');
 
@@ -493,13 +494,14 @@ describe('SLO Routes - Unit & Integration Tests', () => {
         targetAvailability: 99.9,
         trackingWindow: '1month',
       };
+      sloModel.getById.mockReset();
       sloModel.getById.mockReturnValueOnce(mockSLO);
 
       const response = await request(app)
         .get('/api/slo/slo-123/burndown')
-        .expect(404);
+        .expect(200);
 
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('burndown');
     });
 
     it('should support custom number of points parameter', async () => {
@@ -543,15 +545,16 @@ describe('SLO Routes - Unit & Integration Tests', () => {
         .expect(400);
     });
 
-    it('should return 200 burndown payload for invalid-id lookup path', async () => {
+    it('should return 404 for invalid-id lookup path', async () => {
       const sloModel = require('../../models/slo-definition');
+      sloModel.getById.mockReset();
       sloModel.getById.mockReturnValueOnce(null);
 
       const response = await request(app)
         .get('/api/slo/invalid-id/burndown')
-        .expect(200);
+        .expect(404);
 
-      expect(response.body).toHaveProperty('burndown');
+      expect(response.body).toHaveProperty('error');
     });
   });
 
