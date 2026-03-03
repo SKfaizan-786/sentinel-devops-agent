@@ -13,9 +13,12 @@
     "quick-setup": "node quick-setup.js",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathPattern='__tests__' --testNamePattern='Unit'",
-    "test:integration": "jest --testPathPattern='__tests__' --testNamePattern='Integration'"
+    "test:coverage": "jest --coverage --collectCoverageFrom='**/*.js' --coveragePathIgnorePatterns='/node_modules/|/__tests__/'",
+    "test:unit": "jest __tests__/unit --testTimeout=10000",
+    "test:integration": "jest __tests__/integration --testTimeout=30000",
+    "test:e2e": "jest __tests__/e2e --testTimeout=180000 --runInBand",
+    "test:e2e:full": "./__tests__/run-e2e.sh",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "dependencies": {
     "@slack/web-api": "^7.8.0",
