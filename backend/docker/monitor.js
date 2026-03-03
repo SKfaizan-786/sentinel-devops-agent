@@ -4,6 +4,9 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
 const { hostManager } = require('./client');
 =======
 const { docker } = require('./client');
@@ -16,6 +19,7 @@ const { docker } = require('./client');
 =======
 const { hostManager } = require('./client');
 >>>>>>> parent of 608787c (merge this branch)
+<<<<<<< HEAD
 =======
 const { hostManager } = require('./client');
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
@@ -25,6 +29,8 @@ const { hostManager } = require('./client');
 =======
 const { hostManager } = require('./client');
 >>>>>>> parent of 608787c (merge this branch)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
 
 class ContainerMonitor {
     constructor() {
@@ -42,6 +48,9 @@ class ContainerMonitor {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
             const container = hostData.client.getContainer(containerId);
 =======
             const container = docker.getContainer(containerId);
@@ -55,6 +64,7 @@ class ContainerMonitor {
 =======
             const container = hostData.client.getContainer(containerId);
 >>>>>>> parent of 608787c (merge this branch)
+<<<<<<< HEAD
 =======
             const container = hostData.client.getContainer(containerId);
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
@@ -64,6 +74,8 @@ class ContainerMonitor {
 =======
             const container = hostData.client.getContainer(containerId);
 >>>>>>> parent of 608787c (merge this branch)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
             const stream = await container.stats({ stream: true });
 
             stream.on('data', (chunk) => {
@@ -74,6 +86,9 @@ class ContainerMonitor {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
                     const parsed = this.parseStats(stats);
                     this.metrics.set(containerId, parsed);
 
@@ -92,6 +107,7 @@ class ContainerMonitor {
 =======
                     this.metrics.set(compoundId, this.parseStats(stats));
 >>>>>>> parent of 608787c (merge this branch)
+<<<<<<< HEAD
 =======
                     this.metrics.set(compoundId, this.parseStats(stats));
 >>>>>>> parent of 850077c (Merge branch 'main' into deployment)
@@ -101,6 +117,8 @@ class ContainerMonitor {
 =======
                     this.metrics.set(compoundId, this.parseStats(stats));
 >>>>>>> parent of 608787c (merge this branch)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
                 } catch (e) {
                     // Ignore parse errors from partial chunks
                 }
@@ -120,6 +138,9 @@ class ContainerMonitor {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
             // watchers.set was moved up
         } catch (error) {
             console.error(`Failed to start monitoring ${containerId}:`, error);
@@ -167,6 +188,7 @@ class ContainerMonitor {
         }
     }
 
+<<<<<<< HEAD
 =======
             this.watchers.set(compoundId, stream);
         } catch (error) {
@@ -218,6 +240,8 @@ class ContainerMonitor {
     }
 
 >>>>>>> parent of 608787c (merge this branch)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
     parseStats(stats) {
         // Calculate CPU percentage safely
         let cpuPercent = 0.0;

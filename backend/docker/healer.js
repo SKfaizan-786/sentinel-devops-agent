@@ -4,6 +4,9 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
 const { hostManager } = require('./client');
 =======
 const { docker } = require('./client');
@@ -120,6 +123,7 @@ async function restartContainer(containerId) {
 =======
         return { action: 'restart', success: true, containerId: compoundId };
 >>>>>>> parent of 608787c (merge this branch)
+<<<<<<< HEAD
 =======
 const { hostManager } = require('./client');
 
@@ -162,6 +166,8 @@ async function restartContainer(compoundId) {
 =======
         return { action: 'restart', success: true, containerId };
 >>>>>>> parent of c92d731 (feat: Implement core backend container healing, monitoring, and security scanning capabilities, complemented by new frontend host health and selection UI.)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
     } catch (error) {
         console.error(`Failed to restart container ${containerId}:`, error);
         return { action: 'restart', success: false, containerId, error: error.message };
@@ -174,6 +180,9 @@ async function recreateContainer(containerId) {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
         const container = docker.getContainer(containerId);
 <<<<<<< HEAD
         // Note: inspect is done inside performSecurityPrecheck, but recreate needs info later?
@@ -206,6 +215,7 @@ async function recreateContainer(containerId) {
 =======
 
 >>>>>>> parent of 608787c (merge this branch)
+<<<<<<< HEAD
 =======
         const { hostId, containerId } = hostManager.parseId(compoundId);
         const hostData = hostManager.get(hostId);
@@ -233,6 +243,8 @@ async function recreateContainer(containerId) {
         const info = await container.inspect();
 
 >>>>>>> parent of 608787c (merge this branch)
+=======
+>>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
         const networkingConfig = {
             EndpointsConfig: info.NetworkSettings.Networks
         };
