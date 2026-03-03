@@ -58,6 +58,133 @@ export const showStatus = async () => {
     }
 };
 
+// 1b. WATCH MODE - Real-time WebSocket updates
+export const watchStatus = async () => {
+    const { default: WebSocket } = await import('ws');
+
+    const API_BASE = 'http://localhost:4000';
+    const WS_URL = API_BASE.replace('http', 'ws');
+
+    // Fetch initial status via REST
+    const initialData = await getStatus();
+    if (!initialData) {
+        console.log(chalk.red('\n❌ Could not connect to Sentinel Backend (Is it running on port 4000?)'));
+        return;
+    }
+
+    // Track current service state
+    const serviceState = { ...initialData.services };
+    let lastUpdated = initialData.lastUpdated;
+
+    function renderTable() {
+        // Clear terminal and move cursor to top
+        process.stdout.write('\x1B[2J\x1B[0f');
+
+        console.log(chalk.bold.cyan('\n📊 Sentinel System Status') + chalk.yellow(' [LIVE WATCH MODE]'));
+        console.log(chalk.gray('Press Ctrl+C to exit\n'));
+
+        const table = new Table({
+            head: [chalk.white('Service'), chalk.white('Status'), chalk.white('Code')],
+            style: { head: [], border: [] }
+        });
+
+        Object.keys(serviceState).forEach(name => {
+            const s = serviceState[name] || {};
+            const code = Number(s.code ?? 0);
+            let statusColor = chalk.green;
+            let statusText = 'HEALTHY';
+
+            if (code >= 500) {
+                statusColor = chalk.red;
+                statusText = 'CRITICAL';
+            } else if (code >= 400 && code < 500) {
+                statusColor = chalk.yellow;
+                statusText = 'DEGRADED';
+            } else if (code === 0) {
+                statusColor = chalk.gray;
+                statusText = 'UNKNOWN';
+            } else if (code >= 200 && code < 300) {
+                statusColor = chalk.green;
+                statusText = 'HEALTHY';
+            } else {
+                statusColor = chalk.yellow;
+                statusText = 'DEGRADED';
+            }
+
+            table.push([
+                chalk.bold(name.toUpperCase()),
+                statusColor(statusText),
+                code
+            ]);
+        });
+
+        console.log(table.toString());
+        if (lastUpdated) {
+            console.log(chalk.gray(`Last Updated: ${new Date(lastUpdated).toLocaleString()}`));
+        }
+        console.log(chalk.gray(`WebSocket: Connected to ${WS_URL}`));
+    }
+
+    // Initial render
+    renderTable();
+
+    // Connect to WebSocket
+    function connect() {
+        const ws = new WebSocket(WS_URL);
+
+        ws.on('open', () => {
+            console.log(chalk.green('\n🔌 WebSocket connected - Watching for updates...'));
+            renderTable();
+        });
+
+        ws.on('message', (raw) => {
+            try {
+                const msg = JSON.parse(raw.toString());
+
+                if (msg.type === 'SERVICE_UPDATE' && msg.data) {
+                    // Single service update: { name, status, code, lastUpdated }
+                    const { name, ...rest } = msg.data;
+                    if (name && serviceState[name]) {
+                        serviceState[name] = { ...serviceState[name], ...rest };
+                        lastUpdated = new Date().toISOString();
+                        renderTable();
+                    }
+                } else if (msg.type === 'METRICS' && msg.data) {
+                    // Full metrics update: { services: {...}, lastUpdated }
+                    if (msg.data.services) {
+                        Object.assign(serviceState, msg.data.services);
+                    }
+                    lastUpdated = msg.data.lastUpdated || new Date().toISOString();
+                    renderTable();
+                }
+            } catch (e) {
+                // Ignore malformed messages
+            }
+        });
+
+        ws.on('close', () => {
+            console.log(chalk.yellow('\n⚠️  WebSocket disconnected. Reconnecting in 3s...'));
+            setTimeout(connect, 3000);
+        });
+
+        ws.on('error', (err) => {
+            console.log(chalk.red(`\n❌ WebSocket error: ${err.message}`));
+        });
+
+        // Graceful shutdown on Ctrl+C
+        process.on('SIGINT', () => {
+            console.log(chalk.cyan('\n\n👋 Exiting watch mode...'));
+            ws.close();
+            process.exit(0);
+        });
+    }
+
+    connect();
+
+    // Keep the process alive
+    await new Promise(() => { });
+};
+
 // 2. ACTION COMMAND (Simulate/Heal)
 export const runAction = async (service, actionType) => {
     console.log(chalk.yellow(`\n⚙️  Triggering ${actionType} on ${service}...`));
