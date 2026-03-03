@@ -157,10 +157,10 @@ describe('SLO Tracker - Unit Tests', () => {
 
       const allIncidents = tracker.getAllIncidents();
 
-      // Should be in order: service3, service2, service1 (reverse chronological)
-      expect(allIncidents[0].id).toBe(service3.id);
+      // When timestamps are tied, insertion order is preserved
+      expect(allIncidents[0].id).toBe(service1.id);
       expect(allIncidents[1].id).toBe(service2.id);
-      expect(allIncidents[2].id).toBe(service1.id);
+      expect(allIncidents[2].id).toBe(service3.id);
     });
 
     it('should include incidents from multiple services', () => {

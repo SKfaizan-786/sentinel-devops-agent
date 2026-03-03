@@ -357,21 +357,29 @@ describe('Kubernetes Routes - Integration Tests', () => {
     });
 
     it('should invoke callback with pod events', async () => {
+      const watcher = require('../../kubernetes/watcher');
+
       const response = await request(app)
         .post('/api/kubernetes/watch/pods')
         .send({ namespace: 'default' })
         .expect(200);
 
       expect(response.body).toHaveProperty('success', true);
+      expect(watcher.watchPods).toHaveBeenCalled();
     });
 
     it('should handle watching errors', async () => {
+      const watcher = require('../../kubernetes/watcher');
+      watcher.watchPods.mockImplementationOnce(() => {
+        throw new Error('Watch failed');
+      });
+
       const response = await request(app)
         .post('/api/kubernetes/watch/pods')
         .send({ namespace: 'default' })
-        .expect(200);
+        .expect(500);
 
-      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('error');
     });
   });
 
