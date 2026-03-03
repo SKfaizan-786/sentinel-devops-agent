@@ -253,6 +253,7 @@ describe('E2E: Chaos Engineering', () => {
         console.log('✅ Activity logging verified');
       } catch (error) {
         console.warn('⚠️  Could not verify activity log:', error.message);
+        throw error;
       }
     });
   });
