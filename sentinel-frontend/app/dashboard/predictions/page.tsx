@@ -116,7 +116,7 @@ export default function PredictionsPage() {
                                             history={prediction.history} 
                                             label="Resource Usage Trend"
                                             threshold={90}
-                                            prediction={{ slope: prediction.slope || 0, timeToFailure: prediction.estimatedFailureInSeconds || 300 }}
+                                            prediction={{ slope: prediction.slope ?? 0, timeToFailure: prediction.estimatedFailureInSeconds ?? 300 }}
                                         />
                                     </div>
                                 )}
