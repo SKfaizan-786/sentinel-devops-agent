@@ -4,7 +4,6 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:agent": "node remote-agent.js",
     "db:migrate": "node db/migrate.js",
     "db:setup": "node db/migrate.js",
     "create-admin": "node create-admin.js",
