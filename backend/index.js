@@ -15,12 +15,8 @@ const healer = require('./docker/healer');
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 >>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
-=======
-=======
->>>>>>> feat/multi-cluster-monitoring
 const { routeEvent } = require('./config/notifications');
 const { loadServicesConfig, getAllServices, getClusterIds } = require('./config/services');
 
@@ -58,7 +54,6 @@ function initiateHealingProtocol(incident) {
 
   routeEvent('incident.detected', incident);
 }
-<<<<<<< HEAD
 =======
 >>>>>>> parent of 608787c (merge this branch)
 <<<<<<< HEAD
@@ -70,9 +65,6 @@ function initiateHealingProtocol(incident) {
 >>>>>>> parent of 608787c (merge this branch)
 =======
 >>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
-=======
->>>>>>> 055cbc5 (feat(multi-cluster): Add multi-cluster service monitoring and remote agent support)
->>>>>>> feat/multi-cluster-monitoring
 
 // New Services
 const serviceMonitor = require('./services/monitor');
@@ -110,24 +102,10 @@ app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/slo', sloRoutes);
 app.use('/api/roles', rolesRoutes);
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-app.use('/api/kubernetes', kubernetesRoutes); // Kubernetes routes
-app.use('/', metricsRoutes); // Expose /metrics
-=======
-app.use('/api/hosts', hostsRoutes);
->>>>>>> feat/multi-cluster-monitoring
 
 // Distributed Traces Routes
 app.use('/api/traces', traceRoutes);
 
-<<<<<<< HEAD
-=======
-// Contact Routes
-app.use('/api', contactRoutes);
-
->>>>>>> feat/multi-cluster-monitoring
 // --- IN-MEMORY DATABASE ---
 let activityLog = [];
 let aiLogs = [];
@@ -143,20 +121,10 @@ function logActivity(type, message) {
   activityLog.unshift(entry);
   if (activityLog.length > 100) activityLog.pop(); // Keep last 100
   console.log(`[LOG] ${type}: ${message}`);
-<<<<<<< HEAD
-=======
-
-  // Broadcast the new log entry to all connected WebSocket clients
-  wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
->>>>>>> feat/multi-cluster-monitoring
 }
 
 // WebSocket Broadcaster
 let wsBroadcaster = { broadcast: () => { } };
-<<<<<<< HEAD
-=======
->>>>>>> 055cbc5 (feat(multi-cluster): Add multi-cluster service monitoring and remote agent support)
->>>>>>> feat/multi-cluster-monitoring
 
 // Smart Restart Tracking
 const restartTracker = new Map(); // containerId -> { attempts: number, lastAttempt: number }
