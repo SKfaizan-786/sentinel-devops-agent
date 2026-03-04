@@ -34,7 +34,7 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
                         {/* User Info */}
                         <div className="p-4 border-b border-white/10">
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center">
+                                <div className="h-10 w-10 rounded-full bg-linear-to-tr from-primary to-purple-500 flex items-center justify-center">
                                     <User className="h-5 w-5 text-white" />
                                 </div>
                                 <div>
@@ -53,6 +53,16 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
                             >
                                 <Settings className="h-4 w-4" /> Settings
                             </Link>
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    const event = new KeyboardEvent('keydown', { key: '?' });
+                                    window.dispatchEvent(event);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                <LifeBuoy className="h-4 w-4" /> Keyboard Shortcuts
+                            </button>
                             <Link
                                 href="#"
                                 onClick={onClose}

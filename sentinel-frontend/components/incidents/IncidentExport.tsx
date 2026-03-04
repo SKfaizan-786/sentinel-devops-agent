@@ -40,11 +40,13 @@ export function IncidentExport({ incidents, disabled = false }: IncidentExportPr
     return (
         <div className="relative" ref={dropdownRef}>
             <Button
+                id="export-incidents-btn"
                 variant="outline"
                 size="sm"
                 onClick={() => setIsOpen(!isOpen)}
                 disabled={disabled || incidents.length === 0}
                 className="flex items-center gap-2"
+                shortcutHint="C"
             >
                 <Download className="h-4 w-4" />
                 Export

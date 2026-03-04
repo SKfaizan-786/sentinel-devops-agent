@@ -1,18 +1,31 @@
 const { docker } = require('./client');
+const { scanImage } = require('../security/scanner');
+const EventEmitter = require('events');
+const metricsStore = require('../db/metrics-store');
+const { predictContainer } = require('./predictor');
 
-class ContainerMonitor {
+class ContainerMonitor extends EventEmitter {
     constructor() {
+        super();
         this.metrics = new Map();
         this.pollingInterval = 30000; // 30 seconds default
         this.isRunning = false;
         this.timer = null;
+
+        // Upstream feature tracking
+        this.lastStorePush = new Map();
+        this.securityTimers = new Map();
+        this.restartCounts = new Map();
+        this.containerNames = new Map();
+        this.lastInspectTimes = new Map();
+        this.lastPredictTimes = new Map();
     }
 
     async init() {
         if (this.isRunning) return;
         this.isRunning = true;
 
-        console.log('🚀 Initializing Docker Event-Driven Monitor...');
+        console.log('🚀 Initializing Docker Event-Driven Monitor with Analytics...');
 
         // 1. Listen for Docker events (lifecycle management)
         try {
@@ -27,12 +40,11 @@ class ContainerMonitor {
                     const action = event.action;
 
                     if (action === 'start') {
-                        console.log(`📡 Container started: ${containerId.substring(0, 12)} - Refreshing metrics soon...`);
-                        // Immediate refresh for this container could be forced here
-                        setTimeout(() => this.pollSingle(containerId), 1000);
+                        console.log(`📡 Container started: ${containerId.substring(0, 12)} - Initializing monitoring...`);
+                        this.pollSingle(containerId); // Immediate first look
                     } else if (['stop', 'die', 'destroy'].includes(action)) {
-                        console.log(`📡 Container stopped: ${containerId.substring(0, 12)} - Clearing metrics`);
-                        this.metrics.delete(containerId);
+                        console.log(`📡 Container stopped: ${containerId.substring(0, 12)} - Clearing data`);
+                        this.cleanup(containerId);
                     }
                 } catch (e) {
                     // Ignore parse errors from partial chunks
@@ -42,7 +54,6 @@ class ContainerMonitor {
             eventStream.on('error', (err) => {
                 console.error('❌ Docker event stream error:', err);
                 this.isRunning = false;
-                // Retry initialization after delay
                 setTimeout(() => this.init(), 5000);
             });
         } catch (error) {
@@ -55,19 +66,13 @@ class ContainerMonitor {
 
     startPolling() {
         if (this.timer) clearInterval(this.timer);
-
-        // Initial poll
         this.pollAll();
-
-        this.timer = setInterval(() => {
-            this.pollAll();
-        }, this.pollingInterval);
+        this.timer = setInterval(() => this.pollAll(), this.pollingInterval);
     }
 
     async pollAll() {
         try {
             const containers = await docker.listContainers({ all: false });
-            // Process in small batches or with slight delays if list is massive to prevent event loop blocking
             for (const containerInfo of containers) {
                 await this.pollSingle(containerInfo.Id);
             }
@@ -79,13 +84,70 @@ class ContainerMonitor {
     async pollSingle(containerId) {
         try {
             const container = docker.getContainer(containerId);
-            // Fetch stats once (stream: false) to get current snapshot
+            const now = Date.now();
+
+            // 1. Periodic Inspection (Throttled to 30s as per upstream logic)
+            const lastInspect = this.lastInspectTimes.get(containerId) || 0;
+            if (now - lastInspect > 30000 || !this.containerNames.has(containerId)) {
+                try {
+                    const data = await container.inspect();
+                    this.lastInspectTimes.set(containerId, now);
+                    this.restartCounts.set(containerId, data.RestartCount || 0);
+                    this.containerNames.set(containerId, data.Name.replace(/^\//, ''));
+
+                    // Check if security scan needed
+                    if (!this.securityTimers.has(containerId)) {
+                        this.scheduleSecurityScan(containerId, data.Image);
+                    }
+                } catch (e) { /* silent fail for transient inspect errors */ }
+            }
+
+            // 2. Fetch Stats
             const stats = await container.stats({ stream: false });
-            this.metrics.set(containerId, this.parseStats(stats));
+            const parsed = this.parseStats(stats);
+            this.metrics.set(containerId, parsed);
+
+            // 3. Push to Metrics Store & Predict (matches upstream frequency Logic: 5s)
+            // Even if global poll is 30s, we push what we have when we poll.
+            metricsStore.push(containerId, {
+                cpuPercent: parsed.raw.cpuPercent,
+                memPercent: parsed.raw.memPercent,
+                restartCount: this.restartCounts.get(containerId) || 0
+            });
+
+            const prediction = predictContainer(containerId);
+            if (prediction && prediction.probability > 0.3) {
+                this.emit('prediction', { ...prediction, containerName: this.containerNames.get(containerId) });
+            }
+
         } catch (error) {
-            // Container might have vanished between list and stats
-            this.metrics.delete(containerId);
+            // Container likely disappeared
+            this.cleanup(containerId);
         }
+    }
+
+    cleanup(containerId) {
+        this.metrics.delete(containerId);
+        this.lastStorePush.delete(containerId);
+        this.restartCounts.delete(containerId);
+        this.containerNames.delete(containerId);
+        this.lastInspectTimes.delete(containerId);
+        this.lastPredictTimes.delete(containerId);
+        metricsStore.clear(containerId);
+
+        if (this.securityTimers.has(containerId)) {
+            clearInterval(this.securityTimers.get(containerId));
+            this.securityTimers.delete(containerId);
+        }
+    }
+
+    scheduleSecurityScan(containerId, imageId) {
+        scanImage(imageId).catch(err => console.error(`[Security] Automated scan failed for ${containerId}:`, err.message));
+        const interval = 24 * 60 * 60 * 1000;
+        const timer = setInterval(() => {
+            scanImage(imageId).catch(err => console.error(`[Security] Periodic scan failed for ${containerId}:`, err.message));
+        }, interval);
+        this.securityTimers.set(containerId, timer);
     }
 
     parseStats(stats) {
@@ -123,7 +185,12 @@ class ContainerMonitor {
                 rx: this.formatBytes(stats.networks?.eth0?.rx_bytes || 0),
                 tx: this.formatBytes(stats.networks?.eth0?.tx_bytes || 0)
             },
-            timestamp: new Date()
+            timestamp: new Date(),
+            raw: {
+                cpuPercent,
+                memPercent,
+                memLimit
+            }
         };
     }
 
