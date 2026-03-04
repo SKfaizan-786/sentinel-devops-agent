@@ -48,8 +48,8 @@ function StatCard({ icon, label, value, subtext, gradient, delay }: StatCardProp
                     )}
                 </div>
                 <div
-                    className="p-3 rounded-xl opacity-80"
-                    style={{ background: `${gradient.replace('to right,', '135deg,')}20` }}
+                    className="p-3 rounded-xl bg-white/10"
+                    style={{ backgroundImage: gradient.replace('to right,', '135deg,') }}
                 >
                     {icon}
                 </div>

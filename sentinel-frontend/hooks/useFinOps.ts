@@ -100,9 +100,15 @@ export function useFinOps() {
     }, [fetchAll]);
 
     useEffect(() => {
-        fetchAll();
-        const interval = setInterval(fetchAll, 30000);
-        return () => clearInterval(interval);
+        let timerId: NodeJS.Timeout;
+
+        const poll = async () => {
+            await fetchAll();
+            timerId = setTimeout(poll, 30000);
+        };
+
+        poll();
+        return () => clearTimeout(timerId);
     }, [fetchAll]);
 
     return {

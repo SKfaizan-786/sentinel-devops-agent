@@ -16,8 +16,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const getBaseUrl = () => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+  } catch (e) {
+    console.warn("Invalid NEXT_PUBLIC_APP_URL. Falling back to localhost.");
+    return new URL("http://localhost:3000");
+  }
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: getBaseUrl(),
   title: {
     default: "Sentinel - AI DevOps Intelligence Agent",
     template: "%s | Sentinel",

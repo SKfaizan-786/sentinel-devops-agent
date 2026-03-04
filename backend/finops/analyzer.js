@@ -150,7 +150,16 @@ async function runAnalysis() {
                 (container_id, container_name, current_cpu_avg, current_memory_avg_mb,
                  current_memory_limit_mb, recommended_memory_limit_mb, estimated_savings_monthly, reasoning, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (container_id) WHERE status = 'pending'
+            DO UPDATE SET
+                container_name = EXCLUDED.container_name,
+                current_cpu_avg = EXCLUDED.current_cpu_avg,
+                current_memory_avg_mb = EXCLUDED.current_memory_avg_mb,
+                current_memory_limit_mb = EXCLUDED.current_memory_limit_mb,
+                recommended_memory_limit_mb = EXCLUDED.recommended_memory_limit_mb,
+                estimated_savings_monthly = EXCLUDED.estimated_savings_monthly,
+                reasoning = EXCLUDED.reasoning,
+                updated_at = NOW()
         `, [
             rec.container_id,
             rec.container_name,

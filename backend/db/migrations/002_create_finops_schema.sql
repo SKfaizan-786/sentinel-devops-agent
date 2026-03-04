@@ -39,3 +39,6 @@ CREATE INDEX IF NOT EXISTS idx_finops_recommendations_status
 
 CREATE INDEX IF NOT EXISTS idx_finops_recommendations_container
     ON finops_recommendations(container_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_finops_recommendations_unique_pending
+    ON finops_recommendations(container_id) WHERE status = 'pending';
