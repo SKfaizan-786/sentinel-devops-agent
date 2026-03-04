@@ -16,7 +16,6 @@ const TEST_SECRET = process.env.JWT_SECRET || 'test-secret-key';
 jest.mock('../models/slo-definition');
 jest.mock('../slo/calculator');
 jest.mock('../slo/tracker');
-jest.mock('../kubernetes/client');
 jest.mock('../security/scanner');
 jest.mock('../security/policies');
 

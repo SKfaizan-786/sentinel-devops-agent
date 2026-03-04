@@ -1,9 +1,5 @@
 const axios = require('axios');
 const { logActivity } = require('./incidents');
-// Need to require metrics, but allow for circular dependency if metrics/collectors imports monitor.
-// Currently collectors.js imports monitor.js. So monitor.js importing collectors.js (where metrics might be managed?) is bad.
-// But metrics/prometheus.js is separate. We can import that safely.
-const { metrics } = require('../metrics/prometheus');
 
 let systemStatus = {
   services: {
@@ -51,17 +47,12 @@ async function checkServiceHealth() {
 
     for (const service of services) {
       let newStatus, newCode;
-      const start = Date.now();
       try {
         const response = await axios.get(service.url, { timeout: 30000 });
-        const duration = (Date.now() - start) / 1000;
-        metrics.responseTime.observe({ service: service.name, endpoint: service.url }, duration);
         console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
         newStatus = 'healthy';
         newCode = response.status;
       } catch (error) {
-        const duration = (Date.now() - start) / 1000;
-        metrics.responseTime.observe({ service: service.name, endpoint: service.url }, duration);
         const code = error.response?.status || 503;
         console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
         newStatus = code >= 500 ? 'critical' : 'degraded';

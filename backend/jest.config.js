@@ -4,7 +4,6 @@ module.exports = {
     'routes/**/*.js',
     'slo/**/*.js',
     'docker/**/*.js',
-    'kubernetes/**/*.js',
     'auth/**/*.js',
     'services/**/*.js',
     'security/**/*.js',

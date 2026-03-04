@@ -54,18 +54,10 @@ function initiateHealingProtocol(incident) {
 // New Services
 const serviceMonitor = require('./services/monitor');
 const incidents = require('./services/incidents');
-const k8sWatcher = require('./kubernetes/watcher');
-
-// Metrics
-const { metricsMiddleware } = require('./metrics/middleware');
-const metricsRoutes = require('./routes/metrics.routes');
-const { startCollectors } = require('./metrics/collectors');
-
 // RBAC Routes
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
-const kubernetesRoutes = require('./routes/kubernetes.routes');
 const hostsRoutes = require('./routes/hosts.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { requireAuth } = require('./auth/middleware');
@@ -87,7 +79,6 @@ const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors());
-app.use(metricsMiddleware); // Metrics middleware
 
 // Rate limiters
 app.use('/api', apiLimiter);
@@ -649,44 +640,6 @@ const hostsConfig = loadHostsConfig();
   globalWsBroadcaster = setupWebSocket(server);
   serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
-  // K8s Watcher Event Handling
-  k8sWatcher.on('oom', (pod) => {
-    incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);
-    if (globalWsBroadcaster) {
-      globalWsBroadcaster.broadcast('K8S_EVENT', {
-        type: 'OOM',
-        pod,
-        message: `Pod ${pod.name} was OOMKilled`
-      });
-    }
-  });
-
-
-  k8sWatcher.on('crashloop', (pod) => {
-    incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
-    if (globalWsBroadcaster) {
-      globalWsBroadcaster.broadcast('K8S_EVENT', {
-        type: 'CRASHLOOP',
-        pod,
-        message: `Pod ${pod.name} is in CrashLoopBackOff`
-      });
-    }
-  });
-
-  // Start watching default namespace by default (can be expanded via API)
-  k8sWatcher.watchPods('default', (type, pod) => {
-    if (globalWsBroadcaster) {
-      globalWsBroadcaster.broadcast('K8S_POD_UPDATE', { type, pod });
-    }
-  });
-  k8sWatcher.watchEvents('default', (event) => {
-    if (globalWsBroadcaster) {
-      globalWsBroadcaster.broadcast('K8S_EVENT_STREAM', event);
-    }
-  });
-
-
   // Start Monitoring
   serviceMonitor.startMonitoring();
-  startCollectors(); // Start Prometheus collectors
 })(); // End of server start IIFE
