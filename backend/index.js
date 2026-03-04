@@ -64,6 +64,7 @@ const { startCollectors } = require('./metrics/collectors');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { requireAuth } = require('./auth/middleware');
@@ -112,6 +113,7 @@ app.use(express.urlencoded({
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/approvals', approvalsRoutes);
 
 // Distributed Traces Routes
 app.use('/api/traces', traceRoutes);
