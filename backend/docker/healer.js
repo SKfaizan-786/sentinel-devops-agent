@@ -99,17 +99,18 @@ async function restartContainer(compoundId) {
 
 async function recreateContainer(compoundId) {
     try {
-        const container = docker.getContainer(containerId);
-        // Note: inspect is done inside performSecurityPrecheck, but recreate needs info later?
-        // Ah, duplicate inspect is better than polluting logic.
-        // Or reuse info? For now, keep it simple.
+        const { hostId, containerId } = hostManager.parseId(compoundId);
+        const hostData = hostManager.get(hostId);
+        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
+
+        const container = hostData.client.getContainer(containerId);
 
         // --- Security Check ---
-        const securityCheck = await performSecurityPrecheck(containerId);
+        const securityCheck = await performSecurityPrecheck(compoundId);
         if (securityCheck.blocked) {
             const errorMsg = securityCheck.error;
             console.error(errorMsg);
-            return { action: 'recreate', success: false, containerId, error: errorMsg, blocked: true };
+            return { action: 'recreate', success: false, containerId: compoundId, error: errorMsg, blocked: true };
         }
         // ----------------------
 
@@ -147,14 +148,10 @@ async function recreateContainer(compoundId) {
 
 async function scaleService(serviceName, replicas, hostId = 'local') {
     try {
-        let hostData = hostManager.get(hostId);
-        if (!hostData) {
-            const connected = hostManager.getConnected();
-            if (connected.length > 0) {
-                hostData = connected[0];
-            }
+        const hostData = hostManager.get(hostId);
+        if (!hostData || !hostData.client) {
+            throw new Error(`Host '${hostId}' is not connected. Specify a valid hostId.`);
         }
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
 
         const service = hostData.client.getService(serviceName);
         const info = await service.inspect();

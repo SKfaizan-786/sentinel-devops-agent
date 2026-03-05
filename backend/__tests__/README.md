@@ -319,7 +319,7 @@ jobs:
           ./backend/__tests__/run-e2e.sh
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5.0.7
         with:
           files: ./backend/coverage/lcov.info
 ```

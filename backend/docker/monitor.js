@@ -149,7 +149,8 @@ class ContainerMonitor {
     }
 
     getMetrics(compoundId) {
-        return this.metrics.get(compoundId);
+        const { containerId } = hostManager.parseId(compoundId);
+        return this.metrics.get(containerId);
     }
 }
 

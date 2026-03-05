@@ -1,5 +1,4 @@
 const Docker = require('dockerode');
-const { Client } = require('ssh2');
 
 /**
  * DockerHostManager manages multihost environment configurations and lifecycle.

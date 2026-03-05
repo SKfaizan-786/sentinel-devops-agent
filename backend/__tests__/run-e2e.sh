@@ -18,6 +18,13 @@ NC='\033[0m' # No Color
 BACKEND_PORT=4001
 TEST_TIMEOUT=180
 
+# Resolve script directory and change to backend directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$BACKEND_DIR"
+
+echo "Working directory: $(pwd)"
+
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}❌ Docker is not running. Please start Docker first.${NC}"

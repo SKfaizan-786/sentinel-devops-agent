@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 export interface HostInfo {
@@ -26,7 +26,7 @@ export function useHosts(options: { manual?: boolean } = {}) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchHosts = async () => {
+    const fetchHosts = useCallback(async () => {
         try {
             const response = await axios.get(`${API_BASE}/api/hosts`);
             setHosts(response.data.hosts);
@@ -38,7 +38,7 @@ export function useHosts(options: { manual?: boolean } = {}) {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchHosts();
@@ -52,7 +52,7 @@ export function useHosts(options: { manual?: boolean } = {}) {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [manual]);
+    }, [manual, fetchHosts]);
 
     return {
         hosts,

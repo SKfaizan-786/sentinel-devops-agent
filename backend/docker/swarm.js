@@ -8,6 +8,7 @@ async function isSwarmMode(dockerClient) {
         const info = await dockerClient.info();
         return info.Swarm?.LocalNodeState === 'active';
     } catch (err) {
+        console.error('[Swarm] Failed to check swarm mode:', err.message);
         return false;
     }
 }
@@ -28,6 +29,7 @@ async function listSwarmServices(dockerClient) {
             state: svc.UpdateStatus?.State || 'running',
         }));
     } catch (err) {
+        console.error('[Swarm] Failed to list swarm services:', err.message);
         return [];
     }
 }

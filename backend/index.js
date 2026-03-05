@@ -111,7 +111,7 @@ app.use(express.urlencoded({
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
-app.use('/api/hosts', hostsRoutes);
+app.use('/api/hosts', requireAuth, hostsRoutes);
 
 // Distributed Traces Routes
 app.use('/api/traces', traceRoutes);
@@ -632,16 +632,19 @@ let globalWsBroadcaster;
 const hostsConfig = loadHostsConfig();
 
 (async () => {
-  await hostManager.loadHosts(hostsConfig);
-  console.log(`🔗 Docker Host Manager initialized with ${hostsConfig.length} host(s)`);
+  try {
+    await hostManager.loadHosts(hostsConfig);
+    console.log(`🔗 Docker Host Manager initialized with ${hostsConfig.length} host(s)`);
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
-  });
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+    });
 
-  // Setup WebSocket
-  globalWsBroadcaster = setupWebSocket(server);
-  serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
+    // Setup WebSocket
+    globalWsBroadcaster = setupWebSocket(server);
+    // Update wsBroadcaster to use the real WebSocket broadcaster
+    wsBroadcaster = globalWsBroadcaster;
+    serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
   // K8s Watcher Event Handling
   k8sWatcher.on('oom', (pod) => {
@@ -683,4 +686,8 @@ const hostsConfig = loadHostsConfig();
   // Start Monitoring
   serviceMonitor.startMonitoring();
   startCollectors(); // Start Prometheus collectors
+  } catch (err) {
+    console.error('Fatal error during startup:', err);
+    process.exit(1);
+  }
 })(); // End of server start IIFE
