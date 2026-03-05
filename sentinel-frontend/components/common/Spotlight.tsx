@@ -8,10 +8,12 @@ export function Spotlight({
     children,
     className = "",
     spotlightColor = "rgba(50, 184, 198, 0.15)",
+    onClick,
 }: {
     children: React.ReactNode;
     className?: string;
     spotlightColor?: string;
+    onClick?: () => void;
 }) {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
@@ -31,9 +33,11 @@ export function Spotlight({
         <div
             className={cn(
                 "group relative border border-border bg-card overflow-hidden rounded-xl",
+                onClick && "cursor-pointer",
                 className
             )}
             onMouseMove={handleMouseMove}
+            onClick={onClick}
         >
             <motion.div
                 className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"

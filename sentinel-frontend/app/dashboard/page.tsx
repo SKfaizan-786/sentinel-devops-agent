@@ -12,7 +12,10 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useIncidents } from "@/hooks/useIncidents";
 
 import { useContainers } from "@/hooks/useContainers";
+import { useHosts } from "@/hooks/useHosts";
 import { ContainerCard } from "@/components/dashboard/ContainerCard";
+import { HostSelector } from "@/components/dashboard/HostSelector";
+import { HostHealthCard } from "@/components/dashboard/HostHealthCard";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { MetricsChartsSkeleton } from "@/components/dashboard/ChartSkeleton";
@@ -24,12 +27,31 @@ import { usePendingActions } from "@/hooks/usePendingActions";
 export default function DashboardPage() {
     const { metrics } = useMetrics();
     const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents({ manual: true });
-    const { containers, loading: containersLoading, restartContainer, refetch: refetchContainers } = useContainers({ manual: true });
     const { actions: pendingActions, approveAction, rejectAction } = usePendingActions();
+
+    // Multi-host support
+    const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
+    const { hosts, loading: hostsLoading } = useHosts();
+    const { 
+        containers, 
+        loading: containersLoading, 
+        restartContainer, 
+        refetch: refetchContainers,
+        fetchContainers 
+    } = useContainers({ manual: true, hostId: selectedHostId });
+
+    // Refetch containers when host selection changes
+    useEffect(() => {
+        fetchContainers(selectedHostId);
+    }, [selectedHostId, fetchContainers]);
 
     const handleRefresh = useCallback(() => {
         refetchContainers();
     }, [refetchContainers]);
+
+    const handleHostChange = useCallback((hostId: string | null) => {
+        setSelectedHostId(hostId);
+    }, []);
 
     // Track initial load state (skeletons shown only on first load)
     const [initialLoad, setInitialLoad] = useState(true);
@@ -112,15 +134,67 @@ export default function DashboardPage() {
     const healthyServices = liveServices.filter(s => s.status === "healthy").length;
     const realUptime = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
 
+    // Show host health cards only when there are multiple hosts
+    const showHostCards = hosts.length > 1;
+
     return (
         <div className="space-y-8 pb-20">
             <div>
                 <DashboardHeader onRefresh={handleRefresh} />
                 <div className="px-4 lg:px-6 py-6 space-y-8">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Dashboard</h1>
-                        <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Dashboard</h1>
+                            <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
+                        </div>
+                        {/* Host Selector - only show when multiple hosts */}
+                        {hosts.length > 1 && (
+                            <HostSelector
+                                hosts={hosts.map(h => ({
+                                    id: h.id,
+                                    label: h.label,
+                                    status: h.status,
+                                    containersRunning: h.containersRunning
+                                }))}
+                                selectedHostId={selectedHostId}
+                                onHostChange={handleHostChange}
+                            />
+                        )}
                     </div>
+
+                    {/* Host Health Cards - show when multiple hosts */}
+                    {showHostCards && (
+                        <div>
+                            <h2 className="text-xl font-semibold text-foreground mb-4">Docker Hosts</h2>
+                            {hostsLoading ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {[1, 2].map((i) => (
+                                        <div key={i} className="p-4 rounded-xl bg-card border border-border">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Skeleton variant="circular" width={40} height={40} />
+                                                <div className="space-y-2 flex-1">
+                                                    <Skeleton variant="text" className="w-24" />
+                                                    <Skeleton variant="text" className="w-16" />
+                                                </div>
+                                            </div>
+                                            <Skeleton variant="text" className="w-full mb-2" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {hosts.map(host => (
+                                        <HostHealthCard
+                                            key={host.id}
+                                            host={host}
+                                            selected={selectedHostId === host.id}
+                                            onClick={() => handleHostChange(selectedHostId === host.id ? null : host.id)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Health Summary - Show skeleton during initial load */}
                     {isLoading ? (
@@ -182,12 +256,19 @@ export default function DashboardPage() {
                                         ))}
                                     </div>
                                 </div>
-                            ) : containers.length > 0 && (
+                            ) : containers.length > 0 ? (
                                 <div>
                                     <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-xl font-semibold text-foreground">Docker Containers</h2>
+                                        <h2 className="text-xl font-semibold text-foreground">
+                                            Docker Containers
+                                            {selectedHostId && (
+                                                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                    on {hosts.find(h => h.id === selectedHostId)?.label}
+                                                </span>
+                                            )}
+                                        </h2>
                                         <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium dark:bg-blue-900 dark:text-blue-300">
                                                 {containers.length} Running
                                             </span>
                                         </span>
@@ -201,6 +282,11 @@ export default function DashboardPage() {
                                             />
                                         ))}
                                     </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <p>No containers found{selectedHostId ? ` on ${hosts.find(h => h.id === selectedHostId)?.label}` : ''}.</p>
+                                    <p className="text-sm mt-1">Containers with label <code className="bg-muted px-1 rounded">sentinel.monitor=true</code> will appear here.</p>
                                 </div>
                             )}
                         </div>
