@@ -102,7 +102,7 @@ export function usePredictions() {
                         // Maintain original fields that might have been lost
                         containerId: upPred.containerId,
                         containerName: upPred.containerName || exists?.containerName || upPred.containerId.substring(0, 8),
-                        recommendation: upPred.probability > 0.8 ? 'scale-out' : 'monitor',
+                        recommendation: upPred.recommendation || ((upPred.failureProbability || upPred.probability) > 0.75 ? 'scale-out' : 'monitor'),
                         metrics: exists?.metrics || {
                             cpuAvg: 0,
                             memAvg: 0,
