@@ -75,14 +75,18 @@ export function useHosts(options: UseHostsOptions = {}) {
             setError(message);
             setLoading(false);
         }
-    }, [fetchHosts]);
+        // fetchHosts is stable (empty deps) so this is safe
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Auto-fetch on mount only when not in manual mode
     useEffect(() => {
         if (!manual) {
-            fetchHosts();
+            void fetchHosts();
         }
-    }, [manual, fetchHosts]);
+        // fetchHosts is stable (empty deps) so this won't cause loops
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [manual]);
 
     // Optional polling for auto-refresh
     useEffect(() => {
@@ -90,7 +94,9 @@ export function useHosts(options: UseHostsOptions = {}) {
             const interval = setInterval(fetchHosts, pollInterval);
             return () => clearInterval(interval);
         }
-    }, [pollInterval, fetchHosts]);
+        // fetchHosts is stable (empty deps)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pollInterval]);
 
     // Get Swarm hosts only
     const swarmHosts = hosts.filter(h => h.swarmActive);

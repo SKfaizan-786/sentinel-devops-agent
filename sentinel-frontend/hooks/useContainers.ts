@@ -98,9 +98,11 @@ export function useContainers(options: UseContainersOptions = {}) {
     // Auto-fetch on mount only when not in manual mode
     useEffect(() => {
         if (!manual) {
-            fetchContainers(hostId);
+            void fetchContainers(hostId);
         }
-    }, [manual, hostId, fetchContainers]);
+        // fetchContainers is stable (empty deps) so this won't cause loops
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [manual, hostId]);
 
     // React to WebSocket CONTAINER_UPDATE messages for real-time updates
     useEffect(() => {

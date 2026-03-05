@@ -42,8 +42,10 @@ export default function DashboardPage() {
 
     // Refetch containers when host selection changes
     useEffect(() => {
-        fetchContainers(selectedHostId);
-    }, [selectedHostId, fetchContainers]);
+        void fetchContainers(selectedHostId);
+        // fetchContainers is stable (empty deps in useCallback)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedHostId]);
 
     const handleRefresh = useCallback(() => {
         refetchContainers();

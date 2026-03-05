@@ -217,13 +217,13 @@ class DockerHostManager {
   }
 
   /**
-   * Get Docker client for a specific host
+   * Get Docker client for a specific host (only if connected)
    * @param {string} hostId - Host ID
-   * @returns {Object|null} Dockerode client or null
+   * @returns {Object|null} Dockerode client or null if not connected
    */
   getClient(hostId) {
     const host = this.hosts.get(hostId);
-    return host?.client || null;
+    return (host?.status === 'connected') ? host.client : null;
   }
 
   /**
@@ -305,9 +305,14 @@ async function listContainers(filters = {}, hostId = null) {
   }
 
   // Multi-host mode
-  const hostsToQuery = hostId 
-    ? [hostManager.get(hostId)].filter(Boolean)
-    : hostManager.getConnected();
+  let hostsToQuery;
+  if (hostId) {
+    const host = hostManager.get(hostId);
+    // Only query if the specific host exists and is connected
+    hostsToQuery = (host && host.status === 'connected') ? [host] : [];
+  } else {
+    hostsToQuery = hostManager.getConnected();
+  }
 
   const results = await Promise.allSettled(
     hostsToQuery.map(async (host) => {

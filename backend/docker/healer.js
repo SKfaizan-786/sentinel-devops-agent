@@ -370,8 +370,16 @@ async function recreateContainer(compoundId) {
             evidence: { action: 'recreate', status: 'success', newId: newContainer.id, hostId }
         });
 
-        // Return new compound ID
+        // Return new compound ID and start monitoring the new container
         const newCompoundId = hostManager.createCompoundId(hostId, newContainer.id);
+        
+        // Start monitoring the new container
+        try {
+            await containerMonitor.startMonitoring(newCompoundId, hostId);
+        } catch (monitorError) {
+            console.warn(`[Healer] Failed to start monitoring for recreated container ${newCompoundId}:`, monitorError.message);
+        }
+        
         return { action: 'recreate', success: true, newId: newCompoundId, hostId, incidentId };
     } catch (error) {
         console.error(`Failed to recreate container ${compoundId}:`, error);

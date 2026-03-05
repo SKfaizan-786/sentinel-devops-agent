@@ -35,6 +35,7 @@ function loadHostsConfig() {
       }
     } catch (err) {
       console.warn('[HostConfig] Failed to parse DOCKER_HOSTS env:', err.message);
+      console.warn('[HostConfig] Expected format: {"hosts":[{"id":"local","label":"Local Docker","type":"local","socketPath":"/var/run/docker.sock"}]}');
     }
   }
 
