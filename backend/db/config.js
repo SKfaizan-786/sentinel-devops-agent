@@ -4,7 +4,7 @@ const { getSecretSync } = require('../lib/secrets');
 // Database configuration using secrets module (with env fallback)
 const pool = new Pool({
   host: getSecretSync('DB_HOST', 'localhost'),
-  port: getSecretSync('DB_PORT', '5432'),
+  port: parseInt(getSecretSync('DB_PORT', '5432'), 10),
   database: getSecretSync('DB_NAME', 'sentinel_rbac'),
   user: getSecretSync('DB_USER', 'postgres'),
   password: getSecretSync('DB_PASSWORD', 'postgres'),

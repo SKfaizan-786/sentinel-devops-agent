@@ -9,23 +9,31 @@
  * behavior and caching mechanism.
  */
 
-// Store original env
-const originalEnv = { ...process.env };
+// List of all environment variables that tests may modify
+const testEnvKeys = [
+  'VAULT_ADDR', 'VAULT_TOKEN', 'VAULT_SECRET_PATH', 'VAULT_NAMESPACE',
+  'TEST_SECRET', 'TEST_SYNC_SECRET', 'JWT_TEST', 'CACHED_TEST_SECRET',
+  'SECRET_A', 'SECRET_B', 'SECRET_C_MISSING', 'CLEAR_TEST', 'SOURCE_TEST',
+  'NONEXISTENT_SECRET_XYZ', 'REQUIRED_SECRET_ABC', 'NONEXISTENT_SYNC',
+  'NONEXISTENT_SYNC_NULL', 'NONEXISTENT_SOURCE', 'NONEXISTENT_DEFAULT'
+];
 
 describe('Secrets Module - Unit Tests', () => {
   let secrets;
+  let savedEnv = {};
 
   beforeEach(() => {
     // Clear module cache to get fresh module state
     jest.resetModules();
     
-    // Reset environment variables
-    process.env = { ...originalEnv };
-    delete process.env.VAULT_ADDR;
-    delete process.env.VAULT_TOKEN;
-    delete process.env.VAULT_SECRET_PATH;
-    delete process.env.VAULT_NAMESPACE;
-    delete process.env.TEST_SECRET;
+    // Save and delete specific environment variables we'll use in tests
+    savedEnv = {};
+    for (const key of testEnvKeys) {
+      if (process.env[key] !== undefined) {
+        savedEnv[key] = process.env[key];
+      }
+      delete process.env[key];
+    }
     
     // Re-require the module to get fresh state
     secrets = require('../../lib/secrets');
@@ -35,7 +43,15 @@ describe('Secrets Module - Unit Tests', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
-    process.env = { ...originalEnv };
+    
+    // Clean up all test environment variables
+    for (const key of testEnvKeys) {
+      delete process.env[key];
+    }
+    // Restore any that were originally set
+    for (const [key, value] of Object.entries(savedEnv)) {
+      process.env[key] = value;
+    }
   });
 
   describe('fetchSecret() - Environment Variable Fallback', () => {

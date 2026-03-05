@@ -21,7 +21,9 @@ const vault = require('node-vault');
 
 // Cache for secrets to reduce Vault API calls
 const secretCache = new Map();
-const SECRET_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Cache TTL is configurable via environment variable (default: 2 minutes for better secret rotation responsiveness)
+const DEFAULT_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const SECRET_CACHE_TTL_MS = parseInt(process.env.SECRET_CACHE_TTL_MS || DEFAULT_CACHE_TTL_MS, 10);
 
 // Vault client instance (lazily initialized)
 let vaultClient = null;
