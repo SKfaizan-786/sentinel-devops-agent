@@ -36,19 +36,20 @@ export interface RemoteStatus {
 }
 
 export function useMetrics() {
-    // Helper for initial history
-    const initialHistory = Array(30).fill(0).map((_, i) => ({
-        timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
-        responseTime: 20 + Math.random() * 10,
-        cpu: 10 + Math.random() * 10,
-        errorRate: 0
-    }));
+    const [metrics, setMetrics] = useState<Record<string, ServiceMetrics>>(() => {
+        const initialHistory = Array(30).fill(0).map((_, i) => ({
+            timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
+            responseTime: 20 + Math.random() * 10,
+            cpu: 10 + Math.random() * 10,
+            errorRate: 0
+        }));
 
-    const [metrics, setMetrics] = useState<Record<string, ServiceMetrics>>({
-        "auth-service": { id: "auth-service", name: "Auth Service", currentResponseTime: 45, currentErrorRate: 0, currentCpu: 32, history: initialHistory },
-        "payment-service": { id: "payment-service", name: "Payment Service", currentResponseTime: 85, currentErrorRate: 0, currentCpu: 22, history: initialHistory },
-        "notification-service": { id: "notification-service", name: "Notification Service", currentResponseTime: 120, currentErrorRate: 0, currentCpu: 48, history: initialHistory },
-        "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: initialHistory },
+        return {
+            "auth-service": { id: "auth-service", name: "Auth Service", currentResponseTime: 45, currentErrorRate: 0, currentCpu: 32, history: [...initialHistory] },
+            "payment-service": { id: "payment-service", name: "Payment Service", currentResponseTime: 85, currentErrorRate: 0, currentCpu: 22, history: [...initialHistory] },
+            "notification-service": { id: "notification-service", name: "Notification Service", currentResponseTime: 120, currentErrorRate: 0, currentCpu: 48, history: [...initialHistory] },
+            "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: [...initialHistory] },
+        };
     });
 
     const { isConnected, lastMessage } = useWebSocketContext();
@@ -68,7 +69,7 @@ export function useMetrics() {
                 [lastMessage.data.name]: lastMessage.data as unknown as RemoteStatusService
             }));
         }
-    }, [lastMessage]);
+    }, [lastMessage, setRemoteStatus]);
 
     // Update metrics loop (visuals + incorporating remote status)
     useEffect(() => {

@@ -18,11 +18,14 @@ import { Skeleton } from "@/components/common/Skeleton";
 import { MetricsChartsSkeleton } from "@/components/dashboard/ChartSkeleton";
 import { ServiceGridSkeleton } from "@/components/dashboard/ServiceCardSkeleton";
 import { IncidentTimelineSkeleton } from "@/components/dashboard/IncidentTimelineSkeleton";
+import { PendingActionsPanel } from "@/components/dashboard/PendingActionsPanel";
+import { usePendingActions } from "@/hooks/usePendingActions";
 
 export default function DashboardPage() {
     const { metrics } = useMetrics();
     const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents({ manual: true });
     const { containers, loading: containersLoading, restartContainer, refetch: refetchContainers } = useContainers({ manual: true });
+    const { actions: pendingActions, approveAction, rejectAction } = usePendingActions();
 
     const handleRefresh = useCallback(() => {
         refetchContainers();
@@ -137,6 +140,13 @@ export default function DashboardPage() {
                             activeIncidents={incidents.filter(i => i.status !== "resolved").length}
                         />
                     )}
+
+                    {/* Pending Actions - Human-in-the-Loop */}
+                    <PendingActionsPanel
+                        actions={pendingActions}
+                        onApprove={approveAction}
+                        onReject={rejectAction}
+                    />
 
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

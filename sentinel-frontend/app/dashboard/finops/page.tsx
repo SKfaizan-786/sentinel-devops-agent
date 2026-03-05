@@ -1,92 +1,78 @@
-"use client";
+'use client';
 
-import { useFinOps } from "@/hooks/useFinOps";
-import { SavingsCard } from "@/components/finops/SavingsCard";
-import { CostBreakdownChart } from "@/components/finops/CostBreakdownChart";
-import { WasteHeatmap } from "@/components/finops/WasteHeatmap";
-import { RightSizingTable } from "@/components/finops/RightSizingTable";
-import { useState } from "react";
-import { Skeleton } from "@/components/common/Skeleton";
-import { RefreshCcw, DollarSign } from "lucide-react";
-import { Button } from "@/components/common/Button";
-
-const CLOUD_PRESETS = [
-    { id: 'aws', name: 'AWS (t3.medium)' },
-    { id: 'gcp', name: 'GCP (e2-medium)' },
-    { id: 'azure', name: 'Azure (B-series)' },
-];
+import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { SavingsCard } from '@/components/finops/SavingsCard';
+import { WasteHeatmap } from '@/components/finops/WasteHeatmap';
+import { CostBreakdownChart } from '@/components/finops/CostBreakdownChart';
+import { RightSizingTable } from '@/components/finops/RightSizingTable';
+import { useFinOps } from '@/hooks/useFinOps';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export default function FinOpsPage() {
-    const [preset, setPreset] = useState('aws');
-    const { data, loading, error, refetch } = useFinOps(preset);
+    const {
+        summary,
+        recommendations,
+        heatmapData,
+        loading,
+        analyzing,
+        analyze,
+        applyRecommendation,
+        dismissRecommendation,
+    } = useFinOps();
 
     return (
-        <div className="space-y-8 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground flex items-center gap-3">
-                        <DollarSign className="text-primary h-8 w-8" />
-                        FinOps & Cost Optimization
-                    </h1>
-                    <p className="text-muted-foreground">Monitor container spend, identify waste, and optimize your cloud bill.</p>
-                </div>
+        <div>
+            <DashboardHeader />
+            <div className="p-4 lg:p-6">
+                <div className="space-y-6">
+                    {/* Page Header */}
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight mb-2">
+                                FinOps Advisor
+                            </h1>
+                            <p className="text-muted-foreground">
+                                AI-powered cost optimization and right-sizing recommendations for your infrastructure.
+                            </p>
+                        </div>
+                        <button
+                            id="run-finops-analysis"
+                            onClick={analyze}
+                            disabled={analyzing}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-cyan-500 text-white font-medium hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {analyzing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Analyzing...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Run Analysis
+                                </>
+                            )}
+                        </button>
+                    </div>
 
-                <div className="flex items-center gap-3">
-                    <select
-                        value={preset}
-                        onChange={(e) => setPreset(e.target.value)}
-                        className="h-10 px-3 py-2 rounded-md border border-border bg-white/5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                        {CLOUD_PRESETS.map(p => (
-                            <option key={p.id} value={p.id} className="bg-slate-900">{p.name}</option>
-                        ))}
-                    </select>
+                    {/* Summary Cards */}
+                    <SavingsCard summary={summary} loading={loading} />
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetch()}
-                        className="flex items-center gap-2"
-                    >
-                        <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
+                    {/* Heatmap + Cost Chart */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <WasteHeatmap data={heatmapData} loading={loading} />
+                        <CostBreakdownChart data={heatmapData} loading={loading} />
+                    </div>
+
+                    {/* Recommendations Table */}
+                    <RightSizingTable
+                        recommendations={recommendations}
+                        loading={loading}
+                        onApply={applyRecommendation}
+                        onDismiss={dismissRecommendation}
+                    />
                 </div>
             </div>
-
-            {loading && !data ? (
-                <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <Skeleton className="h-[400px] rounded-2xl" />
-                        <Skeleton className="h-[400px] rounded-2xl" />
-                    </div>
-                    <Skeleton className="h-[300px] rounded-2xl" />
-                </div>
-            ) : data ? (
-                <>
-                    <SavingsCard
-                        totalMonthlyEstimate={data.totalMonthlyEstimate}
-                        totalPotentialSavings={data.totalPotentialSavings}
-                        wastePercent={data.wastePercent}
-                    />
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <CostBreakdownChart containers={data.containers} />
-                        <WasteHeatmap containers={data.containers} />
-                    </div>
-
-                    <RightSizingTable containers={data.containers} />
-                </>
-            ) : (
-                <div className="text-center py-20 border border-dashed border-border rounded-2xl bg-muted/30">
-                    <DollarSign className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-                    <h3 className="text-lg font-medium text-foreground">No FinOps Data Available</h3>
-                    <p className="text-muted-foreground">Ensure the backend is running and containers are being monitored.</p>
-                </div>
-            )}
         </div>
     );
 }

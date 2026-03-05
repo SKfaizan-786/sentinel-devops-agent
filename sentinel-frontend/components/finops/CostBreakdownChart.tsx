@@ -1,72 +1,124 @@
-"use client";
+'use client';
 
+import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import type { HeatmapEntry } from '@/hooks/useFinOps';
 
 interface CostBreakdownChartProps {
-    containers: Array<{
+    data: HeatmapEntry[];
+    loading?: boolean;
+}
+
+const COLORS = [
+    'hsl(250, 80%, 60%)',   // chart-1 purple
+    'hsl(162, 60%, 50%)',   // chart-2 teal
+    'hsl(40, 80%, 55%)',    // chart-3 amber
+    'hsl(290, 60%, 55%)',   // chart-4 violet
+    'hsl(10, 70%, 55%)',    // chart-5 coral
+    'hsl(200, 70%, 55%)',   // cyan
+    'hsl(130, 50%, 50%)',   // green
+    'hsl(330, 60%, 55%)',   // pink
+];
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{
         name: string;
-        monthlyEstimate: number;
+        value: number;
+        payload: {
+            name: string;
+            allocated: number;
+            used: number;
+        };
     }>;
 }
 
-const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#6366f1', '#ec4899'];
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+    if (!active || !payload?.length) return null;
+    const data = payload[0].payload;
+    return (
+        <div className="bg-background/95 backdrop-blur-sm border border-white/10 rounded-lg p-3 shadow-xl">
+            <p className="text-sm font-medium mb-1">{data.name}</p>
+            <p className="text-xs text-muted-foreground">
+                Allocated: <span className="text-foreground font-medium">{data.allocated} MB</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+                Used: <span className="text-foreground font-medium">{data.used} MB</span>
+            </p>
+        </div>
+    );
+}
 
-export function CostBreakdownChart({ containers }: CostBreakdownChartProps) {
-    const sortedContainers = [...containers].sort((a, b) => b.monthlyEstimate - a.monthlyEstimate);
-    const data = sortedContainers
-        .slice(0, 7)
-        .map(c => ({
-            name: c.name,
-            value: c.monthlyEstimate
-        }));
-
-    if (sortedContainers.length > 7) {
-        const others = sortedContainers.slice(7).reduce((acc, c) => acc + c.monthlyEstimate, 0);
-        data.push({ name: 'Others', value: parseFloat(others.toFixed(2)) });
+export function CostBreakdownChart({ data, loading }: CostBreakdownChartProps) {
+    if (loading) {
+        return (
+            <div className="glass-card p-6 animate-pulse">
+                <div className="h-5 bg-white/10 rounded w-40 mb-4" />
+                <div className="h-64 bg-white/5 rounded" />
+            </div>
+        );
     }
 
+    if (data.length === 0) {
+        return (
+            <div className="glass-card p-6">
+                <h3 className="text-lg font-semibold mb-4">Cost Breakdown by Service</h3>
+                <div className="flex items-center justify-center h-48 text-muted-foreground">
+                    <p>No data available yet.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const chartData = data.map(entry => ({
+        name: entry.container_name.replace(/^\//, '').replace(/-/g, ' '),
+        allocated: Number(entry.avg_limit_mb),
+        used: Number(entry.avg_memory_mb),
+        value: Number(entry.avg_limit_mb),
+    }));
+
     return (
-        <div className="glass border border-border rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-border">
-                <h3 className="text-lg font-semibold">Monthly Spend Distribution</h3>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="glass-card p-6"
+        >
+            <h3 className="text-lg font-semibold mb-4">Memory Allocation by Service</h3>
+
+            <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={3}
+                            dataKey="value"
+                            animationBegin={300}
+                            animationDuration={800}
+                        >
+                            {chartData.map((_, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                    stroke="transparent"
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend
+                            verticalAlign="bottom"
+                            height={36}
+                            formatter={(value: string) => (
+                                <span className="text-xs text-muted-foreground capitalize">{value}</span>
+                            )}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
             </div>
-            <div className="p-6 h-[350px]">
-                {containers.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                        No container cost data available.
-                    </div>
-                ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={data}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={80}
-                                outerRadius={110}
-                                paddingAngle={5}
-                                dataKey="value"
-                                animationBegin={0}
-                                animationDuration={1500}
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                formatter={(value: number) => [`$${value}`, 'Monthly Cost']}
-                                contentStyle={{
-                                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: '#fff'
-                                }}
-                            />
-                            <Legend verticalAlign="bottom" height={36} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                )}
-            </div>
-        </div>
+        </motion.div>
     );
 }
