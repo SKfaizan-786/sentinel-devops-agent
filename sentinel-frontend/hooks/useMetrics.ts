@@ -77,7 +77,7 @@ export function useMetrics() {
                 };
             });
         }
-    }, [lastMessage]);
+    }, [lastMessage, setRemoteStatus]);
 
     // Update metrics loop (visuals + incorporating remote status)
     useEffect(() => {

@@ -12,6 +12,7 @@ import {
     ChevronLeft,
     ChevronRight,
     BarChart3,
+    DollarSign,
     Target,
     Menu,
     X,
@@ -28,7 +29,7 @@ const navItems = [
     { name: "Incidents", href: "/dashboard/incidents", icon: Activity },
     { name: "SLO Tracker", href: "/dashboard/slo", icon: Target },
     { name: "Logs", href: "/dashboard/logs", icon: FileText },
-    { name: "FinOps", href: "/dashboard/finops", icon: CircleDollarSign },
+    { name: "FinOps", href: "/dashboard/finops", icon: DollarSign },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Terms", href: "/terms", icon: FileText },
 ];

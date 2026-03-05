@@ -27,6 +27,12 @@ tasks:
         uri: http://notification-service:3003/health
         allowFailure: true
 
+      - id: get-containers
+        type: io.kestra.plugin.core.http.Request
+        uri: http://host.docker.internal:4000/api/docker/containers
+        method: GET
+        allowFailure: true
+
 
   # 2. Check if any service is down
   - id: check-failures
@@ -40,63 +46,87 @@ tasks:
     then:
       - id: log-failure-detected
         type: io.kestra.plugin.core.log.Log
-        message: "⚠️ FAILURE DETECTED - Starting auto-healing process..."
+        message: "⚠️ FAILURE DETECTED - Submitting approval requests..."
 
     else:
       - id: log-healthy
         type: io.kestra.plugin.core.log.Log
         message: "✅ All services healthy - System Normal"
 
-  # 3. Auto-healing for Auth Service
+  # 3. Human-in-the-Loop: Submit approval for Auth Service
   - id: heal-auth
     type: io.kestra.plugin.core.flow.If
     condition: "{{ (outputs['get-auth'].code | default(500)) != 200 }}"
     then:
-      - id: log-auth-healing
+      - id: log-auth-pending
         type: io.kestra.plugin.core.log.Log
-        message: "🚑 AUTH SERVICE DOWN - HEALING NOW..."
-      - id: restart-auth
+        message: "🕐 AUTH SERVICE DOWN - Submitting for approval..."
+      - id: submit-auth-approval
         type: io.kestra.plugin.core.http.Request
-        uri: http://auth-service:3001/simulate/healthy
+        uri: http://host.docker.internal:4000/api/approvals/pending
         method: POST
+        contentType: application/json
         allowFailure: true
-      - id: log-auth-healed
+        body: >
+          {
+            "service": "auth",
+            "action": "restart",
+            "containerId": "{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"auth-service\") | .id') | first | replace('\"', '') | default('auth-service') }}",
+            "reason": "Auth service health check failed (HTTP {{ outputs['get-auth'].code | default('N/A') }})"
+          }
+      - id: log-auth-submitted
         type: io.kestra.plugin.core.log.Log
-        message: "✅ AUTH SERVICE HEALED!"
+        message: "📋 AUTH SERVICE restart submitted for approval. Awaiting human decision."
 
-  # 4. Auto-healing for Payment Service
+  # 4. Human-in-the-Loop: Submit approval for Payment Service
   - id: heal-payment
     type: io.kestra.plugin.core.flow.If
     condition: "{{ (outputs['get-payment'].code | default(500)) != 200 }}"
     then:
-      - id: log-payment-healing
+      - id: log-payment-pending
         type: io.kestra.plugin.core.log.Log
-        message: "🚑 PAYMENT SERVICE DOWN - HEALING NOW..."
-      - id: restart-payment
+        message: "🕐 PAYMENT SERVICE DOWN - Submitting for approval..."
+      - id: submit-payment-approval
         type: io.kestra.plugin.core.http.Request
-        uri: http://payment-service:3002/simulate/healthy
+        uri: http://host.docker.internal:4000/api/approvals/pending
         method: POST
+        contentType: application/json
         allowFailure: true
-      - id: log-payment-healed
+        body: >
+          {
+            "service": "payment",
+            "action": "restart",
+            "containerId": "{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"payment-service\") | .id') | first | replace('\"', '') | default('payment-service') }}",
+            "reason": "Payment service health check failed (HTTP {{ outputs['get-payment'].code | default('N/A') }})"
+          }
+      - id: log-payment-submitted
         type: io.kestra.plugin.core.log.Log
-        message: "✅ PAYMENT SERVICE HEALED!"
+        message: "📋 PAYMENT SERVICE restart submitted for approval. Awaiting human decision."
 
-  # 5. Auto-healing for Notification Service
+  # 5. Human-in-the-Loop: Submit approval for Notification Service
   - id: heal-notify
     type: io.kestra.plugin.core.flow.If
     condition: "{{ (outputs['get-notify'].code | default(500)) != 200 }}"
     then:
-      - id: log-notify-healing
+      - id: log-notify-pending
         type: io.kestra.plugin.core.log.Log
-        message: "🚑 NOTIFICATION SERVICE DOWN - HEALING NOW..."
-      - id: restart-notify
+        message: "🕐 NOTIFICATION SERVICE DOWN - Submitting for approval..."
+      - id: submit-notify-approval
         type: io.kestra.plugin.core.http.Request
-        uri: http://notification-service:3003/simulate/healthy
+        uri: http://host.docker.internal:4000/api/approvals/pending
         method: POST
+        contentType: application/json
         allowFailure: true
-      - id: log-notify-healed
+        body: >
+          {
+            "service": "notification",
+            "action": "restart",
+            "containerId": "{{ outputs['get-containers'].body | jq('.containers[] | select(.name == \"notification-service\") | .id') | first | replace('\"', '') | default('notification-service') }}",
+            "reason": "Notification service health check failed (HTTP {{ outputs['get-notify'].code | default('N/A') }})"
+          }
+      - id: log-notify-submitted
         type: io.kestra.plugin.core.log.Log
-        message: "✅ NOTIFICATION SERVICE HEALED!"
+        message: "📋 NOTIFICATION SERVICE restart submitted for approval. Awaiting human decision."
 
   # 6. AI Analysis (Optional - only if API key is set)
   - id: ai-analysis

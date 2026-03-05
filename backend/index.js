@@ -13,6 +13,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 const { routeEvent } = require('./config/notifications');
 
 const pendingApprovals = new Map();
@@ -64,6 +65,7 @@ const { startCollectors } = require('./metrics/collectors');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { requireAuth } = require('./auth/middleware');
@@ -79,6 +81,10 @@ const feedbackRoutes = require('./routes/feedback.routes');
 
 // Reasoning Routes - AI Transparency
 const reasoningRoutes = require('./routes/reasoning.routes');
+
+// FinOps Routes & Collector
+const finopsRoutes = require('./finops/routes');
+const { startCollector: startFinOpsCollector } = require('./finops/metricsCollector');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -112,6 +118,10 @@ app.use(express.urlencoded({
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/approvals', approvalsRoutes);
+
+// FinOps Routes
+app.use('/api/finops', finopsRoutes);
 
 // Distributed Traces Routes
 app.use('/api/traces', traceRoutes);
@@ -145,8 +155,11 @@ function logActivity(type, message) {
     message
   };
   activityLog.unshift(entry);
-  if (activityLog.length > 100) activityLog.pop(); // Keep last 100
+  if (activityLog.length > 100) activityLog.pop(); // Keep last 100 in memory
   console.log(`[LOG] ${type}: ${message}`);
+
+  // Persist to PostgreSQL (fire-and-forget)
+  insertActivityLog(type, message).catch(() => { });
 
   // Broadcast the new log entry to all connected WebSocket clients
   wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
@@ -251,12 +264,28 @@ app.get('/api/status', (req, res) => {
   res.json(serviceMonitor.getSystemStatus());
 });
 
-app.get('/api/activity', (req, res) => {
-  res.json({ activity: incidents.getActivityLog().slice(0, 50) });
+app.get('/api/activity', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { logs, total } = await getActivityLogs(limit, offset);
+    res.json({ activity: logs, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory via incidents service
+    res.json({ activity: incidents.getActivityLog().slice(offset, offset + limit) });
+  }
 });
 
-app.get('/api/insights', (req, res) => {
-  res.json({ insights: incidents.getAiLogs().slice(0, 20) });
+app.get('/api/insights', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { reports, total } = await getAIReports(limit, offset);
+    res.json({ insights: reports, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory via incidents service
+    res.json({ insights: incidents.getAiLogs().slice(offset, offset + limit) });
+  }
 });
 
 app.post('/api/kestra-webhook', (req, res) => {
@@ -274,6 +303,9 @@ app.post('/api/kestra-webhook', (req, res) => {
     };
     aiLogs.unshift(insight);
     if (aiLogs.length > 50) aiLogs.pop();
+
+    // Persist to PostgreSQL (fire-and-forget)
+    insertAIReport(aiReport, aiReport).catch(() => { });
 
     logActivity('info', 'Received new AI Analysis report');
 
@@ -634,6 +666,8 @@ let globalWsBroadcaster;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+  // Start FinOps metrics collector
+  startFinOpsCollector();
 });
 
 // Setup WebSocket
@@ -642,17 +676,17 @@ serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
 // Listen for container predictions
 containerMonitor.on('prediction', (prediction) => {
-    if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
-        incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
-        
-        if (prediction.probability > 0.85) {
-            console.log(`[Healing] manual intervention recommended for ${prediction.containerId}`);
-        }
-    }
+  if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
+    incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
 
-    if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('PREDICTION', prediction);
+    if (prediction.probability > 0.85) {
+      console.log(`[Healing] manual intervention recommended for ${prediction.containerId}`);
     }
+  }
+
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('PREDICTION', prediction);
+  }
 });
 
 // K8s Watcher Event Handling
