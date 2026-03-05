@@ -3,6 +3,7 @@
 import { Incident } from "@/lib/mockData";
 import { Zap, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { CopyButton } from "@/components/common/CopyButton";
 import { useNotifications } from "@/hooks/useNotifications";
 
 interface IncidentDetailProps {
@@ -27,15 +28,21 @@ export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProp
         <div className="p-4 bg-black/20 border-t border-white/5 space-y-4">
             {/* Root Cause & Agent Action */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                <div className="space-y-1 relative group/rc">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Root Cause
+                        <div className="opacity-0 group-hover/rc:opacity-100 transition-opacity">
+                            <CopyButton textToCopy={incident.rootCause} />
+                        </div>
                     </span>
                     <p className="text-sm text-white">{incident.rootCause}</p>
                 </div>
-                <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                <div className="space-y-1 relative group/aa">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Agent Action
+                        <div className="opacity-0 group-hover/aa:opacity-100 transition-opacity">
+                            <CopyButton textToCopy={incident.agentAction} />
+                        </div>
                     </span>
                     <p className="text-sm text-primary flex items-center gap-1">
                         <Zap className="h-3 w-3" />

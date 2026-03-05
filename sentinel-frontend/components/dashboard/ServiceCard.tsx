@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Spotlight } from "@/components/common/Spotlight";
 import { Sparkline } from "@/components/common/Sparkline";
 import { PredictionBadge, Prediction } from "./PredictionBadge";
+import { CopyButton } from "@/components/common/CopyButton";
 
 const ServiceIcon = ({ type }: { type: Service["type"] }) => {
     switch (type) {
@@ -42,8 +43,13 @@ export function ServiceCard({ service, prediction }: { service: Service; predict
                     <div className="p-2 rounded-lg bg-muted border border-border">
                         <ServiceIcon type={service.type} />
                     </div>
-                    <div>
-                        <h4 className="font-semibold text-sm text-foreground">{service.name}</h4>
+                    <div className="group/svc flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm text-foreground">{service.name}</h4>
+                            <div className="opacity-0 group-hover/svc:opacity-100 transition-opacity flex items-center">
+                                <CopyButton textToCopy={service.id} className="w-5 h-5 p-0.5!" />
+                            </div>
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                             <StatusDot status={service.status} />
                             <span className="text-xs text-muted-foreground capitalize">{service.status}</span>

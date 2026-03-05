@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useLogs, LogLevel } from "@/hooks/useLogs";
 import { Search, Filter, Trash2, ShieldAlert, CheckCircle, Info, Ban, Activity } from "lucide-react";
+import { CopyButton } from "@/components/common/CopyButton";
 
 export function LogViewer() {
     const { logs, search, setSearch, filterLevel, setFilterLevel, clearLogs, isPaused, setIsPaused } = useLogs();
@@ -91,13 +91,18 @@ export function LogViewer() {
                                 <Search className="w-8 h-8 text-slate-600" />
                             </div>
                             <h3 className="text-lg font-medium text-slate-300 mb-1">No logs found</h3>
-                            <p className="text-slate-500 max-w-sm">
-                                There are no logs matching your current filters. Try adjusting your search criteria or triggering some system activity.
-                            </p>
+                            <div className="group relative flex items-center justify-center">
+                                <p className="text-slate-500 max-w-sm">
+                                    There are no logs matching your current filters. Try adjusting your search criteria or triggering some system activity.
+                                </p>
+                                <div className="absolute -right-8">
+                                    <CopyButton textToCopy="There are no logs matching your current filters. Try adjusting your search criteria or triggering some system activity." className="w-6 h-6 p-1! -mt-2" />
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         logs.map((log) => (
-                            <div key={log.id} className={`flex gap-6 px-6 py-4 transition-all group ${getRowStyle(log.level)}`}>
+                            <div key={log.id} className={`flex gap-6 px-6 py-4 transition-all group relative ${getRowStyle(log.level)}`}>
                                 <div className="flex flex-col gap-1.5 w-32 shrink-0 pt-0.5">
                                     <span className="text-xs font-mono text-slate-400 group-hover:text-slate-300 transition-colors">
                                         {new Date(log.timestamp).toLocaleTimeString()}
@@ -107,7 +112,7 @@ export function LogViewer() {
                                     </span>
                                 </div>
 
-                                <div className="flex-1 space-y-2">
+                                <div className="flex-1 space-y-2 pr-10">
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-2">
                                             {getIcon(log.level)}
@@ -123,9 +128,14 @@ export function LogViewer() {
                                             {log.service}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-slate-300 font-mono leading-relaxed break-all">
-                                        {log.message}
-                                    </p>
+                                    <div className="relative group/message rounded-md transition-colors hover:bg-white/5 p-2 -mx-2">
+                                        <p className="text-sm text-slate-300 font-mono leading-relaxed break-all pr-8">
+                                            {log.message}
+                                        </p>
+                                        <div className="absolute top-2 right-2">
+                                            <CopyButton textToCopy={log.message} />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ))

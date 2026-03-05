@@ -6,6 +6,7 @@ import { X, CheckCircle, AlertTriangle, Info, AlertOctagon, Trash2, Check, Bell 
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { CopyButton } from "@/components/common/CopyButton";
 
 const NotificationIcon = ({ type }: { type: Notification["type"] }) => {
     switch (type) {
@@ -119,7 +120,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                                             )}
                                         >
                                             {/* Status Icon */}
-                                            <div className="flex-shrink-0 mt-0.5">
+                                            <div className="shrink-0 mt-0.5">
                                                 <NotificationIcon type={notification.type} />
                                             </div>
 
@@ -135,9 +136,14 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                                                         {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed break-words">
-                                                    {notification.message}
-                                                </p>
+                                                <div className="relative group/msg pr-8">
+                                                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed wrap-break-word">
+                                                        {notification.message}
+                                                    </p>
+                                                    <div className="absolute top-0 right-0">
+                                                        <CopyButton textToCopy={notification.message} className="opacity-0 group-hover/msg:opacity-100 transition-opacity" />
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Individual Delete Action (Hidden by default, visible on hover) */}

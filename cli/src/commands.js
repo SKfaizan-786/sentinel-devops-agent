@@ -59,7 +59,12 @@ export const showStatus = async () => {
             statusText = 'DEGRADED';
         }
 
-        console.log(chalk.bold.cyan('\nSentinel System Status'));
+        table.push([
+            chalk.bold(name.toUpperCase()),
+            statusColor(statusText),
+            code
+        ]);
+    });
 
     console.log(table.toString());
         if (data.lastUpdated) {
@@ -244,8 +249,7 @@ export const generateReport = async () => {
                 healthyStart = item.timestamp;
             }
             lastStatus = 'healthy';
-        }
-    });
+        });
 
         // Generate report
         let mdContent = `# Sentinel Incident Report\n`;

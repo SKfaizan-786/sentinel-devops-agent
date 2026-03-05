@@ -6,6 +6,7 @@ import { useReasoningStream } from "@/hooks/useReasoningStream";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { EvidenceChain } from "./EvidenceChain";
 import { Brain, Check, GitBranch, Terminal, Zap, AlertCircle, RefreshCw } from "lucide-react";
+import { CopyButton } from "@/components/common/CopyButton";
 
 interface AgentReasoningPanelProps {
     incident: Incident;
@@ -169,16 +170,21 @@ export function AgentReasoningPanel({
                             <Terminal className="h-3 w-3" />
                             {hasLiveData ? "Full Analysis Log" : "Live Analysis Stream"}
                         </h4>
-                        <div
-                            className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner max-h-64 overflow-y-auto ${
-                                incident.severity === "critical"
-                                    ? "text-red-400"
-                                    : incident.severity === "warning"
-                                    ? "text-orange-400"
-                                    : "text-green-300"
-                            }`}
-                        >
-                            {rawLog || "Loading analysis..."}
+                        <div className="relative group/log">
+                            <div
+                                className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner max-h-64 overflow-y-auto pr-8 ${
+                                    incident.severity === "critical"
+                                        ? "text-red-400"
+                                        : incident.severity === "warning"
+                                        ? "text-orange-400"
+                                        : "text-green-300"
+                                }`}
+                            >
+                                {rawLog || "Loading analysis..."}
+                            </div>
+                            <div className="absolute top-2 right-2">
+                                <CopyButton textToCopy={rawLog || "Loading analysis..."} className="opacity-0 group-hover/log:opacity-100 transition-opacity" />
+                            </div>
                         </div>
                     </div>
                 )}
