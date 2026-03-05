@@ -630,22 +630,12 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
   }
 });
 
-let globalWsBroadcaster;
-
-// Initialize monitoring on startup
-containerMonitor.init();
-
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
-  console.log(`🔌 Docker Socket: ${process.env.DOCKER_SOCKET || (process.platform === 'win32' ? '//./pipe/docker_engine' : '/var/run/docker.sock')}`);
-});
-
 // Setup WebSocket
 globalWsBroadcaster = setupWebSocket(server);
 wsBroadcaster = globalWsBroadcaster; // Synergize both references
 serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
-// Listen for container predictions
+// Listen for container predictions - MUST be before init to catch startup predictions
 containerMonitor.on('prediction', (prediction) => {
   if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
     incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
@@ -659,6 +649,9 @@ containerMonitor.on('prediction', (prediction) => {
     globalWsBroadcaster.broadcast('PREDICTION', prediction);
   }
 });
+
+// Initialize monitoring on startup - After listeners are attached
+containerMonitor.init();
 
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {

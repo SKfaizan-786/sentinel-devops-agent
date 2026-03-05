@@ -10,6 +10,7 @@ class ContainerMonitor extends EventEmitter {
         this.metrics = new Map();
         this.pollingInterval = 30000; // 30 seconds default
         this.isRunning = false;
+        this.isPolling = false;
         this.timer = null;
 
         // Upstream feature tracking
@@ -33,21 +34,31 @@ class ContainerMonitor extends EventEmitter {
                 filters: { type: ['container'], event: ['start', 'stop', 'die', 'destroy'] }
             });
 
+            let buffer = '';
             eventStream.on('data', (chunk) => {
-                try {
-                    const event = JSON.parse(chunk.toString());
-                    const containerId = event.id;
-                    const action = event.action;
+                buffer += chunk.toString('utf8');
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
-                    if (action === 'start') {
-                        console.log(`📡 Container started: ${containerId.substring(0, 12)} - Initializing monitoring...`);
-                        this.pollSingle(containerId); // Immediate first look
-                    } else if (['stop', 'die', 'destroy'].includes(action)) {
-                        console.log(`📡 Container stopped: ${containerId.substring(0, 12)} - Clearing data`);
-                        this.cleanup(containerId);
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const event = JSON.parse(line);
+                        const containerId = event.Actor?.ID || event.id;
+                        const action = event.Action || event.status || event.action;
+
+                        if (!containerId || !action) continue;
+
+                        if (action === 'start') {
+                            console.log(`📡 Container started: ${containerId.substring(0, 12)} - Initializing monitoring...`);
+                            this.pollSingle(containerId); // Immediate first look
+                        } else if (['stop', 'die', 'destroy'].includes(action)) {
+                            console.log(`📡 Container stopped: ${containerId.substring(0, 12)} - Clearing data`);
+                            this.cleanup(containerId);
+                        }
+                    } catch (e) {
+                        // ignore malformed event line
                     }
-                } catch (e) {
-                    // Ignore parse errors from partial chunks
                 }
             });
 
@@ -58,6 +69,8 @@ class ContainerMonitor extends EventEmitter {
             });
         } catch (error) {
             console.error('❌ Failed to subscribe to Docker events:', error);
+            this.isRunning = false;
+            setTimeout(() => this.init(), 5000);
         }
 
         // 2. Start throttled metrics polling
@@ -71,13 +84,27 @@ class ContainerMonitor extends EventEmitter {
     }
 
     async pollAll() {
+        if (this.isPolling) return; // Prevent overlap
+        this.isPolling = true;
+
         try {
             const containers = await docker.listContainers({ all: false });
-            for (const containerInfo of containers) {
-                await this.pollSingle(containerInfo.Id);
+            const activeIds = new Set(containers.map(c => c.Id));
+
+            // Clean stale containers (missed stop events)
+            for (const knownId of this.metrics.keys()) {
+                if (!activeIds.has(knownId)) {
+                    console.log(`🧹 Cleaning up stale container: ${knownId.substring(0, 12)}`);
+                    this.cleanup(knownId);
+                }
             }
+
+            // Parallel polling
+            await Promise.allSettled(containers.map(c => this.pollSingle(c.Id)));
         } catch (error) {
             console.error('❌ Global poll failed:', error);
+        } finally {
+            this.isPolling = false;
         }
     }
 
