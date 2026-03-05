@@ -2,19 +2,20 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../db/config');
+const { getSecretSync } = require('../lib/secrets');
 
 const BCRYPT_ROUNDS = 12;
 
-// Validate JWT_SECRET is set
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL ERROR: JWT_SECRET environment variable is not set.');
-  console.error('Please set JWT_SECRET in your .env file before starting the server.');
+// Validate JWT_SECRET is set (using secrets module with env fallback)
+const JWT_SECRET = getSecretSync('JWT_SECRET');
+if (!JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not set.');
+  console.error('Please set JWT_SECRET in Vault or your .env file before starting the server.');
   process.exit(1);
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '15m';
-const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
+const JWT_ACCESS_EXPIRY = getSecretSync('JWT_ACCESS_EXPIRY', '15m');
+const JWT_REFRESH_EXPIRY = getSecretSync('JWT_REFRESH_EXPIRY', '7d');
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 

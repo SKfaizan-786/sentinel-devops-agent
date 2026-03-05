@@ -6,11 +6,12 @@ This guide provides detailed technical information for developers working on Sen
 ## 📚 Table of Contents
 
 1. [Development Environment Setup](#development-environment-setup)
-2. [Project Architecture](#project-architecture)
-3. [Component Deep Dive](#component-deep-dive)
-4. [Development Workflows](#development-workflows)
-5. [Debugging & Troubleshooting](#debugging--troubleshooting)
-6. [Performance Optimization](#performance-optimization)
+2. [Secret Management & Vault Integration](#secret-management--vault-integration)
+3. [Project Architecture](#project-architecture)
+4. [Component Deep Dive](#component-deep-dive)
+5. [Development Workflows](#development-workflows)
+6. [Debugging & Troubleshooting](#debugging--troubleshooting)
+7. [Performance Optimization](#performance-optimization)
 
 ---
 
@@ -43,7 +44,121 @@ npm run dev:all
 # 4. Open in browser
 # Frontend: http://localhost:3000
 # Kestra: http://localhost:9090
+# Vault UI: http://localhost:8200 (token: sentinel-dev-token)
 ```
+
+---
+
+## Secret Management & Vault Integration
+
+Sentinel uses HashiCorp Vault for secure secret management. In development, Vault runs in dev mode with in-memory storage. In production, use persistent storage and proper initialization.
+
+### Secret Resolution Chain
+
+```
+Backend Startup
+      │
+      ▼
+secrets.js: fetchSecret('JWT_SECRET')
+      │
+      ├── Vault available? ──YES──► Vault KV Store ──► return secret
+      │                                                  (+ audit log)
+      └── Vault unavailable? ──► process.env.JWT_SECRET ──► return secret
+                                  (dev/fallback only)
+```
+
+### Starting Vault (Development Mode)
+
+Vault is automatically started with `docker-compose up`:
+
+```bash
+# Start all services including Vault
+docker-compose up -d
+
+# Verify Vault is running
+docker ps | grep sentinel-vault
+
+# Check Vault status
+docker exec sentinel-vault vault status
+```
+
+**Access Vault UI:** http://localhost:8200  
+**Dev Token:** `sentinel-dev-token`
+
+### Initializing Secrets in Vault
+
+After Vault starts, you can store secrets:
+
+```bash
+# Store secrets in Vault KV store
+docker exec sentinel-vault vault kv put secret/sentinel \
+  JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
+  DB_PASSWORD=your-secure-db-password \
+  GROQ_API_KEY=your-groq-api-key
+
+# Verify secrets are stored
+docker exec sentinel-vault vault kv get secret/sentinel
+```
+
+### Backend Configuration
+
+Configure the backend to use Vault by setting these environment variables:
+
+```bash
+# In backend/.env or as environment variables
+VAULT_ADDR=http://127.0.0.1:8200
+VAULT_TOKEN=sentinel-dev-token
+VAULT_SECRET_PATH=secret/data/sentinel
+```
+
+If Vault is not configured or unavailable, the backend automatically falls back to reading from environment variables.
+
+### Supported Secrets
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `JWT_SECRET` | JWT signing key | Yes |
+| `DB_PASSWORD` | PostgreSQL password | Yes (with default) |
+| `GROQ_API_KEY` | Groq AI API key | No (AI features disabled) |
+| `DB_HOST` | Database host | No (default: localhost) |
+| `DB_PORT` | Database port | No (default: 5432) |
+| `DB_NAME` | Database name | No (default: sentinel_rbac) |
+| `DB_USER` | Database user | No (default: postgres) |
+
+### Production Considerations
+
+For production deployments:
+
+1. **Use persistent Vault storage** (Consul, filesystem, etc.)
+2. **Initialize Vault properly** with unseal keys
+3. **Use Vault policies** to restrict access
+4. **Enable audit logging** for compliance
+5. **Rotate secrets regularly** using Vault's TTL features
+6. **Never commit tokens** to version control
+
+```bash
+# Example: Production Vault initialization
+vault operator init -key-shares=5 -key-threshold=3
+vault operator unseal <key1>
+vault operator unseal <key2>
+vault operator unseal <key3>
+
+# Create policy for Sentinel
+vault policy write sentinel-policy - <<EOF
+path "secret/data/sentinel" {
+  capabilities = ["read"]
+}
+EOF
+
+# Create AppRole for Sentinel backend
+vault auth enable approle
+vault write auth/approle/role/sentinel \
+  token_policies="sentinel-policy" \
+  token_ttl=1h \
+  token_max_ttl=4h
+```
+
+---
 
 ### Detailed Setup
 

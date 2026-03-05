@@ -1,12 +1,13 @@
 const { Pool } = require('pg');
+const { getSecretSync } = require('../lib/secrets');
 
-// Database configuration
+// Database configuration using secrets module (with env fallback)
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'sentinel_rbac',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  host: getSecretSync('DB_HOST', 'localhost'),
+  port: getSecretSync('DB_PORT', '5432'),
+  database: getSecretSync('DB_NAME', 'sentinel_rbac'),
+  user: getSecretSync('DB_USER', 'postgres'),
+  password: getSecretSync('DB_PASSWORD', 'postgres'),
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

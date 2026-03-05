@@ -1,5 +1,6 @@
 const pool = require('../db/config');
 const axios = require('axios');
+const { getSecretSync } = require('../lib/secrets');
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
@@ -67,7 +68,7 @@ Rules:
  * Call Groq API to analyze utilization data.
  */
 async function callGroqAnalysis(prompt) {
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = getSecretSync('GROQ_API_KEY');
     if (!apiKey) {
         console.warn('⚠️ GROQ_API_KEY not set — generating mock recommendations');
         return null;
