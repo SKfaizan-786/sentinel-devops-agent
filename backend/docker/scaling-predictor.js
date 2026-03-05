@@ -1,7 +1,7 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 const EventEmitter = require('events');
 
-// ΓöÇΓöÇΓöÇ Sliding Window Metrics Store ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Sliding Window Metrics Store ──────────────────────────────────────────
 class MetricsWindow {
     constructor(maxSize = 20) {
         this.maxSize = maxSize;
@@ -69,7 +69,7 @@ class MetricsWindow {
     }
 }
 
-// ΓöÇΓöÇΓöÇ Scaling Predictor ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Scaling Predictor ─────────────────────────────────────────────────────
 class ScalingPredictor extends EventEmitter {
     constructor() {
         super();
@@ -91,7 +91,7 @@ class ScalingPredictor extends EventEmitter {
         this.monitor = monitor;
         this.wsBroadcaster = wsBroadcaster;
 
-        console.log('≡ƒö« Initializing Predictive Scaling Engine...');
+        console.log('🔮 Initializing Predictive Scaling Engine...');
 
         // Collect metrics from the monitor on a regular interval
         this.collectionInterval = setInterval(() => this.collectMetrics(), this.COLLECT_INTERVAL_MS);
@@ -151,7 +151,7 @@ class ScalingPredictor extends EventEmitter {
                         // Emit event if above threshold
                         if (prediction.failureProbability >= this.PREDICTION_THRESHOLD) {
                             this.emit('scale-recommendation', prediction);
-                            console.log(`≡ƒö« SCALE ALERT: ${prediction.containerName || containerId.substring(0, 12)} ΓåÆ ${Math.round(prediction.failureProbability * 100)}% failure risk`);
+                            console.log(`🔮 SCALE ALERT: ${prediction.containerName || containerId.substring(0, 12)} → ${Math.round(prediction.failureProbability * 100)}% failure risk`);
                         }
                     }
                 } catch (err) {
@@ -276,7 +276,7 @@ class ScalingPredictor extends EventEmitter {
     stop() {
         if (this.evaluationInterval) clearInterval(this.evaluationInterval);
         if (this.collectionInterval) clearInterval(this.collectionInterval);
-        console.log('≡ƒö« Scaling Predictor stopped.');
+        console.log('🔮 Scaling Predictor stopped.');
     }
 }
 

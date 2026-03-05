@@ -6,14 +6,14 @@ import { motion } from "framer-motion";
 import { usePredictions } from "@/hooks/usePredictions";
 
 export function ServiceGrid({ services }: { services: Service[] }) {
-    const predictionsMap = usePredictions();
+    const { predictionsMap } = usePredictions();
     const predictions = Object.values(predictionsMap);
 
     const getPrediction = (service: Service) => {
         return predictions.find(p => {
             const name = (p.containerName || '').toLowerCase();
             const serviceId = service.id.toLowerCase();
-            
+
             // Prioritize strict equality on ID
             if (name === serviceId) return true;
 

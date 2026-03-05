@@ -791,7 +791,7 @@ scalingPredictor.on('scale-recommendation', (prediction) => {
   logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
 });
 
-// Listen for container predictions
+// Listen for container predictions from upstream monitor
 containerMonitor.on('prediction', (prediction) => {
   if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
     incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);

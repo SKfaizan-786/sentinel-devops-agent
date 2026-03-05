@@ -14,7 +14,7 @@ const RISK_THRESHOLD = 0.5;
 
 export default function PredictionsPage() {
     const { containers, loading, refetch: refetchContainers } = useContainers();
-    const predictions = usePredictions();
+    const { predictionsMap: predictions } = usePredictions();
 
     const stats = useMemo(() => {
         let risky = 0;
@@ -22,7 +22,7 @@ export default function PredictionsPage() {
         let unknown = 0;
         containers.forEach(c => {
             const pred = predictions[c.id];
-            if (pred && pred.probability > RISK_THRESHOLD) risky++;
+            if (pred && (pred.probability ?? 0) > RISK_THRESHOLD) risky++;
             else if (pred) safe++;
             else unknown++;
         });
@@ -77,7 +77,7 @@ export default function PredictionsPage() {
                         const prediction = predictions[container.id];
                         // If no prediction or low risk, show mostly neutral
                         // If high risk, show forecast
-                        const isRisky = prediction && prediction.probability > RISK_THRESHOLD;
+                        const isRisky = prediction && (prediction.probability ?? 0) > RISK_THRESHOLD;
 
                         return (
                             <Spotlight key={container.id} className={`p-6 ${isRisky ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>
@@ -94,14 +94,14 @@ export default function PredictionsPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                     <div>
-                                         <p className="text-xs uppercase text-muted-foreground">CPU Usage</p>
-                                         <p className="font-mono">{container.metrics?.cpu || '0'}%</p>
-                                     </div>
-                                     <div>
-                                         <p className="text-xs uppercase text-muted-foreground">Memory</p>
-                                         <p className="font-mono">{container.metrics?.memory?.percent || '0'}%</p>
-                                     </div>
+                                    <div>
+                                        <p className="text-xs uppercase text-muted-foreground">CPU Usage</p>
+                                        <p className="font-mono">{(container as any).metrics?.cpu || '0'}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs uppercase text-muted-foreground">Memory</p>
+                                        <p className="font-mono">{(container as any).metrics?.memory?.percent || '0'}%</p>
+                                    </div>
                                 </div>
 
                                 {isRisky && prediction.history && prediction.history.length > 0 && (
@@ -111,16 +111,16 @@ export default function PredictionsPage() {
                                             <span className="font-semibold text-xs">Failure Forecast</span>
                                         </div>
                                         <p className="text-sm mb-4">{prediction.reason}</p>
-                                        
-                                        <ForecastChart 
-                                            history={prediction.history} 
+
+                                        <ForecastChart
+                                            history={prediction.history}
                                             label="Resource Usage Trend"
                                             threshold={90}
                                             prediction={{ slope: prediction.slope ?? 0, timeToFailure: prediction.estimatedFailureInSeconds ?? 300 }}
                                         />
                                     </div>
                                 )}
-                                
+
                                 <div className="mt-4 flex justify-end gap-2">
                                     <Button variant="ghost" size="sm">Logs</Button>
                                     <Button variant="outline" size="sm" onClick={() => refetchContainers()}>Refresh</Button>
@@ -129,7 +129,7 @@ export default function PredictionsPage() {
                             </Spotlight>
                         );
                     })}
-                    
+
                     {containers.length === 0 && !loading && (
                         <div className="col-span-2 text-center py-12 text-muted-foreground">
                             No containers found.

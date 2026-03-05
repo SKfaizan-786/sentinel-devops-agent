@@ -6,6 +6,7 @@ import { ServiceGrid } from "@/components/dashboard/ServiceGrid";
 import { MetricsCharts } from "@/components/dashboard/MetricsCharts";
 import { IncidentTimeline } from "@/components/dashboard/IncidentTimeline";
 import { AgentReasoningPanel } from "@/components/dashboard/AgentReasoningPanel";
+import { HealthForecast } from "@/components/dashboard/HealthForecast";
 import { mockServices } from "@/lib/mockData";
 import { useMetrics } from "@/hooks/useMetrics";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -203,6 +204,9 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Predictive Health Forecast */}
+                            <HealthForecast />
                         </div>
 
                         {/* Right Column: Timeline & Reasoning (1/3 width) */}

@@ -11,6 +11,18 @@ export interface Container {
     health: 'healthy' | 'unhealthy' | 'unknown';
     ports: { PrivatePort: number; PublicPort?: number; Type: string }[];
     created: string;
+    metrics?: {
+        cpu: string;
+        memory: {
+            usage: string;
+            limit: string;
+            percent: string;
+        };
+        network: {
+            rx: string;
+            tx: string;
+        };
+    };
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
