@@ -13,6 +13,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const scalingPredictor = require('./docker/scaling-predictor');
 const aiService = require('./ai');
 const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 const { routeEvent } = require('./config/notifications');
@@ -719,6 +720,57 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
   }
 });
 
+app.post('/api/docker/scale-bulk', requireDockerAuth, async (req, res) => {
+  try {
+    const aiDecisionStr = req.body.aiDecision;
+    let decisions = [];
+    if (typeof aiDecisionStr === 'string') {
+      try {
+        const match = aiDecisionStr.match(/\[.*\]/s);
+        decisions = JSON.parse(match ? match[0] : aiDecisionStr);
+      } catch (e) {
+        console.error('Failed to parse AI scale decisions', e);
+        return res.status(400).json({ success: false, error: 'Invalid AI payload format' });
+      }
+    } else if (Array.isArray(aiDecisionStr)) {
+      decisions = aiDecisionStr;
+    } else {
+      decisions = [aiDecisionStr];
+    }
+
+    const results = [];
+    for (const d of decisions) {
+      if (d && d.action === 'scale-out' && d.service && d.replicas) {
+        logActivity('info', `Proactively scaling ${d.service} to ${d.replicas} based on AI decision`);
+        const result = await healer.scaleService(d.service, d.replicas);
+        results.push(result);
+      }
+    }
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Scale bulk error:', error);
+    res.status(500).json(ERRORS.ACTION_FAILED().toJSON());
+  }
+});
+
+// --- PREDICTION ENDPOINTS ---
+
+app.get('/api/predictions', (req, res) => {
+  const predictions = scalingPredictor.getPredictions();
+  const evaluatedAt = predictions.length > 0
+    ? predictions.reduce((latest, p) => p.evaluatedAt > latest ? p.evaluatedAt : latest, predictions[0].evaluatedAt)
+    : new Date().toISOString();
+  res.json({ predictions, evaluatedAt });
+});
+
+app.get('/api/predictions/:id', validateId, (req, res) => {
+  const prediction = scalingPredictor.getPrediction(req.params.id);
+  if (!prediction) {
+    return res.status(404).json({ error: 'No prediction available for this container' });
+  }
+  res.json(prediction);
+});
+
 let globalWsBroadcaster;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
@@ -730,6 +782,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Setup WebSocket
 globalWsBroadcaster = setupWebSocket(server);
 serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
+
+// Initialize Predictive Scaling Engine
+scalingPredictor.init(containerMonitor, globalWsBroadcaster);
+
+// React to scale recommendations
+scalingPredictor.on('scale-recommendation', (prediction) => {
+  logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
+});
 
 // Listen for container predictions
 containerMonitor.on('prediction', (prediction) => {
