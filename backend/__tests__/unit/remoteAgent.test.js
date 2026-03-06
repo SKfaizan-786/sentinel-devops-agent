@@ -148,4 +148,78 @@ describe('Remote Agent - Unit Tests', () => {
       expect(result.lastUpdated).toBeDefined();
     });
   });
+
+  describe('Admin Authentication', () => {
+    let authApp;
+
+    beforeEach(() => {
+      jest.resetModules();
+      // Configure agent with ADMIN_SECRET
+      process.env.ADMIN_SECRET = 'test-admin-secret';
+      process.env.CLUSTER_ID = 'secure-cluster';
+      
+      const authRemoteAgent = require('../../remoteAgent/index');
+      authApp = authRemoteAgent.app;
+    });
+
+    afterEach(() => {
+      delete process.env.ADMIN_SECRET;
+    });
+
+    it('should protect /configure endpoint with authentication', async () => {
+      const response = await request(authApp)
+        .post('/configure')
+        .send({ services: [] })
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('should protect /refresh endpoint with authentication', async () => {
+      const response = await request(authApp)
+        .post('/refresh')
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('should allow /configure with valid X-Admin-Secret header', async () => {
+      const response = await request(authApp)
+        .post('/configure')
+        .set('X-Admin-Secret', 'test-admin-secret')
+        .send({ services: [] })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should allow /refresh with valid Authorization header', async () => {
+      const response = await request(authApp)
+        .post('/refresh')
+        .set('Authorization', 'Bearer test-admin-secret')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should reject /configure with invalid credentials', async () => {
+      const response = await request(authApp)
+        .post('/configure')
+        .set('X-Admin-Secret', 'wrong-secret')
+        .send({ services: [] })
+        .expect(403);
+
+      expect(response.body.error).toBe('Invalid credentials');
+    });
+
+    it('should allow access without auth when ADMIN_SECRET is not configured', async () => {
+      // Use original app without ADMIN_SECRET
+      const response = await request(app)
+        .post('/configure')
+        .send({ services: [] })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+    });
+  });
 });

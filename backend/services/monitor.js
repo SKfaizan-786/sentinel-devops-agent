@@ -286,7 +286,7 @@ function handleRemoteAgentReport(report) {
         
         systemStatus.services[fullServiceName] = {
             ...systemStatus.services[fullServiceName],
-            status: serviceData.status,
+            status: newStatus, // Use the type-safe string value
             code: serviceData.code,
             latencyMs: serviceData.latencyMs,
             lastUpdated: new Date(serviceData.lastUpdated || Date.now())

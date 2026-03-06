@@ -134,15 +134,17 @@ describe('Services Configuration Loader - Unit Tests', () => {
   });
 
   describe('getServicePortMap', () => {
-    it('should return service name to port mapping', () => {
+    it('should return service name to port mapping with namespaced keys', () => {
       const portMap = servicesLoader.getServicePortMap();
       expect(typeof portMap).toBe('object');
       
-      // Should have ports for configured services
+      // Should have ports for configured services using namespaced keys
       const services = servicesLoader.getAllServices();
       for (const service of services) {
         if (service.port) {
-          expect(portMap[service.name]).toBe(service.port);
+          // Check namespaced key format: cluster:name
+          const key = service.cluster ? `${service.cluster}:${service.name}` : service.name;
+          expect(portMap[key]).toBe(service.port);
         }
       }
     });
@@ -213,6 +215,70 @@ describe('Services Configuration Loader - Unit Tests', () => {
       
       const result = servicesLoader.ServicesConfigSchema.safeParse(invalidConfig);
       expect(result.success).toBe(false);
+    });
+
+    it('should reject remoteAgents with enabled=true but empty webhookSecret', () => {
+      const invalidConfig = {
+        clusters: [{
+          id: 'test',
+          name: 'Test',
+          services: [{
+            name: 'api',
+            url: 'http://localhost:3000/health'
+          }]
+        }],
+        remoteAgents: {
+          enabled: true,
+          webhookSecret: '',
+          endpoints: []
+        }
+      };
+      
+      const result = servicesLoader.ServicesConfigSchema.safeParse(invalidConfig);
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toContain('webhookSecret required');
+    });
+
+    it('should accept remoteAgents with enabled=true and valid webhookSecret', () => {
+      const validConfig = {
+        clusters: [{
+          id: 'test',
+          name: 'Test',
+          services: [{
+            name: 'api',
+            url: 'http://localhost:3000/health'
+          }]
+        }],
+        remoteAgents: {
+          enabled: true,
+          webhookSecret: 'my-secure-secret',
+          endpoints: []
+        }
+      };
+      
+      const result = servicesLoader.ServicesConfigSchema.safeParse(validConfig);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept remoteAgents with enabled=false and empty webhookSecret', () => {
+      const validConfig = {
+        clusters: [{
+          id: 'test',
+          name: 'Test',
+          services: [{
+            name: 'api',
+            url: 'http://localhost:3000/health'
+          }]
+        }],
+        remoteAgents: {
+          enabled: false,
+          webhookSecret: '',
+          endpoints: []
+        }
+      };
+      
+      const result = servicesLoader.ServicesConfigSchema.safeParse(validConfig);
+      expect(result.success).toBe(true);
     });
   });
 });
