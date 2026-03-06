@@ -5,7 +5,7 @@ import { Button } from "@/components/common/Button";
 import { SentinelLogo } from "@/components/common/SentinelLogo";
 import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useWebSocketContext } from "@/lib/WebSocketContext";
+import { useWebSocketConnection } from "@/lib/WebSocketContext";
 import { Wifi, WifiOff, Info, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -14,7 +14,7 @@ export function Header() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [active, setActive] = useState("#features");
-  const { isConnected } = useWebSocketContext();
+  const { isConnected } = useWebSocketConnection();
   const modalRef = useRef<HTMLDivElement>(null);
 
   /* ================= Scroll Spy ================= */

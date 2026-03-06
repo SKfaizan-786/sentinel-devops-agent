@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db/config');
 const { runAnalysis, getSummary, getHeatmapData } = require('./analyzer');
 const { docker } = require('../docker/client');
-const requireAuth = require('../middleware/auth');
+const { requireAuth } = require('../auth/middleware');
 
 // GET /api/finops/summary
 router.get('/summary', async (req, res) => {

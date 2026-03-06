@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useWebSocketContext } from "@/lib/WebSocketContext";
+import { useWebSocketMessage } from "@/lib/WebSocketContext";
 
 export type LogLevel = "info" | "warn" | "error" | "debug" | "success";
 
@@ -25,7 +25,7 @@ export function useLogs() {
     const [isPaused, setIsPaused] = useState(false);
     const [filterLevel, setFilterLevel] = useState<LogLevel | "all">("all");
     const [search, setSearch] = useState("");
-    const { lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
 
     // Initial fetch for cold start
     const fetchLogs = useCallback(async () => {

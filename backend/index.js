@@ -13,6 +13,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const scalingPredictor = require('./docker/scaling-predictor');
 const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 const { routeEvent } = require('./config/notifications');
 
@@ -579,8 +580,8 @@ const validateScaleParams = (req, res, next) => {
 app.get('/api/docker/containers', async (req, res) => {
   try {
     const containers = await listContainers();
-    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
-    await Promise.allSettled(containers.map(c => containerMonitor.startMonitoring(c.id)));
+    // Monitor initialization is now global and event-driven via monitor.init()
+    // No need to aggressively start monitoring on every list request
 
     // Enrich with smart restart meta
     const enrichedContainers = containers.map(c => {
@@ -663,7 +664,7 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
       const containers = await listContainers();
       const enriched = containers.map(c => ({
         ...c,
-        metrics: monitor.getMetrics(c.id),
+        metrics: containerMonitor.getMetrics(c.id),
         restartCount: (restartTracker.get(c.id) || { attempts: 0 }).attempts,
         lastRestart: (restartTracker.get(c.id) || { lastAttempt: 0 }).lastAttempt
       }));
@@ -815,9 +816,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 // Setup WebSocket
 globalWsBroadcaster = setupWebSocket(server);
+wsBroadcaster = globalWsBroadcaster; // Synergize both references
 serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
-// Listen for container predictions
+// Initialize Predictive Scaling Engine
+scalingPredictor.init(containerMonitor, globalWsBroadcaster);
+
+// React to scale recommendations
+scalingPredictor.on('scale-recommendation', (prediction) => {
+  logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
+});
+
+// Listen for container predictions - MUST be before init to catch startup predictions
 containerMonitor.on('prediction', (prediction) => {
   if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
     incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
@@ -831,6 +841,9 @@ containerMonitor.on('prediction', (prediction) => {
     globalWsBroadcaster.broadcast('PREDICTION', prediction);
   }
 });
+
+// Initialize monitoring on startup - After listeners are attached
+containerMonitor.init();
 
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {

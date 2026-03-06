@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, memo } from "react";
 import { Incident } from "@/lib/mockData";
 import { useReasoningStream } from "@/hooks/useReasoningStream";
 import { ConfidenceMeter } from "./ConfidenceMeter";
@@ -13,13 +13,13 @@ interface AgentReasoningPanelProps {
     liveStreamEnabled?: boolean;
 }
 
-export function AgentReasoningPanel({ 
-    incident, 
-    liveStreamEnabled = true 
+export const AgentReasoningPanel = memo(function AgentReasoningPanel({
+    incident,
+    liveStreamEnabled = true
 }: AgentReasoningPanelProps) {
     const [expandedStepId, setExpandedStepId] = useState<number | undefined>();
     const [showLiveStream, setShowLiveStream] = useState(false);
-    
+
     // Use the reasoning stream hook
     const {
         steps,
@@ -66,7 +66,7 @@ export function AgentReasoningPanel({
                             <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full border border-primary/20">v3.0-Live</span>
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                            Analysis ID: {incident.id} 
+                            Analysis ID: {incident.id}
                             {liveStreamEnabled && (
                                 <span className={`ml-2 inline-flex items-center gap-1 transition-colors duration-300 ${isConnected ? 'text-green-400' : 'text-yellow-500'}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-yellow-500'}`} />
@@ -76,7 +76,7 @@ export function AgentReasoningPanel({
                         </p>
                     </div>
                 </div>
-                
+
                 {/* Toggle Buttons */}
                 <div className="flex items-center gap-2">
                     {!hasLiveData && isLoading && (
@@ -90,11 +90,10 @@ export function AgentReasoningPanel({
                     )}
                     <button
                         onClick={() => setShowLiveStream(!showLiveStream)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                            showLiveStream
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${showLiveStream
                                 ? "bg-primary/20 text-primary border border-primary/30"
                                 : "bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10"
-                        }`}
+                            }`}
                     >
                         {showLiveStream ? "Hide" : "Show"} Live Reasoning
                     </button>
@@ -170,13 +169,12 @@ export function AgentReasoningPanel({
                             {hasLiveData ? "Full Analysis Log" : "Live Analysis Stream"}
                         </h4>
                         <div
-                            className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner max-h-64 overflow-y-auto ${
-                                incident.severity === "critical"
+                            className={`bg-black/80 rounded-lg p-4 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre-wrap shadow-inner max-h-64 overflow-y-auto ${incident.severity === "critical"
                                     ? "text-red-400"
                                     : incident.severity === "warning"
-                                    ? "text-orange-400"
-                                    : "text-green-300"
-                            }`}
+                                        ? "text-orange-400"
+                                        : "text-green-300"
+                                }`}
                         >
                             {rawLog || "Loading analysis..."}
                         </div>
@@ -203,4 +201,6 @@ export function AgentReasoningPanel({
             </div>
         </div>
     );
-}
+});
+
+AgentReasoningPanel.displayName = "AgentReasoningPanel";
