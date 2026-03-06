@@ -29,6 +29,13 @@ export function Spotlight({
         mouseY.set(clientY - top);
     }
 
+    function handleKeyDown(event: React.KeyboardEvent) {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            onClick();
+        }
+    }
+
     return (
         <div
             className={cn(
@@ -38,6 +45,9 @@ export function Spotlight({
             )}
             onMouseMove={handleMouseMove}
             onClick={onClick}
+            onKeyDown={handleKeyDown}
+            tabIndex={onClick ? 0 : undefined}
+            role={onClick ? "button" : undefined}
         >
             <motion.div
                 className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
