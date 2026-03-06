@@ -284,16 +284,16 @@ router.get('/swarm/services', async (req, res) => {
       });
     }
 
-    const allServices = [];
+    const results = await Promise.allSettled(
+      swarmHosts.map(async host => {
+        const services = await swarm.listSwarmServices(host.client);
+        return services.map(s => ({ ...s, hostId: host.id, hostLabel: host.label }));
+      })
+    );
     
-    for (const host of swarmHosts) {
-      const services = await swarm.listSwarmServices(host.client);
-      allServices.push(...services.map(s => ({
-        ...s,
-        hostId: host.id,
-        hostLabel: host.label
-      })));
-    }
+    const allServices = results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value);
 
     res.json({
       swarmMode: true,

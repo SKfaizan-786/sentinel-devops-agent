@@ -71,7 +71,7 @@ const rolesRoutes = require('./routes/roles.routes');
 const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
-const { requireAuth } = require('./auth/middleware');
+const { requireAuth, requireRole } = require('./auth/middleware');
 
 // Distributed Traces Routes
 const traceRoutes = require('./routes/traces.routes');
@@ -124,7 +124,7 @@ app.use('/api/roles', rolesRoutes);
 app.use('/api/approvals', approvalsRoutes);
 
 // Multi-host Docker Routes
-app.use('/api/hosts', hostsRoutes);
+app.use('/api/hosts', requireAuth, requireRole('Admin'), hostsRoutes);
 
 // FinOps Routes
 app.use('/api/finops', finopsRoutes);

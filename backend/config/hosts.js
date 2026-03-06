@@ -69,7 +69,7 @@ function validateHosts(hosts) {
   for (const host of hosts) {
     // Required: id must be unique
     if (!host.id || typeof host.id !== 'string') {
-      console.warn('[HostConfig] Skipping host without valid id:', host);
+      console.warn('[HostConfig] Skipping host without valid id:', { id: host.id, type: host.type });
       continue;
     }
 
@@ -77,7 +77,6 @@ function validateHosts(hosts) {
       console.warn(`[HostConfig] Duplicate host id '${host.id}', skipping`);
       continue;
     }
-    seenIds.add(host.id);
 
     // Normalize host config
     const normalized = {
@@ -118,6 +117,8 @@ function validateHosts(hosts) {
         normalized.type = 'unknown';
     }
 
+    // Mark ID as seen only after validation passes
+    seenIds.add(host.id);
     validated.push(normalized);
   }
 

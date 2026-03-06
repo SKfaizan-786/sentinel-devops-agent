@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
     // Multi-host support
     const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
-    const { hosts, loading: hostsLoading } = useHosts();
+    const { hosts, loading: hostsLoading, refetch: refetchHosts } = useHosts();
     const { 
         containers, 
         loading: containersLoading, 
@@ -49,7 +49,8 @@ export default function DashboardPage() {
 
     const handleRefresh = useCallback(() => {
         refetchContainers();
-    }, [refetchContainers]);
+        refetchHosts();
+    }, [refetchContainers, refetchHosts]);
 
     const handleHostChange = useCallback((hostId: string | null) => {
         setSelectedHostId(hostId);
