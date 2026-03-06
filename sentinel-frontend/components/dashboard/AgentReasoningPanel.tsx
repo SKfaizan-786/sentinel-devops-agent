@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Incident } from "@/lib/mockData";
 import { useReasoningStream } from "@/hooks/useReasoningStream";
 import { ConfidenceMeter } from "./ConfidenceMeter";

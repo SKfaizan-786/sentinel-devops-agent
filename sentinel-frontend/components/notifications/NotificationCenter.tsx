@@ -136,12 +136,12 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                                                         {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                                                     </span>
                                                 </div>
-                                                <div className="relative group/msg pr-8">
+                                                <div className="relative group overflow-visible pr-10">
                                                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed wrap-break-word">
                                                         {notification.message}
                                                     </p>
-                                                    <div className="absolute top-0 right-0">
-                                                        <CopyButton textToCopy={notification.message} className="opacity-0 group-hover/msg:opacity-100 transition-opacity" />
+                                                    <div className="absolute top-1 right-1 z-10">
+                                                        <CopyButton textToCopy={notification.message} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100" />
                                                     </div>
                                                 </div>
                                             </div>

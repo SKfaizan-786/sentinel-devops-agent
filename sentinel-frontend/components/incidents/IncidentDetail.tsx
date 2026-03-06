@@ -31,14 +31,14 @@ export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProp
                 <div className="space-y-1 relative group/rc">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Root Cause
-                        <CopyButton textToCopy={incident.rootCause} className="opacity-0 group-hover/rc:opacity-100 transition-opacity" />
+                        <CopyButton textToCopy={incident.rootCause} className="opacity-100 md:opacity-0 md:group-hover/rc:opacity-100 group-focus-within/rc:opacity-100 focus-visible:opacity-100 transition-opacity" />
                     </div>
                     <p className="text-sm text-white">{incident.rootCause}</p>
                 </div>
                 <div className="space-y-1 relative group/aa">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Agent Action
-                        <CopyButton textToCopy={incident.agentAction} className="opacity-0 group-hover/aa:opacity-100 transition-opacity" />
+                        <CopyButton textToCopy={incident.agentAction} className="opacity-100 md:opacity-0 md:group-hover/aa:opacity-100 group-focus-within/aa:opacity-100 focus-visible:opacity-100 transition-opacity" />
                     </div>
                     <p className="text-sm text-primary flex items-center gap-1">
                         <Zap className="h-3 w-3" />
