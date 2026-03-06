@@ -15,8 +15,13 @@ const healer = require('./docker/healer');
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
+=======
+const scalingPredictor = require('./docker/scaling-predictor');
+const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 const { routeEvent } = require('./config/notifications');
 const { loadServicesConfig, getAllServices, getClusterIds } = require('./config/services');
 
@@ -80,12 +85,29 @@ const { startCollectors } = require('./metrics/collectors');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Distributed Traces Routes
 const traceRoutes = require('./routes/traces.routes');
 
+<<<<<<< HEAD
+=======
+// Contact Routes
+const contactRoutes = require('./routes/contact.routes');
+
+// Feedback Routes - Operational Memory
+const feedbackRoutes = require('./routes/feedback.routes');
+
+// Reasoning Routes - AI Transparency
+const reasoningRoutes = require('./routes/reasoning.routes');
+
+// FinOps Routes & Collector
+const finopsRoutes = require('./finops/routes');
+const { startCollector: startFinOpsCollector } = require('./finops/metricsCollector');
+
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -102,11 +124,58 @@ app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/slo', sloRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/approvals', approvalsRoutes);
+
+// FinOps Routes
+app.use('/api/finops', finopsRoutes);
 
 // Distributed Traces Routes
 app.use('/api/traces', traceRoutes);
 
+<<<<<<< HEAD
 // --- IN-MEMORY DATABASE ---
+=======
+// Contact Routes
+app.use('/api', contactRoutes);
+
+// Reasoning Routes - AI Transparency
+app.use('/api/reasoning', requireAuth, reasoningRoutes);
+
+// Load services configuration dynamically
+const { 
+  getAllServices: getConfiguredServices, 
+  getServicesByCluster,
+  getServicesByRegion,
+  getServicePortMap,
+  getRemoteAgentConfig 
+} = require('./config/servicesLoader');
+
+// --- IN-MEMORY DATABASE ---
+// Initialize system status from configuration
+const configuredServices = getConfiguredServices();
+function initializeSystemStatus() {
+  const servicesState = {};
+  for (const svc of configuredServices) {
+    servicesState[svc.name] = { 
+      status: 'unknown', 
+      code: 0, 
+      lastUpdated: null,
+      cluster: svc.cluster,
+      clusterName: svc.clusterName,
+      region: svc.region
+    };
+  }
+  return {
+    services: servicesState,
+    clusters: getServicesByCluster(),
+    aiAnalysis: "Waiting for AI report...",
+    lastUpdated: new Date()
+  };
+}
+
+let systemStatus = initializeSystemStatus();
+
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 let activityLog = [];
 let aiLogs = [];
 let nextLogId = 1;
@@ -119,13 +188,36 @@ function logActivity(type, message) {
     message
   };
   activityLog.unshift(entry);
-  if (activityLog.length > 100) activityLog.pop(); // Keep last 100
+  if (activityLog.length > 100) activityLog.pop(); // Keep last 100 in memory
   console.log(`[LOG] ${type}: ${message}`);
+<<<<<<< HEAD
+=======
+
+  // Persist to PostgreSQL (fire-and-forget)
+  insertActivityLog(type, message).catch(() => { });
+
+  // Broadcast the new log entry to all connected WebSocket clients
+  wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 }
 
 // WebSocket Broadcaster
 let wsBroadcaster = { broadcast: () => { } };
 
+<<<<<<< HEAD
+=======
+// Service configuration - loaded dynamically from services.config.json
+const services = configuredServices.map(s => ({
+  name: s.name,
+  url: s.url,
+  type: s.type,
+  cluster: s.cluster,
+  clusterName: s.clusterName,
+  region: s.region,
+  port: s.port
+}));
+
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 // Smart Restart Tracking
 const restartTracker = new Map(); // containerId -> { attempts: number, lastAttempt: number }
 const MAX_RESTARTS = 3;
@@ -137,6 +229,7 @@ app.get('/api/status', (req, res) => {
   res.json(serviceMonitor.getSystemStatus());
 });
 
+<<<<<<< HEAD
 app.get('/api/services', (req, res) => {
   res.json({ services: serviceMonitor.getAllServicesInfo() });
 });
@@ -153,10 +246,30 @@ app.get('/api/clusters', (req, res) => {
 
 app.get('/api/activity', (req, res) => {
   res.json({ activity: incidents.getActivityLog().slice(0, 50) });
+=======
+app.get('/api/activity', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { logs, total } = await getActivityLogs(limit, offset);
+    res.json({ activity: logs, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory via incidents service
+    res.json({ activity: incidents.getActivityLog().slice(offset, offset + limit) });
+  }
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 });
 
-app.get('/api/insights', (req, res) => {
-  res.json({ insights: incidents.getAiLogs().slice(0, 20) });
+app.get('/api/insights', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { reports, total } = await getAIReports(limit, offset);
+    res.json({ insights: reports, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory via incidents service
+    res.json({ insights: incidents.getAiLogs().slice(offset, offset + limit) });
+  }
 });
 
 // --- REMOTE AGENT ENDPOINTS ---
@@ -203,7 +316,37 @@ app.post('/api/kestra-webhook', (req, res) => {
   
   if (aiReport) {
     systemStatus.aiAnalysis = aiReport;
+<<<<<<< HEAD
     const insight = incidents.addAiLog(aiReport);
+=======
+    // Create an incident/insight object
+    const insight = {
+      id: Date.now(),
+      timestamp: new Date(),
+      analysis: aiReport,
+      summary: aiReport
+    };
+    aiLogs.unshift(insight);
+    if (aiLogs.length > 50) aiLogs.pop();
+
+    // Persist to PostgreSQL (fire-and-forget)
+    insertAIReport(aiReport, aiReport).catch(() => { });
+
+    logActivity('info', 'Received new AI Analysis report');
+
+    // Broadcast new incident/insight
+    wsBroadcaster.broadcast('INCIDENT_NEW', insight);
+
+    // Call routeEvent with the incident payload for ChatOps
+    initiateHealingProtocol({
+      ...insight,
+      title: 'Application Insight Alert',
+      description: insight.summary,
+      type: 'ai_insight',
+      severity: 'Medium'
+    });
+    const newInsight = incidents.addAiLog(aiReport);
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     incidents.logActivity('info', 'Received new AI Analysis report');
     
@@ -267,8 +410,9 @@ app.post('/api/kestra-webhook', (req, res) => {
 
 app.post('/api/action/:service/:type', async (req, res) => {
   const { service, type } = req.params;
-  const serviceMap = { 'auth': 3001, 'payment': 3002, 'notification': 3003 };
-  const port = serviceMap[service];
+  // Use dynamic service port mapping from configuration
+  const servicePortMap = getServicePortMap();
+  const port = servicePortMap[service];
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -299,13 +443,17 @@ app.post('/api/action/:service/:type', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid service' });
   }
 
+  // Find service URL base from configuration
+  const serviceConfig = services.find(s => s.name === service);
+  const serviceUrl = serviceConfig ? new URL(serviceConfig.url).origin : `http://localhost:${port}`;
+
   try {
     let mode = 'healthy';
     if (type === 'crash' || type === 'down') mode = 'down';
     if (type === 'degraded') mode = 'degraded';
     if (type === 'slow') mode = 'slow';
 
-    await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
+    await axios.post(`${serviceUrl}/simulate/${mode}`, {}, { timeout: 5000 });
     // Force a health check to update status immediately
     await serviceMonitor.checkServiceHealth();
 
@@ -439,8 +587,8 @@ const validateScaleParams = (req, res, next) => {
 app.get('/api/docker/containers', async (req, res) => {
   try {
     const containers = await listContainers();
-    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
-    await Promise.allSettled(containers.map(c => containerMonitor.startMonitoring(c.id)));
+    // Monitor initialization is now global and event-driven via monitor.init()
+    // No need to aggressively start monitoring on every list request
 
     // Enrich with smart restart meta
     const enrichedContainers = containers.map(c => {
@@ -560,6 +708,22 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
   // For manual, we usually want to force it. We won't incr limits but update 'lastAttempt' timestamp
   try {
     const result = await healer.restartContainer(id);
+<<<<<<< HEAD
+=======
+
+    // Broadcast updated containers after restart
+    try {
+      const containers = await listContainers();
+      const enriched = containers.map(c => ({
+        ...c,
+        metrics: containerMonitor.getMetrics(c.id),
+        restartCount: (restartTracker.get(c.id) || { attempts: 0 }).attempts,
+        lastRestart: (restartTracker.get(c.id) || { lastAttempt: 0 }).lastAttempt
+      }));
+      wsBroadcaster.broadcast('CONTAINER_UPDATE', { containers: enriched });
+    } catch (_) { /* best-effort broadcast */ }
+
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
     res.json(result);
   } catch (error) {
     res.status(500).json(ERRORS.ACTION_FAILED().toJSON());
@@ -585,6 +749,7 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
 });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 let globalWsBroadcaster;
 
 const hostsConfig = loadHostsConfig();
@@ -600,15 +765,129 @@ const hostsConfig = loadHostsConfig();
 app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScaleParams, async (req, res) => {
   const result = await healer.scaleService(req.params.service, req.params.replicas);
   res.json(result);
+=======
+// ============================================
+// MULTI-CLUSTER / MULTI-REGION API ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/clusters - Get all services grouped by cluster
+ */
+app.get('/api/clusters', (req, res) => {
+  const clusters = serviceMonitor.getServicesGroupedByCluster();
+  res.json({ clusters });
+});
+
+/**
+ * GET /api/regions - Get all services grouped by region
+ */
+app.get('/api/regions', (req, res) => {
+  const regions = serviceMonitor.getServicesGroupedByRegion();
+  res.json({ regions });
+});
+
+/**
+ * GET /api/services/grouped - Get services with cluster/region metadata
+ */
+app.get('/api/services/grouped', (req, res) => {
+  const groupBy = req.query.groupBy || 'cluster';
+  
+  if (groupBy === 'region') {
+    res.json({ 
+      groupBy: 'region',
+      data: serviceMonitor.getServicesGroupedByRegion() 
+    });
+  } else {
+    res.json({ 
+      groupBy: 'cluster',
+      data: serviceMonitor.getServicesGroupedByCluster() 
+    });
+  }
+});
+
+/**
+ * POST /api/remote-agent/report - Receive health reports from remote agents
+ * Protected by webhook secret verification
+ */
+app.post('/api/remote-agent/report', (req, res) => {
+  const remoteAgentConfig = getRemoteAgentConfig();
+  
+  // Verify webhook secret if configured
+  if (remoteAgentConfig.webhookSecret) {
+    const signature = req.headers['x-sentinel-signature'];
+    if (!signature) {
+      return res.status(401).json({ error: 'Missing signature header' });
+    }
+    
+    const hmac = crypto.createHmac('sha256', remoteAgentConfig.webhookSecret);
+    // Use raw body for HMAC verification to ensure consistency
+    const bodyToVerify = req.rawBody || JSON.stringify(req.body);
+    hmac.update(bodyToVerify);
+    const expectedSignature = 'sha256=' + hmac.digest('hex');
+    
+    // Check signature lengths first to avoid timingSafeEqual throwing on length mismatch
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+    
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+  }
+  
+  const { type, clusterId, clusterName, region, timestamp, services: reportedServices } = req.body;
+  
+  if (type !== 'agent_report') {
+    return res.status(400).json({ error: 'Invalid report type' });
+  }
+  
+  if (!clusterId || !reportedServices) {
+    return res.status(400).json({ error: 'Missing clusterId or services in report' });
+  }
+  
+  // Handle the remote agent report
+  serviceMonitor.handleRemoteAgentReport({
+    clusterId,
+    clusterName: clusterName || clusterId,
+    region: region || 'remote',
+    services: reportedServices
+  });
+  
+  logActivity('info', `Received health report from remote agent: ${clusterId} (${Object.keys(reportedServices).length} services)`);
+  
+  res.json({ 
+    success: true, 
+    message: `Report received for cluster ${clusterId}`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * GET /api/remote-agent/status - Check remote agent configuration status
+ */
+app.get('/api/remote-agent/status', (req, res) => {
+  const config = getRemoteAgentConfig();
+  res.json({
+    enabled: config.enabled,
+    hasWebhookSecret: !!config.webhookSecret,
+    endpointsCount: config.endpoints.length
+  });
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 });
 
 let globalWsBroadcaster;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+  // Start FinOps metrics collector
+  startFinOpsCollector();
 });
 >>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
 
+<<<<<<< HEAD
   // Setup WebSocket
   globalWsBroadcaster = setupWebSocket(server);
   serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
@@ -626,6 +905,39 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     }
   });
 =======
+=======
+// Setup WebSocket
+globalWsBroadcaster = setupWebSocket(server);
+wsBroadcaster = globalWsBroadcaster; // Synergize both references
+serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
+
+// Initialize Predictive Scaling Engine
+scalingPredictor.init(containerMonitor, globalWsBroadcaster);
+
+// React to scale recommendations
+scalingPredictor.on('scale-recommendation', (prediction) => {
+  logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
+});
+
+// Listen for container predictions - MUST be before init to catch startup predictions
+containerMonitor.on('prediction', (prediction) => {
+  if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
+    incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
+
+    if (prediction.probability > 0.85) {
+      console.log(`[Healing] manual intervention recommended for ${prediction.containerId}`);
+    }
+  }
+
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('PREDICTION', prediction);
+  }
+});
+
+// Initialize monitoring on startup - After listeners are attached
+containerMonitor.init();
+
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {
     incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);

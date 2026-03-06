@@ -14,6 +14,7 @@ export function useTheme() {
         const systemPrefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const initialTheme: Theme = validStored ?? (systemPrefers ? 'dark' : 'light');
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTheme(initialTheme);
         document.documentElement.classList.toggle('light', initialTheme === 'light');
     }, []);

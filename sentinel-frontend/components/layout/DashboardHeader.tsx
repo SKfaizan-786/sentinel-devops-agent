@@ -8,6 +8,10 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
 import { useNotifications, NotificationState } from "@/hooks/useNotifications";
 import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
+<<<<<<< HEAD
+=======
+import { useWebSocketConnection } from "@/lib/WebSocketContext";
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 interface DashboardHeaderProps {
     onRefresh?: () => void;
@@ -16,6 +20,10 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
     const { enabled, updateEnabled, interval, updateInterval, manualRefresh } =
         useAutoRefresh({ onRefresh: onRefresh || (() => { }) });
+<<<<<<< HEAD
+=======
+    const { isConnected } = useWebSocketConnection();
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -25,8 +33,8 @@ export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
         <header className="h-16 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-30">
             {/* Search - Hidden on mobile, visible on tablet+ */}
             <div className="hidden md:flex items-center gap-4 w-full max-w-md">
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     className="w-full justify-start text-muted-foreground bg-muted/50 border-border rounded-full hover:bg-muted font-normal text-sm px-4 py-1.5 h-auto transition-all"
                     onClick={() => document.querySelector<HTMLInputElement>('[data-search]')?.focus()}
                     shortcutHint="/"

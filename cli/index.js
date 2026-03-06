@@ -3,7 +3,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import figlet from 'figlet';
+<<<<<<< HEAD
 import { showStatus, runAction, generateReport } from './src/commands.js';
+=======
+import { showStatus, watchStatus, runAction, generateReport } from './src/commands.js';
+import { validateConfigCommand } from './src/config-check.js';
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 const program = new Command();
 
@@ -21,8 +26,13 @@ program
 program
     .command('status')
     .description('Show live health status of all services')
-    .action(async () => {
-        await showStatus();
+    .option('-w, --watch', 'Enable live watch mode with real-time WebSocket updates')
+    .action(async (options) => {
+        if (options.watch) {
+            await watchStatus();
+        } else {
+            await showStatus();
+        }
     });
 
 // Command: sentinel simulate <service> <mode>

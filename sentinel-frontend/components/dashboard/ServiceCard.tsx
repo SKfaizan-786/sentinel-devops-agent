@@ -1,14 +1,16 @@
 "use client";
 
+import React, { memo } from "react";
 import { Service } from "@/lib/mockData";
 import { getStatusColor } from "@/lib/theme";
-import { MoreHorizontal, Cloud, Database, Server, Shield, Zap } from "lucide-react";
+import { MoreHorizontal, Cloud, Database, Server, Shield, Zap, Globe } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { cn } from "@/lib/utils";
 import { Spotlight } from "@/components/common/Spotlight";
 import { Sparkline } from "@/components/common/Sparkline";
+import { PredictionBadge, Prediction } from "./PredictionBadge";
 
-const ServiceIcon = ({ type }: { type: Service["type"] }) => {
+const ServiceIcon = memo(({ type }: { type: Service["type"] }) => {
     switch (type) {
         case "api": return <Cloud className="h-4 w-4 text-primary" />;
         case "database": return <Database className="h-4 w-4 text-blue-500" />;
@@ -16,14 +18,12 @@ const ServiceIcon = ({ type }: { type: Service["type"] }) => {
         case "cache": return <Zap className="h-4 w-4 text-yellow-500" />;
         default: return <Shield className="h-4 w-4 text-muted-foreground" />;
     }
-};
+});
 
-const StatusDot = ({ status }: { status: Service["status"] }) => {
+ServiceIcon.displayName = "ServiceIcon";
+
+const StatusDot = memo(({ status }: { status: Service["status"] }) => {
     const themeColor = getStatusColor(status);
-
-    // Map theme properties to what the component expects if needed, or simply use theme properties directly.
-    // The theme object return by getStatusColor has 'bg' (bg-color/20), 'text' (text-color), 'border', 'dot' (bg-color).
-    // The original code used "bg-green-500". The theme 'dot' property is "bg-green-500".
 
     return (
         <div className="relative flex h-3 w-3">
@@ -31,9 +31,13 @@ const StatusDot = ({ status }: { status: Service["status"] }) => {
             <span className={cn("relative inline-flex rounded-full h-3 w-3", themeColor.dot)}></span>
         </div>
     );
-};
+});
 
-export function ServiceCard({ service }: { service: Service }) {
+StatusDot.displayName = "StatusDot";
+
+export function ServiceCard({ service, prediction }: { service: Service; prediction?: Prediction }) {
+    const showClusterInfo = service.cluster || service.region;
+    
     return (
         <Spotlight className="p-5 bg-card border-border hover:border-primary/20 transition-all group">
             <div className="flex justify-between items-start mb-4">
@@ -52,6 +56,29 @@ export function ServiceCard({ service }: { service: Service }) {
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
+            </div>
+            
+            {/* Cluster/Region Badge */}
+            {showClusterInfo && (service.cluster || service.clusterName || service.region) && (
+                <div className="flex items-center gap-2 mb-3">
+                    {(service.cluster || service.clusterName) && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-xs text-muted-foreground">
+                            <Server className="h-3 w-3" />
+                            <span>{service.clusterName || service.cluster}</span>
+                        </div>
+                    )}
+                    {service.region && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-xs text-muted-foreground">
+                            <Globe className="h-3 w-3" />
+                            <span>{service.region}</span>
+                        </div>
+                    )}
+                </div>
+            )}
+            
+            {/* Prediction Badge */}
+            <div className="mb-3">
+                <PredictionBadge prediction={prediction} />
             </div>
 
             {service.description && (
@@ -85,4 +112,6 @@ export function ServiceCard({ service }: { service: Service }) {
             </div>
         </Spotlight>
     );
-}
+});
+
+ServiceCard.displayName = "ServiceCard";

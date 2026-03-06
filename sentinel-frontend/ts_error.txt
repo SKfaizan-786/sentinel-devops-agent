@@ -1,0 +1,17 @@
+app/dashboard/predictions/page.tsx(99,78): error TS2339: Property 'metrics' does not exist on type 'Container'.
+app/dashboard/predictions/page.tsx(103,78): error TS2339: Property 'metrics' does not exist on type 'Container'.
+components/runbooks/ActionBlock.tsx(1,34): error TS2307: Cannot find module '@xyflow/react' or its corresponding type declarations.
+components/runbooks/ConditionBlock.tsx(1,34): error TS2307: Cannot find module '@xyflow/react' or its corresponding type declarations.
+components/runbooks/RuleCanvas.tsx(14,8): error TS2307: Cannot find module '@xyflow/react' or its corresponding type declarations.
+components/runbooks/RuleEditor.tsx(21,39): error TS2339: Property 'parameters' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'parameters' does not exist on type 'RunbookTrigger'.
+components/runbooks/RuleEditor.tsx(50,49): error TS2339: Property 'threshold' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'threshold' does not exist on type 'RunbookAction'.
+components/runbooks/RuleEditor.tsx(59,49): error TS2339: Property 'window' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'window' does not exist on type 'RunbookAction'.
+components/runbooks/RuleEditor.tsx(67,47): error TS2339: Property 'parameters' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'parameters' does not exist on type 'RunbookTrigger'.
+components/runbooks/RuleEditor.tsx(72,53): error TS2339: Property 'parameters' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'parameters' does not exist on type 'RunbookTrigger'.
+components/runbooks/RuleEditor.tsx(78,47): error TS2339: Property 'parameters' does not exist on type 'RunbookTrigger | RunbookAction'.
+  Property 'parameters' does not exist on type 'RunbookTrigger'.

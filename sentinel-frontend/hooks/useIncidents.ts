@@ -2,38 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { Incident } from "@/lib/mockData";
-import { useWebSocketContext } from "../lib/WebSocketContext";
+import { useWebSocketMessage, useWebSocketConnection } from "@/lib/WebSocketContext";
 import { parseInsight, InsightPayload } from "@/lib/parseInsight";
 
 export function useIncidents(options: { manual?: boolean } = {}) {
     const { manual } = options;
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
-    const { isConnected, lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
+    const { isConnected } = useWebSocketConnection();
 
     // Handle WebSocket Messages
     useEffect(() => {
         if (!lastMessage) return;
 
-        if (lastMessage.type === 'INCIDENT_NEW') {
-            const insight = lastMessage.data as InsightPayload;
-            if (!insight) return;
-
-            const incident = parseInsight(insight);
-
-            setIncidents(prev => {
-                // Prevent duplicates
-                if (prev.some(i => i.id === incident.id)) return prev;
-                return [incident, ...prev];
+        if (lastMessage.type === "INCIDENT_NEW") {
+            const newIncident = parseInsight(lastMessage.data as InsightPayload);
+            setIncidents((prev) => {
+                if (prev.some(i => i.id === newIncident.id)) return prev;
+                return [newIncident, ...prev].slice(0, 50);
             });
-
-            // Auto-open panel only if critical/degraded
-            if (incident.status === 'failed') {
-                setActiveIncidentId(incident.id);
-            }
         }
     }, [lastMessage]);
 
+<<<<<<< HEAD
     // Initial Fetch
     useEffect(() => {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -55,11 +47,22 @@ export function useIncidents(options: { manual?: boolean } = {}) {
             })
             .catch(e => console.error("Failed to fetch incidents:", e));
     }, []);
+=======
+    // Initial fetch fallback
+    useEffect(() => {
+        if (manual) return;
 
-    return {
-        incidents,
-        activeIncidentId,
-        setActiveIncidentId,
-        connectionStatus: isConnected ? "connected" : "disconnected",
-    };
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        fetch(`${API_BASE}/api/insights`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setIncidents(data.map(parseInsight));
+                }
+            })
+            .catch(err => console.error("Failed to fetch incidents:", err));
+    }, [manual]);
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
+
+    return { incidents, activeIncidentId, setActiveIncidentId, isConnected };
 }

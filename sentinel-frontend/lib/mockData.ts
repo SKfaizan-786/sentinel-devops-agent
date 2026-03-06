@@ -9,6 +9,10 @@ export interface Service {
     memory: number;
     trend: number[];
     description?: string;
+    // Multi-cluster support
+    cluster?: string;
+    clusterName?: string;
+    region?: string;
 }
 
 export interface IncidentEvent {

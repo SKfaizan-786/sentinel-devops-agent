@@ -6,6 +6,7 @@ import { ServiceGrid } from "@/components/dashboard/ServiceGrid";
 import { MetricsCharts } from "@/components/dashboard/MetricsCharts";
 import { IncidentTimeline } from "@/components/dashboard/IncidentTimeline";
 import { AgentReasoningPanel } from "@/components/dashboard/AgentReasoningPanel";
+import { HealthForecast } from "@/components/dashboard/HealthForecast";
 import { mockServices } from "@/lib/mockData";
 import { useMetrics } from "@/hooks/useMetrics";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -18,11 +19,14 @@ import { Skeleton } from "@/components/common/Skeleton";
 import { MetricsChartsSkeleton } from "@/components/dashboard/ChartSkeleton";
 import { ServiceGridSkeleton } from "@/components/dashboard/ServiceCardSkeleton";
 import { IncidentTimelineSkeleton } from "@/components/dashboard/IncidentTimelineSkeleton";
+import { PendingActionsPanel } from "@/components/dashboard/PendingActionsPanel";
+import { usePendingActions } from "@/hooks/usePendingActions";
 
 export default function DashboardPage() {
     const { metrics } = useMetrics();
     const { incidents, activeIncidentId, setActiveIncidentId } = useIncidents({ manual: true });
     const { containers, loading: containersLoading, restartContainer, refetch: refetchContainers } = useContainers({ manual: true });
+    const { actions: pendingActions, approveAction, rejectAction } = usePendingActions();
 
     const handleRefresh = useCallback(() => {
         refetchContainers();
@@ -109,6 +113,14 @@ export default function DashboardPage() {
     const healthyServices = liveServices.filter(s => s.status === "healthy").length;
     const realUptime = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
 
+    const handleViewReasoning = useCallback((id: string) => {
+        setActiveIncidentId(id);
+    }, [setActiveIncidentId]);
+
+    const handleCloseReasoning = useCallback(() => {
+        setActiveIncidentId(null);
+    }, [setActiveIncidentId]);
+
     return (
         <div className="space-y-8 pb-20">
             <div>
@@ -171,6 +183,13 @@ export default function DashboardPage() {
                         />
                     )}
 
+                    {/* Pending Actions - Human-in-the-Loop */}
+                    <PendingActionsPanel
+                        actions={pendingActions}
+                        onApprove={approveAction}
+                        onReject={rejectAction}
+                    />
+
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column: Charts (2/3 width) */}
@@ -226,6 +245,9 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Predictive Health Forecast */}
+                            <HealthForecast />
                         </div>
 
                         {/* Right Column: Timeline & Reasoning (1/3 width) */}
@@ -236,7 +258,7 @@ export default function DashboardPage() {
                                     <div className="flex items-center justify-between mb-2">
                                         <h2 className="text-lg font-semibold text-primary">Sentinel AI Analysis</h2>
                                         <button
-                                            onClick={() => setActiveIncidentId(null)}
+                                            onClick={handleCloseReasoning}
                                             className="text-xs text-muted-foreground hover:text-foreground"
                                         >
                                             Close
@@ -254,7 +276,7 @@ export default function DashboardPage() {
                                 ) : (
                                     <IncidentTimeline
                                         incidents={incidents}
-                                        onViewReasoning={(id) => setActiveIncidentId(id)}
+                                        onViewReasoning={handleViewReasoning}
                                     />
                                 )}
                             </div>

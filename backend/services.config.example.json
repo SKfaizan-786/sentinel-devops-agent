@@ -1,0 +1,94 @@
+{
+  "$schema": "./services.config.schema.json",
+  "clusters": [
+    {
+      "id": "prod-us",
+      "name": "Production US",
+      "region": "us-east-1",
+      "description": "Primary production cluster in US East",
+      "services": [
+        {
+          "name": "auth",
+          "url": "http://10.0.1.5:3001/health",
+          "type": "api",
+          "port": 3001,
+          "description": "Authentication service"
+        },
+        {
+          "name": "payment",
+          "url": "http://10.0.1.5:3002/health",
+          "type": "worker",
+          "port": 3002,
+          "description": "Payment processing service"
+        },
+        {
+          "name": "notification",
+          "url": "http://10.0.1.5:3003/health",
+          "type": "api",
+          "port": 3003,
+          "description": "Notification service"
+        }
+      ]
+    },
+    {
+      "id": "prod-eu",
+      "name": "Production EU",
+      "region": "eu-west-1",
+      "description": "European production cluster",
+      "services": [
+        {
+          "name": "auth",
+          "url": "http://10.0.2.5:3001/health",
+          "type": "api",
+          "port": 3001,
+          "description": "Authentication service"
+        },
+        {
+          "name": "payment",
+          "url": "http://10.0.2.5:3002/health",
+          "type": "worker",
+          "port": 3002,
+          "description": "Payment processing service"
+        },
+        {
+          "name": "notification",
+          "url": "http://10.0.2.5:3003/health",
+          "type": "api",
+          "port": 3003,
+          "description": "Notification service"
+        }
+      ]
+    },
+    {
+      "id": "staging",
+      "name": "Staging",
+      "region": "us-west-2",
+      "description": "Staging environment",
+      "services": [
+        {
+          "name": "auth",
+          "url": "http://staging.internal:3001/health",
+          "type": "api",
+          "port": 3001
+        },
+        {
+          "name": "payment",
+          "url": "http://staging.internal:3002/health",
+          "type": "worker",
+          "port": 3002
+        }
+      ]
+    }
+  ],
+  "remoteAgents": {
+    "enabled": true,
+    "webhookSecret": "your-webhook-secret-here",
+    "endpoints": [
+      {
+        "id": "eu-agent",
+        "url": "http://10.0.2.10:5000",
+        "clusterId": "prod-eu"
+      }
+    ]
+  }
+}

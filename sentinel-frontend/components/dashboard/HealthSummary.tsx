@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import { getStatusColor } from "@/lib/theme";
 import { Activity, CheckCircle, AlertTriangle, Zap } from "lucide-react";
 import { Spotlight } from "@/components/common/Spotlight";
@@ -11,7 +12,7 @@ interface HealthSummaryProps {
     activeIncidents: number;
 }
 
-export function HealthSummary({ uptime, servicesUp, totalServices, activeIncidents }: HealthSummaryProps) {
+export const HealthSummary = memo(function HealthSummary({ uptime, servicesUp, totalServices, activeIncidents }: HealthSummaryProps) {
     const healthyColor = getStatusColor('healthy');
     const criticalColor = getStatusColor('critical');
 
@@ -86,4 +87,6 @@ export function HealthSummary({ uptime, servicesUp, totalServices, activeInciden
             </Spotlight>
         </div>
     );
-}
+});
+
+HealthSummary.displayName = "HealthSummary";

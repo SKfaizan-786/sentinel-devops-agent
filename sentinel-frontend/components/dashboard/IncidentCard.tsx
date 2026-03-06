@@ -98,6 +98,7 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                 <div className="flex items-center gap-2">
                                     <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
                                         <div
+<<<<<<< HEAD
                                             className="h-full bg-primary"
                                             style={{ width: `${incident.agentPredictionConfidence}%` }}
                                         />
@@ -105,6 +106,33 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                     <span className="text-primary font-mono">{incident.agentPredictionConfidence}%</span>
                                 </div>
                             </div>
+=======
+                                            className="h-full bg-green-500 rounded-full"
+                                            style={{ width: `${(incident.confidence ?? 0.85) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-gray-400">{(incident.confidence ?? 0.85) * 100}%</span>
+                                </div>
+                            </div>
+
+                            {/* Operational Memory / Similar Incidents */}
+                            {incident.similarIncidents && (
+                                <SimilarIncidents incidents={incident.similarIncidents} />
+                            )}
+
+                            {/* Feedback */}
+                            <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => onViewReasoning && onViewReasoning(incident.id)}
+                                >
+                                    <Search className="mr-2 h-4 w-4" />
+                                    View Agent Reasoning
+                                </Button>
+                                <FeedbackButtons incidentId={incident.id} />
+                            </div>
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
                             {/* Timeline */}
                             <div className="pt-2">
@@ -122,17 +150,6 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex justify-end pt-2 gap-2">
-                                <Button size="sm" variant="outline" onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onViewReasoning) onViewReasoning(incident.id);
-                                }}>
-                                    <Search className="h-3 w-3 mr-2" />
-                                    View Agent Reasoning
-                                </Button>
                             </div>
                         </div>
                     </motion.div>

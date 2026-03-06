@@ -1,6 +1,11 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState, useEffect, useRef, useCallback } from "react";
+=======
+import { useState, useEffect, useCallback } from "react";
+import { useWebSocketMessage } from "@/lib/WebSocketContext";
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 export type LogLevel = "info" | "warn" | "error" | "debug" | "success";
 
@@ -17,7 +22,11 @@ export function useLogs() {
     const [isPaused, setIsPaused] = useState(false);
     const [filterLevel, setFilterLevel] = useState<LogLevel | "all">("all");
     const [search, setSearch] = useState("");
+<<<<<<< HEAD
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+=======
+    const lastMessage = useWebSocketMessage();
+>>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     const fetchLogs = useCallback(async () => {
         if (isPaused) return;

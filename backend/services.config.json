@@ -1,0 +1,38 @@
+{
+  "clusters": [
+    {
+      "id": "local",
+      "name": "Local Development",
+      "region": "local",
+      "description": "Local Docker host services",
+      "services": [
+        {
+          "name": "auth",
+          "url": "http://localhost:3001/health",
+          "type": "api",
+          "port": 3001,
+          "description": "Authentication service"
+        },
+        {
+          "name": "payment",
+          "url": "http://localhost:3002/health",
+          "type": "worker",
+          "port": 3002,
+          "description": "Payment processing service"
+        },
+        {
+          "name": "notification",
+          "url": "http://localhost:3003/health",
+          "type": "api",
+          "port": 3003,
+          "description": "Notification service"
+        }
+      ]
+    }
+  ],
+  "remoteAgents": {
+    "enabled": false,
+    "webhookSecret": "",
+    "endpoints": []
+  }
+}
