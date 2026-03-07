@@ -16,7 +16,7 @@ function repair(content) {
 
         // Pattern 2: Integrity hash followed immediately by version (minimatch case)
         if (line.includes('"integrity":') && nextLine.includes('"version":') && !line.trimEnd().endsWith(',')) {
-            out.push(line.replace(/",$/, '"')); // ensure it doesn't have a trailing comma if we add a brace
+            out.push(line);
             out.push('    },');
             out.push('    "node_modules/minimatch": {'); // The missing key!
             continue;
@@ -30,9 +30,9 @@ function repair(content) {
 const filename = process.argv[2];
 let content = fs.readFileSync(filename, 'utf8');
 const repaired = repair(content);
-fs.writeFileSync(filename, repaired);
 try {
     JSON.parse(repaired);
+    fs.writeFileSync(filename, repaired);
     console.log('REPAIR SUCCESSFUL');
 } catch (e) {
     const pos = e.message.match(/position (\d+)/);
@@ -42,4 +42,5 @@ try {
     } else {
         console.error('REPAIR FAILED:', e.message);
     }
+    process.exit(1);
 }

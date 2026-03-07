@@ -227,9 +227,13 @@ async function fetchSecret(key, options = {}) {
  */
 function getSecretSync(key, defaultValue = null) {
   // Check cache first
+  // Never expire Vault-sourced entries: getSecretSync cannot re-fetch from Vault,
+  // so expiring them would silently fall back to process.env.
   const cached = secretCache.get(key);
-  if (cached && Date.now() - cached.timestamp < SECRET_CACHE_TTL_MS) {
-    return cached.value;
+  if (cached) {
+    if (cached.source === 'vault' || Date.now() - cached.timestamp < SECRET_CACHE_TTL_MS) {
+      return cached.value;
+    }
   }
 
   // Fall back to environment variable

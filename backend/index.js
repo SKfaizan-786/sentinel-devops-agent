@@ -1,11 +1,6 @@
-// Load environment variables
-require('dotenv').config();
-
-// Pre-load secrets from Vault (or env fallback) into cache.
-// This ensures getSecretSync() consumers can access Vault-sourced secrets at runtime.
-// Note: Module-level constants (e.g., JWT_SECRET in AuthService) use env var fallback
-// during require-time initialization; Vault values are available for runtime calls.
-const { initializeSecrets } = require('./lib/secretsInit');
+// Secrets are pre-loaded by start.js before this module is required.
+// This ensures getSecretSync() consumers (AuthService, db/config) have
+// Vault-sourced values available at require-time.
 
 // Validate configuration before starting
 const { validateConfig } = require('./config/validator');
@@ -670,58 +665,51 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
 
 let globalWsBroadcaster;
 
-// Initialize secrets from Vault before starting the server
-initializeSecrets()
-  .then(() => {
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
-      // Start FinOps metrics collector
-      startFinOpsCollector();
+// Start the server (secrets are already initialized by start.js)
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+  // Start FinOps metrics collector
+  startFinOpsCollector();
+});
+
+// Setup WebSocket
+globalWsBroadcaster = setupWebSocket(server);
+serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
+
+// Listen for container predictions
+containerMonitor.on('prediction', (prediction) => {
+  if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
+    incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
+
+    if (prediction.probability > 0.85) {
+      console.log(`[Healing] manual intervention recommended for ${prediction.containerId}`);
+    }
+  }
+
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('PREDICTION', prediction);
+  }
+});
+
+// K8s Watcher Event Handling
+k8sWatcher.on('oom', (pod) => {
+  incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('K8S_EVENT', {
+      type: 'OOM',
+      pod,
+      message: `Pod ${pod.name} was OOMKilled`
     });
+  }
+});
 
-    // Setup WebSocket
-    globalWsBroadcaster = setupWebSocket(server);
-    serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
-
-    // Listen for container predictions
-    containerMonitor.on('prediction', (prediction) => {
-      if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
-        incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
-
-        if (prediction.probability > 0.85) {
-          console.log(`[Healing] manual intervention recommended for ${prediction.containerId}`);
-        }
-      }
-
-      if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('PREDICTION', prediction);
-      }
+k8sWatcher.on('crashloop', (pod) => {
+  incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
+  if (globalWsBroadcaster) {
+    globalWsBroadcaster.broadcast('K8S_EVENT', {
+      type: 'CRASHLOOP',
+      pod,
+      message: `Pod ${pod.name} is in CrashLoopBackOff`
     });
-
-    // K8s Watcher Event Handling
-    k8sWatcher.on('oom', (pod) => {
-      incidents.logActivity('alert', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) OOMKilled`);
-      if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('K8S_EVENT', {
-          type: 'OOM',
-          pod,
-          message: `Pod ${pod.name} was OOMKilled`
-        });
-      }
-    });
-
-    k8sWatcher.on('crashloop', (pod) => {
-      incidents.logActivity('warn', `K8s: Pod ${pod.name} (ns: ${pod.namespace}) CrashLoopBackOff`);
-      if (globalWsBroadcaster) {
-        globalWsBroadcaster.broadcast('K8S_EVENT', {
-          type: 'CRASHLOOP',
-          pod,
-          message: `Pod ${pod.name} is in CrashLoopBackOff`
-        });
-      }
-    });
-  })
-  .catch((error) => {
-    console.error('❌ Failed to initialize secrets:', error);
-    process.exit(1);
-  });
+  }
+});

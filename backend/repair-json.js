@@ -20,11 +20,12 @@ function repair(content) {
 const filename = process.argv[2];
 let content = fs.readFileSync(filename, 'utf8');
 const repaired = repair(content);
-fs.writeFileSync(filename, repaired);
-console.log('Attempted repair on ' + filename);
 try {
     JSON.parse(repaired);
+    fs.writeFileSync(filename, repaired);
+    console.log('Attempted repair on ' + filename);
     console.log('JSON is now VALID.');
 } catch (e) {
-    console.error('JSON is still INVALID:', e.message);
+    console.error('Repair produced INVALID JSON, source file not overwritten:', e.message);
+    process.exit(1);
 }

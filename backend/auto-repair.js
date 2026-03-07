@@ -15,7 +15,7 @@ let content = fs.readFileSync('package-lock.json.orig', 'utf8');
 let pos;
 let iterations = 0;
 
-while ((pos = findNextError(content)) !== null && iterations < 100) {
+while ((pos = findNextError(content)) !== null && pos !== -1 && iterations < 100) {
     iterations++;
     console.log(`Error at pos ${pos}. Context: ${content.substring(pos - 20, pos + 20)}`);
 
@@ -30,8 +30,8 @@ while ((pos = findNextError(content)) !== null && iterations < 100) {
     content = before.trimEnd() + '\n      }\n    },\n    ' + after.trimStart();
 }
 
-fs.writeFileSync('package-lock.json.orig', content);
 if (findNextError(content) === null) {
+    fs.writeFileSync('package-lock.json.orig', content);
     console.log('Successfully repaired JSON after ' + iterations + ' iterations.');
 } else {
     console.log('Failed to repair JSON completely.');

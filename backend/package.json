@@ -5,7 +5,7 @@
   "license": "ISC",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js",
+    "start": "node start.js",
     "db:migrate": "node db/migrate.js",
     "db:setup": "node db/migrate.js",
     "create-admin": "node create-admin.js",
