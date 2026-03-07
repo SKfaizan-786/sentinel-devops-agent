@@ -1,0 +1,51 @@
+# Monitoring Kubernetes Namespace
+id: kubernetes-monitor
+namespace: sentinel
+description: "Monitor Kubernetes namespace for pod failures and auto-heal"
+
+tasks:
+  - id: check_pods
+    type: io.kestra.plugin.kubernetes.pod.List
+    namespace: default
+    kubeConfig: |
+        {{ secret('KUBECONFIG_BASE64') }}
+
+  - id: analyze_failures
+    type: io.kestra.plugin.scripts.python.Script
+    inputFiles:
+      pods.json: "{{ outputs.check_pods.pods }}"
+    script: |
+      import json
+      
+      with open('pods.json', 'r') as f:
+          pods = json.load(f)
+      
+      failures = []
+      for pod in pods:
+          if pod['status']['phase'] not in ['Running', 'Succeeded']:
+              failures.append({
+                  'name': pod['metadata']['name'],
+                  'phase': pod['status']['phase'],
+                  'reason': pod['status'].get('reason', 'Unknown')
+              })
+      
+      print(json.dumps(failures))
+
+  - id: notify_backend
+    type: io.kestra.plugin.notifications.http.Request
+    uri: "http://backend:4000/api/kestra-webhook"
+    method: "POST"
+    contentType: "application/json"
+    payload: |
+      {
+        "aiReport": "Detected {{ outputs.analyze_failures.stdOut | length }} unhealthy pods in cluster.",
+        "k8sFailures": {{ outputs.analyze_failures.stdOut }}
+      }
+    conditions:
+      - type: io.kestra.core.models.conditions.types.ExecutionFlowCondition
+        expression: "{{ outputs.analyze_failures.stdOut != '[]' }}"
+
+triggers:
+  - id: schedule
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "*/5 * * * *"

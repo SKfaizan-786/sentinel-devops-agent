@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, User, RotateCw, Pause, Play } from "lucide-react";
+import { Bell, Search, User, RotateCw, Pause, Play, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { ProfileDropdown } from "@/components/common/ProfileDropdown";
@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
 import { useNotifications, NotificationState } from "@/hooks/useNotifications";
 import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
+import { useWebSocketConnection } from "@/lib/WebSocketContext";
 
 interface DashboardHeaderProps {
     onRefresh?: () => void;
@@ -16,6 +17,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
     const { enabled, updateEnabled, interval, updateInterval, manualRefresh } =
         useAutoRefresh({ onRefresh: onRefresh || (() => { }) });
+    const { isConnected } = useWebSocketConnection();
 
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -25,22 +27,46 @@ export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
         <header className="h-16 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-30">
             {/* Search - Hidden on mobile, visible on tablet+ */}
             <div className="hidden md:flex items-center gap-4 w-full max-w-md">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Search services, incidents, logs..."
-                        aria-label="Search services, incidents, logs"
-                        data-search
-                        className="w-full bg-muted border border-border rounded-full py-1.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
-                    />
-                </div>
+                <Button
+                    variant="outline"
+                    className="w-full justify-start text-muted-foreground bg-muted/50 border-border rounded-full hover:bg-muted font-normal text-sm px-4 py-1.5 h-auto transition-all"
+                    onClick={() => document.querySelector<HTMLInputElement>('[data-search]')?.focus()}
+                    shortcutHint="/"
+                >
+                    <Search className="mr-2 h-4 w-4" />
+                    Global Search
+                </Button>
+                {/* Hidden real input to satisfy focus logic if needed */}
+                <input
+                    type="text"
+                    data-search
+                    className="hidden"
+                />
             </div>
 
             {/* Spacer for mobile to push icons to right */}
             <div className="md:hidden flex-1 pl-12" />
 
             <div className="flex items-center gap-4 relative">
+                {/* WebSocket Connection Status */}
+                <div className="flex items-center gap-1.5 mr-2 border-r pr-4 border-border" title={isConnected ? "WebSocket connected" : "WebSocket disconnected"}>
+                    {isConnected ? (
+                        <>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                            </span>
+                            <span className="text-xs font-medium text-emerald-400 hidden sm:inline">Live</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="relative flex h-2 w-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                            </span>
+                            <span className="text-xs font-medium text-red-400 hidden sm:inline">Offline</span>
+                        </>
+                    )}
+                </div>
                 {onRefresh && (
                     <div className="flex items-center gap-2 mr-2 border-r pr-4 border-border">
                         <Button
@@ -49,6 +75,7 @@ export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                             onClick={manualRefresh}
                             className="text-muted-foreground hover:text-foreground"
                             title="Refresh now"
+                            shortcutHint="R"
                         >
                             <RotateCw className="h-4 w-4" />
                         </Button>

@@ -12,6 +12,7 @@ import { TableSkeleton } from "@/components/incidents/TableSkeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { useIncidentHistory, FilterState, SortConfig } from "@/hooks/useIncidentHistory";
 import { CorrelatedIncidentGroup, CorrelatedGroupData } from "@/components/incidents/CorrelatedIncidentGroup";
+import { Button } from "@/components/common/Button";
 
 const defaultFilters: FilterState = {
     services: [],
@@ -168,6 +169,7 @@ function IncidentsContent() {
 
     return (
         <div className="w-full max-w-full overflow-x-hidden">
+            <DashboardHeader />
             <div className="container mx-auto max-w-7xl px-2 sm:px-4 lg:px-6 pb-20 space-y-4 sm:space-y-6">
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-2 sm:px-0">
@@ -177,7 +179,17 @@ function IncidentsContent() {
                             Comprehensive log of all system incidents and agent remediations.
                         </p>
                     </div>
-                    <IncidentExport incidents={incidents} disabled={isLoading} />
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="default"
+                            shortcutHint="N"
+                            onClick={() => router.push('/dashboard/incidents/new')}
+                            className="bg-primary hover:bg-primary/90 hidden sm:flex"
+                        >
+                            New Incident
+                        </Button>
+                        <IncidentExport incidents={incidents} disabled={isLoading} />
+                    </div>
                 </div>
 
                 {/* Stats Cards */}

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Incident, mockIncidents } from "@/lib/mockData";
-import { parseInsight } from "@/lib/parseInsight";
+import { parseInsight, InsightPayload } from "@/lib/parseInsight";
+import { useWebSocketMessage } from "@/lib/WebSocketContext";
 
 export interface FilterState {
     services: string[];
@@ -25,8 +26,8 @@ interface UseIncidentHistoryProps {
 }
 
 interface UseIncidentHistoryResult {
-    incidents: Incident[]; // This is the paginated slice
-    allFilteredIncidents: Incident[]; // The full unpaginated filtered dataset
+    incidents: Incident[];
+    allFilteredIncidents: Incident[];
     isLoading: boolean;
     totalCount: number;
     totalActive: number;
@@ -121,6 +122,7 @@ export function useIncidentHistory({
 }: UseIncidentHistoryProps): UseIncidentHistoryResult {
     const [isLoading, setIsLoading] = useState(true);
     const [incidents, setIncidents] = useState<Incident[]>([]);
+    const lastMessage = useWebSocketMessage();
 
     // Simulate API fetch
     const fetchIncidents = useCallback(async () => {
@@ -146,8 +148,7 @@ export function useIncidentHistory({
             }
         } catch (err) {
             console.error(err);
-            // Fallback to mocks if API fails, or empty state?
-            // For now, keep fallback to mocks as safety net during dev
+            // Fallback to mocks if API fails
             setIncidents(extendedMockIncidents);
         } finally {
             setIsLoading(false);
@@ -157,6 +158,27 @@ export function useIncidentHistory({
     useEffect(() => {
         fetchIncidents();
     }, [fetchIncidents]);
+
+    // React to WebSocket messages for real-time incident updates
+    useEffect(() => {
+        if (!lastMessage) return;
+
+        if (lastMessage.type === 'INCIDENT_NEW') {
+            const insight = lastMessage.data as InsightPayload;
+            if (!insight) return;
+            const incident = parseInsight(insight);
+
+            setIncidents(prev => {
+                if (prev.some(i => i.id === incident.id)) return prev;
+                return [incident, ...prev];
+            });
+        } else if (lastMessage.type === 'INCIDENT_RESOLVED') {
+            const { id } = lastMessage.data;
+            setIncidents(prev =>
+                prev.map(i => i.id === id ? { ...i, status: 'resolved' as const } : i)
+            );
+        }
+    }, [lastMessage]);
 
     // Extract all unique services
     const allServices = useMemo(() => {

@@ -1,0 +1,103 @@
+id: predictive-scaling
+namespace: sentinel
+
+description: >
+  Predictive auto-scaling workflow. Fetches failure probability scores from 
+  the Sentinel backend predictor and proactively scales services before failures occur.
+
+tasks:
+  - id: debug-start
+    type: io.kestra.plugin.core.log.Log
+    message: "🔮 PREDICTIVE SCALING tick - {{ execution.id }} - {{ now() }}"
+
+  # 1. Fetch current predictions from the backend
+  - id: get-predictions
+    type: io.kestra.plugin.core.http.Request
+    uri: http://host.docker.internal:4000/api/predictions
+    method: GET
+    allowFailure: true
+
+  # 2. Fetch running containers for name-to-service mapping
+  - id: get-containers
+    type: io.kestra.plugin.core.http.Request
+    uri: http://host.docker.internal:4000/api/docker/containers
+    method: GET
+    allowFailure: true
+
+  # 3. Check if any prediction is critical (>= 0.75)
+  - id: check-critical
+    type: io.kestra.plugin.core.flow.If
+    condition: >
+      {{ (outputs['get-predictions'].body ?? {}) | jq('.predictions[] | select(.failureProbability >= 0.75)') | length > 0 }}
+    then:
+      - id: log-critical-detected
+        type: io.kestra.plugin.core.log.Log
+        message: "⚠️ CRITICAL PREDICTIONS DETECTED - Evaluating scale-out actions..."
+
+      # 4. AI-powered scaling decision
+      - id: ai-scale-decision
+        type: io.kestra.plugin.core.http.Request
+        uri: https://api.groq.com/openai/v1/chat/completions
+        method: POST
+        allowFailure: true
+        headers:
+          Authorization: "Bearer {{ secret('GROQ_API_KEY') }}"
+          Content-Type: "application/json"
+        body: |
+          {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are Sentinel Scaling Advisor. Given container risk predictions, decide which services to scale. Respond ONLY with a JSON array of objects like [{\"service\": \"name\", \"action\": \"scale-out\", \"replicas\": 2, \"reason\": \"brief reason\"}]. If no scaling needed, respond with []."
+              },
+              {
+                "role": "user",
+                "content": "Current predictions: {{ (outputs['get-predictions'].body ?? {}) | jq('.predictions') | default('[]') }}. Which services should be scaled?"
+              }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 200
+          }
+
+      - id: log-ai-decision
+        type: io.kestra.plugin.core.log.Log
+        message: |
+          🤖 SCALING ADVISOR:
+          {{ outputs['ai-scale-decision'].body | jq(".choices[0].message.content") | first | default("No AI response") }}
+
+      - id: execute-scaling
+        type: io.kestra.plugin.core.http.Request
+        uri: http://host.docker.internal:4000/api/docker/scale-bulk
+        method: POST
+        contentType: application/json
+        allowFailure: true
+        body: |
+          {
+            "aiDecision": {{ (outputs['ai-scale-decision'].body ?? {}) | jq(".choices[0].message.content") | first | default("[]") | json }}
+          }
+
+    else:
+      - id: log-no-risk
+        type: io.kestra.plugin.core.log.Log
+        message: "✅ All containers within safe thresholds - No scaling required"
+
+  # 5. Push prediction results to dashboard
+  - id: push-predictions
+    type: io.kestra.plugin.core.http.Request
+    uri: http://host.docker.internal:4000/api/kestra-webhook
+    method: POST
+    contentType: application/json
+    allowFailure: true
+    body: |
+      {
+        "aiReport": {{ (outputs['ai-scale-decision'].body ?? {}) | jq(".choices[0].message.content") | first | default("\"Predictive scaling active - monitoring trends\"") | json }},
+        "metrics": {}
+      }
+
+
+triggers:
+  - id: prediction-schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"
+    timezone: "Asia/Kolkata"
