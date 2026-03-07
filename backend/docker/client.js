@@ -308,8 +308,19 @@ async function listContainers(filters = {}, hostId = null) {
   let hostsToQuery;
   if (hostId) {
     const host = hostManager.get(hostId);
-    // Only query if the specific host exists and is connected
-    hostsToQuery = (host && host.status === 'connected') ? [host] : [];
+    if (!host) {
+      const err = new Error(`Host '${hostId}' not found`);
+      err.code = 'HOST_NOT_FOUND';
+      err.statusCode = 404;
+      throw err;
+    }
+    if (host.status !== 'connected') {
+      const err = new Error(`Host '${hostId}' is unreachable`);
+      err.code = 'HOST_UNREACHABLE';
+      err.statusCode = 503;
+      throw err;
+    }
+    hostsToQuery = [host];
   } else {
     hostsToQuery = hostManager.getConnected();
   }
