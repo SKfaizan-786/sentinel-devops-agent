@@ -1,16 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
-const { hostManager } = require('./client');
-=======
 const { docker } = require('./client');
->>>>>>> parent of c92d731 (feat: Implement core backend container healing, monitoring, and security scanning capabilities, complemented by new frontend host health and selection UI.)
 const { scanImage } = require('../security/scanner');
 const { checkCompliance } = require('../security/policies');
 const { logActivity } = require('../services/incidents');
@@ -43,7 +31,6 @@ async function performSecurityPrecheck(containerId) {
         return { blocked: false };
     } catch (e) {
         console.error(`Security precheck failed for ${containerId}:`, e.message);
-        // Fail open or closed? Usually fail closed for security.
         return { blocked: true, error: `Security check error: ${e.message}` };
     }
 }
@@ -58,7 +45,6 @@ async function restartContainer(containerId) {
         const info = await container.inspect();
         containerName = info.Name.replace(/^\//, '');
 
-        // Emit: Investigation started
         emitReasoningSafe(incidentId, {
             type: 'investigation_started',
             description: `Started investigating container: ${containerName}`,
@@ -66,10 +52,8 @@ async function restartContainer(containerId) {
         });
 
         // --- Memory / Fingerprinting ---
-        // Get current metrics to add to fingerprint
         const metrics = containerMonitor.getMetrics(containerId)?.raw || {};
         
-        // Emit: Evidence collected - Metrics
         const cpuPercent = Number.isFinite(metrics.cpuPercent) ? metrics.cpuPercent : null;
         const cpuHigh = cpuPercent !== null && cpuPercent > 80;
         emitReasoningSafe(incidentId, {
@@ -116,7 +100,6 @@ async function restartContainer(containerId) {
             });
         }
         
-        // Check for similar past incidents to log "AI awareness"
         const preFingerprint = generateFingerprint({ 
             containerName, 
             metrics: { 
@@ -124,7 +107,7 @@ async function restartContainer(containerId) {
                 memPercent: metrics.memPercent, 
                 restartCount: info.RestartCount 
             },
-            logs: 'crash restart' // simulated log context
+            logs: 'crash restart'
         });
         
         const similarIncidents = findSimilar(preFingerprint);
@@ -184,20 +167,7 @@ async function restartContainer(containerId) {
             confidence: 0.75
         });
         // ----------------------
-=======
-const { hostManager } = require('./client');
 
-<<<<<<< HEAD
-async function restartContainer(compoundId) {
-    try {
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
->>>>>>> parent of 608787c (merge this branch)
-
-        const container = hostData.client.getContainer(containerId);
-=======
-        // Emit: Action triggered
         emitReasoningSafe(incidentId, {
             type: 'action_triggered',
             description: `Initiating container restart with 10s timeout...`,
@@ -208,17 +178,8 @@ async function restartContainer(compoundId) {
             }
         });
 
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
         await container.restart({ t: 10 });
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
-        
-<<<<<<< HEAD
->>>>>>> parent of c92d731 (feat: Implement core backend container healing, monitoring, and security scanning capabilities, complemented by new frontend host health and selection UI.)
-=======
-        // Emit: Action completed
         emitReasoningSafe(incidentId, {
             type: 'action_completed',
             description: `Container restart successful. Monitoring for recovery...`,
@@ -229,7 +190,6 @@ async function restartContainer(compoundId) {
             }
         });
         
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
         // --- Store Incident Outcome ---
         const mttr = Math.floor((Date.now() - startTime) / 1000);
         
@@ -251,74 +211,12 @@ async function restartContainer(compoundId) {
             summary: `Automated restart for ${containerName}`,
             resolution: `Restarted container`,
             actionTaken: 'restart',
-            outcome: 'resolved', // optimistically
+            outcome: 'resolved',
             mttrSeconds: mttr
         });
         // ------------------------------
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-        return { action: 'restart', success: true, containerId: compoundId };
-=======
-const { docker } = require('./client');
-
-async function restartContainer(containerId) {
-    try {
-        const container = docker.getContainer(containerId);
-        await container.restart({ t: 10 });
-        return { action: 'restart', success: true, containerId };
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
-=======
-        return { action: 'restart', success: true, containerId: compoundId };
->>>>>>> parent of 608787c (merge this branch)
-<<<<<<< HEAD
-=======
-const { hostManager } = require('./client');
-
-async function restartContainer(compoundId) {
-    try {
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        await container.restart({ t: 10 });
-        return { action: 'restart', success: true, containerId: compoundId };
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-const { hostManager } = require('./client');
-
-async function restartContainer(compoundId) {
-    try {
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        await container.restart({ t: 10 });
-        return { action: 'restart', success: true, containerId: compoundId };
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-const { hostManager } = require('./client');
-
-async function restartContainer(compoundId) {
-    try {
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        await container.restart({ t: 10 });
-        return { action: 'restart', success: true, containerId: compoundId };
->>>>>>> parent of 608787c (merge this branch)
-=======
-        return { action: 'restart', success: true, containerId };
->>>>>>> parent of c92d731 (feat: Implement core backend container healing, monitoring, and security scanning capabilities, complemented by new frontend host health and selection UI.)
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
-=======
         return { action: 'restart', success: true, containerId, incidentId };
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
     } catch (error) {
         console.error(`Failed to restart container ${containerId}:`, error);
         
@@ -340,27 +238,13 @@ async function restartContainer(compoundId) {
 async function recreateContainer(containerId) {
     const incidentId = `inc-${Date.now()}-${Math.floor(Math.random()*1000)}`;
     try {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
         const container = docker.getContainer(containerId);
-<<<<<<< HEAD
-<<<<<<< HEAD
-        // Note: inspect is done inside performSecurityPrecheck, but recreate needs info later?
-        // Ah, duplicate inspect is better than polluting logic.
-        // Or reuse info? For now, keep it simple.
-=======
         
         emitReasoningSafe(incidentId, {
             type: 'investigation_started',
             description: `Started investigating container for recreation: ${containerId}`,
             confidence: 0.0
         });
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
         
         // --- Security Check ---
         emitReasoningSafe(incidentId, {
@@ -390,21 +274,8 @@ async function recreateContainer(containerId) {
             confidence: 0.75
         });
         // ----------------------
-=======
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
->>>>>>> parent of 608787c (merge this branch)
 
-        const container = hostData.client.getContainer(containerId);
         const info = await container.inspect();
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        const info = await container.inspect();
-
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
-=======
         
         emitReasoningSafe(incidentId, {
             type: 'action_triggered',
@@ -413,42 +284,7 @@ async function recreateContainer(containerId) {
             evidence: { action: 'recreate', image: info.Config.Image }
         });
 
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
         // Prepare new configuration
-        // Use proper mapping for NetworkingConfig from validated inspection
-=======
-
->>>>>>> parent of 608787c (merge this branch)
-<<<<<<< HEAD
-=======
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        const info = await container.inspect();
-
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        const info = await container.inspect();
-
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-        const { hostId, containerId } = hostManager.parseId(compoundId);
-        const hostData = hostManager.get(hostId);
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const container = hostData.client.getContainer(containerId);
-        const info = await container.inspect();
-
->>>>>>> parent of 608787c (merge this branch)
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
         const networkingConfig = {
             EndpointsConfig: info.NetworkSettings.Networks
         };
@@ -518,29 +354,13 @@ async function scaleService(serviceName, replicas) {
     }
 
     try {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        let hostData = hostManager.get(hostId);
-        if (!hostData) {
-            const connected = hostManager.getConnected();
-            if (connected.length > 0) {
-                hostData = connected[0];
-            }
-        }
-        if (!hostData || !hostData.client) throw new Error(`Host disconnected: ${hostId}`);
-
-        const service = hostData.client.getService(serviceName);
-=======
-=======
         emitReasoningSafe(incidentId, {
             type: 'investigation_started',
             description: `Analyzing service load for potential scaling: ${serviceName}`,
             confidence: 0.0
         });
 
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
         const service = docker.getService(serviceName);
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
         const info = await service.inspect();
         const version = info.Version.Index;
         const currentReplicas = info.Spec.Mode?.Replicated?.Replicas ?? 1;
