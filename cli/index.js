@@ -3,12 +3,8 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import figlet from 'figlet';
-<<<<<<< HEAD
-import { showStatus, runAction, generateReport } from './src/commands.js';
-=======
 import { showStatus, watchStatus, runAction, generateReport } from './src/commands.js';
 import { validateConfigCommand } from './src/config-check.js';
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 const program = new Command();
 
