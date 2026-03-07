@@ -470,7 +470,7 @@ const requireDockerAuth = (req, res, next) => {
   next();
 };
 
-app.get('/api/settings/notifications', requireDockerAuth, (req, res) => {
+app.get('/api/settings/notifications', requireAuth, (req, res) => {
   const settings = require('./config/notifications').getSettings();
   const isConfigured = (url) => !!url;
   res.json({
@@ -482,7 +482,7 @@ app.get('/api/settings/notifications', requireDockerAuth, (req, res) => {
   });
 });
 
-app.post('/api/settings/notifications', requireDockerAuth, (req, res) => {
+app.post('/api/settings/notifications', requireAuth, (req, res) => {
   const { slackWebhook, discordWebhook, teamsWebhook, notifyOnNewIncident, notifyOnHealing } = req.body;
 
   const updates = {};
@@ -498,7 +498,7 @@ app.post('/api/settings/notifications', requireDockerAuth, (req, res) => {
   res.json({ success: true, message: 'Settings saved successfully' });
 });
 
-app.post('/api/settings/notifications/test', requireDockerAuth, async (req, res) => {
+app.post('/api/settings/notifications/test', requireAuth, async (req, res) => {
   const { platform, webhookUrl } = req.body;
   const testIncident = {
     id: `MOCK-${Date.now()}`,
@@ -550,7 +550,7 @@ const validateScaleParams = (req, res, next) => {
   next();
 };
 
-app.get('/api/docker/containers', async (req, res) => {
+app.get('/api/docker/containers', requireAuth, async (req, res) => {
   try {
     // Support host filtering via query parameter
     const hostId = req.query.hostId || null;
@@ -572,7 +572,7 @@ app.get('/api/docker/containers', async (req, res) => {
     // Broadcast container updates to all WebSocket clients
     wsBroadcaster.broadcast('CONTAINER_UPDATE', { containers: enrichedContainers });
 
-    // Include host summary in response
+    // Include host summary in response (safe fields only - no credentials)
     const hostSummary = hostManager.getAll().map(h => ({
       id: h.id,
       label: h.label,
@@ -585,6 +585,12 @@ app.get('/api/docker/containers', async (req, res) => {
       hosts: hostSummary
     });
   } catch (error) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ error: { code: error.code, message: error.message } });
+    }
+    if (error.statusCode === 503) {
+      return res.status(503).json({ error: { code: error.code, message: error.message } });
+    }
     res.status(500).json(ERRORS.DOCKER_CONNECTION().toJSON());
   }
 });
@@ -606,7 +612,7 @@ app.get('/api/docker/metrics/:id', validateId, (req, res) => {
   res.json(metrics);
 });
 
-app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (req, res) => {
+app.post('/api/docker/try-restart/:id', requireAuth, validateId, async (req, res) => {
   const id = req.params.id;
   const now = Date.now();
   let tracker = restartTracker.get(id) || { attempts: 0, lastAttempt: 0 };
@@ -632,7 +638,7 @@ app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (re
   }
 });
 
-app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, res) => {
+app.post('/api/docker/restart/:id', requireAuth, validateId, async (req, res) => {
   // Manual override bypasses smart checks, or update tracker manually
   const id = req.params.id;
   // Update tracker so manual restarts count towards limits or reset headers? 
@@ -663,7 +669,7 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
   }
 });
 
-app.post('/api/docker/recreate/:id', requireDockerAuth, validateId, async (req, res) => {
+app.post('/api/docker/recreate/:id', requireAuth, validateId, async (req, res) => {
   try {
     const result = await healer.recreateContainer(req.params.id);
     res.json(result);
@@ -672,7 +678,7 @@ app.post('/api/docker/recreate/:id', requireDockerAuth, validateId, async (req, 
   }
 });
 
-app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScaleParams, async (req, res) => {
+app.post('/api/docker/scale/:service/:replicas', requireAuth, validateScaleParams, async (req, res) => {
   try {
     const result = await healer.scaleService(req.params.service, req.params.replicas);
     res.json(result);

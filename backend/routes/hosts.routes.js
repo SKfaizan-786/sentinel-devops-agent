@@ -151,6 +151,15 @@ router.get('/:hostId/swarm/services', async (req, res) => {
       });
     }
 
+    if (!host.swarmInfo?.isManager) {
+      return res.status(400).json({
+        error: {
+          code: 'NOT_SWARM_MANAGER',
+          message: 'Operation requires a Swarm manager node'
+        }
+      });
+    }
+
     const services = await swarm.listSwarmServices(host.client);
     res.json({ 
       hostId,
@@ -195,6 +204,15 @@ router.get('/:hostId/swarm/nodes', async (req, res) => {
         error: {
           code: 'NOT_SWARM_MODE',
           message: `Host '${hostId}' is not running in Docker Swarm mode`
+        }
+      });
+    }
+
+    if (!host.swarmInfo?.isManager) {
+      return res.status(400).json({
+        error: {
+          code: 'NOT_SWARM_MANAGER',
+          message: 'Operation requires a Swarm manager node'
         }
       });
     }
@@ -247,6 +265,15 @@ router.get('/:hostId/swarm/services/:serviceId', async (req, res) => {
       });
     }
 
+    if (!host.swarmInfo?.isManager) {
+      return res.status(400).json({
+        error: {
+          code: 'NOT_SWARM_MANAGER',
+          message: 'Operation requires a Swarm manager node'
+        }
+      });
+    }
+
     const service = await swarm.getServiceDetails(host.client, serviceId);
     
     if (!service) {
@@ -284,8 +311,20 @@ router.get('/swarm/services', async (req, res) => {
       });
     }
 
+    // Query only manager nodes to avoid duplicate results from the same cluster
+    const managerHosts = swarmHosts.filter(h => h.swarmInfo?.isManager);
+
+    // Deduplicate managers by cluster ID to query only one per cluster
+    const seenClusters = new Set();
+    const uniqueManagerHosts = managerHosts.filter(h => {
+      const clusterId = h.swarmInfo?.cluster;
+      if (clusterId && seenClusters.has(clusterId)) return false;
+      if (clusterId) seenClusters.add(clusterId);
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      swarmHosts.map(async host => {
+      uniqueManagerHosts.map(async host => {
         const services = await swarm.listSwarmServices(host.client);
         return services.map(s => ({ ...s, hostId: host.id, hostLabel: host.label }));
       })
@@ -295,10 +334,18 @@ router.get('/swarm/services', async (req, res) => {
       .filter(r => r.status === 'fulfilled')
       .flatMap(r => r.value);
 
+    // Final deduplication by service ID in case cluster IDs were unavailable
+    const seenServiceIds = new Set();
+    const deduplicatedServices = allServices.filter(s => {
+      if (seenServiceIds.has(s.id)) return false;
+      seenServiceIds.add(s.id);
+      return true;
+    });
+
     res.json({
       swarmMode: true,
       hostsCount: swarmHosts.length,
-      services: allServices
+      services: deduplicatedServices
     });
   } catch (error) {
     console.error('[Hosts API] Error listing all Swarm services:', error);

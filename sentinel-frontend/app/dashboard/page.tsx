@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
     // Multi-host support
     const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
-    const { hosts, loading: hostsLoading, refetch: refetchHosts } = useHosts();
+    const { hosts, loading: hostsLoading, refetch: refetchHosts } = useHosts({ pollInterval: 30000 });
     const { 
         containers, 
         loading: containersLoading, 
@@ -137,8 +137,8 @@ export default function DashboardPage() {
     const healthyServices = liveServices.filter(s => s.status === "healthy").length;
     const realUptime = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
 
-    // Show host health cards only when there are multiple hosts
-    const showHostCards = hosts.length > 1;
+    // Show host health cards when at least one host is registered
+    const showHostCards = hosts.length >= 1;
 
     return (
         <div className="space-y-8 pb-20">
@@ -150,8 +150,8 @@ export default function DashboardPage() {
                             <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Dashboard</h1>
                             <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
                         </div>
-                        {/* Host Selector - only show when multiple hosts */}
-                        {hosts.length > 1 && (
+                        {/* Host Selector - show when at least one host */}
+                        {hosts.length >= 1 && (
                             <HostSelector
                                 hosts={hosts.map(h => ({
                                     id: h.id,
