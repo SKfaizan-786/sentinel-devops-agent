@@ -109,6 +109,45 @@ jest.mock('../../docker/client', () => {
     client: null
   });
 
+  // Swarm worker node (connected but not a manager)
+  mockHosts.set('worker-1', {
+    id: 'worker-1',
+    label: 'Worker Node 1',
+    type: 'remote',
+    status: 'connected',
+    swarmActive: true,
+    swarmInfo: {
+      nodeId: 'node456',
+      nodeAddr: '192.168.1.101',
+      isManager: false,
+      nodes: 3,
+      managers: 1,
+      cluster: 'cluster-abc'
+    },
+    dockerVersion: '24.0.6',
+    containers: 8,
+    containersRunning: 6,
+    containersPaused: 0,
+    containersStopped: 2,
+    images: 15,
+    memoryTotal: 32 * 1024 * 1024 * 1024,
+    cpuCount: 8,
+    lastChecked: new Date(),
+    client: {
+      ping: jest.fn().mockResolvedValue(true),
+      info: jest.fn().mockResolvedValue({
+        ServerVersion: '24.0.6',
+        Containers: 8,
+        ContainersRunning: 6,
+        NCPU: 8,
+        MemTotal: 32 * 1024 * 1024 * 1024,
+        Swarm: { LocalNodeState: 'active' }
+      }),
+      listServices: jest.fn().mockResolvedValue([]),
+      listNodes: jest.fn().mockResolvedValue([])
+    }
+  });
+
   return {
     docker: {},
     hostManager: {
@@ -213,8 +252,8 @@ describe('Hosts Routes - Integration Tests', () => {
       expect(response.body).toHaveProperty('connected');
       expect(response.body).toHaveProperty('hosts');
       expect(Array.isArray(response.body.hosts)).toBe(true);
-      expect(response.body.total).toBe(3);
-      expect(response.body.connected).toBe(2);
+      expect(response.body.total).toBe(4);
+      expect(response.body.connected).toBe(3);
     });
 
     it('should include host details in response', async () => {
@@ -322,6 +361,14 @@ describe('Hosts Routes - Integration Tests', () => {
 
       expect(response.body.error.code).toBe('HOST_NOT_FOUND');
     });
+
+    it('should return 400 for Swarm worker node (not a manager)', async () => {
+      const response = await request(app)
+        .get('/api/hosts/worker-1/swarm/services')
+        .expect(400);
+
+      expect(response.body.error.code).toBe('NOT_SWARM_MANAGER');
+    });
   });
 
   describe('GET /api/hosts/:hostId/swarm/nodes - List Swarm nodes', () => {
@@ -333,6 +380,24 @@ describe('Hosts Routes - Integration Tests', () => {
       expect(response.body.hostId).toBe('prod-1');
       expect(response.body.swarmMode).toBe(true);
       expect(Array.isArray(response.body.nodes)).toBe(true);
+    });
+
+    it('should return 400 for Swarm worker node (not a manager)', async () => {
+      const response = await request(app)
+        .get('/api/hosts/worker-1/swarm/nodes')
+        .expect(400);
+
+      expect(response.body.error.code).toBe('NOT_SWARM_MANAGER');
+    });
+  });
+
+  describe('GET /api/hosts/:hostId/swarm/services/:serviceId - Get Swarm service details', () => {
+    it('should return 400 for Swarm worker node (not a manager)', async () => {
+      const response = await request(app)
+        .get('/api/hosts/worker-1/swarm/services/svc1')
+        .expect(400);
+
+      expect(response.body.error.code).toBe('NOT_SWARM_MANAGER');
     });
   });
 });
@@ -374,7 +439,7 @@ describe('DockerHostManager - Unit Tests', () => {
   describe('getConnected', () => {
     it('should return only connected hosts', () => {
       const connected = hostManager.getConnected();
-      expect(connected.length).toBe(2);
+      expect(connected.length).toBe(3);
       expect(connected.every(h => h.status === 'connected')).toBe(true);
     });
   });
@@ -382,7 +447,7 @@ describe('DockerHostManager - Unit Tests', () => {
   describe('getAll', () => {
     it('should return all hosts including disconnected', () => {
       const all = hostManager.getAll();
-      expect(all.length).toBe(3);
+      expect(all.length).toBe(4);
     });
   });
 });
