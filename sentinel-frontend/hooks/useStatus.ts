@@ -65,7 +65,7 @@ export function useStatus() {
                 const next = [entry, ...prev];
                 return next.length > 100 ? next.slice(0, 100) : next;
             });
-        } else if (lastMessage.type === 'INCIDENT_NEW') {
+        } else if (lastMessage.type === 'AI_ANALYSIS_COMPLETE') {
             // Real-time new insight/incident
             setInsights(prev => {
                 const insight = lastMessage.data as Record<string, unknown>;

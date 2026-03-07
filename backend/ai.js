@@ -1,7 +1,18 @@
 const axios = require('axios');
 
 /**
- * Utility for interacting with Groq AI API (LLaMA 3.3-70B)
+ * @module ai
+ * @description Service for AI-powered root cause analysis using the Groq API
+ * (LLaMA 3.3-70B). Provides asynchronous analysis of failing services and
+ * generates concise, actionable reports.
+ */
+
+/**
+ * Encapsulates communication with the Groq AI API for DevOps root cause
+ * analysis. Instantiated as a singleton — import the module to get the
+ * shared instance.
+ *
+ * @class AIService
  */
 class AIService {
     constructor() {

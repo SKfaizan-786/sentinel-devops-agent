@@ -163,7 +163,7 @@ export function useIncidentHistory({
     useEffect(() => {
         if (!lastMessage) return;
 
-        if (lastMessage.type === 'INCIDENT_NEW') {
+        if (lastMessage.type === 'AI_ANALYSIS_COMPLETE') {
             const insight = lastMessage.data as InsightPayload;
             if (!insight) return;
             const incident = parseInsight(insight);
