@@ -59,9 +59,14 @@ export const showStatus = async () => {
             statusText = 'DEGRADED';
         }
 
-        console.log(chalk.bold.cyan('\nSentinel System Status'));
+            table.push([
+                chalk.bold(name.toUpperCase()),
+                statusColor(statusText),
+                code
+            ]);
+        });
 
-    console.log(table.toString());
+        console.log(table.toString());
         if (data.lastUpdated) {
             console.log(chalk.gray(`Last Updated: ${new Date(data.lastUpdated).toLocaleString()}`));
         }
@@ -239,13 +244,17 @@ export const generateReport = async () => {
                     severity: isCritical ? 'CRITICAL' : 'DEGRADED',
                     analysis: analysis
                 });
-                healthyStart = item.timestamp;
-            } else if (!healthyStart) {
-                healthyStart = item.timestamp;
+                lastStatus = 'requires_attention';
+            } else {
+                if (!healthyStart) {
+                    healthyStart = item.timestamp;
+                }
+                if (lastStatus === 'requires_attention') {
+                    healthyPeriods.push({ type: 'recovery', timestamp: item.timestamp });
+                }
+                lastStatus = 'healthy';
             }
-            lastStatus = 'healthy';
-        }
-    });
+        });
 
         // Generate report
         let mdContent = `# Sentinel Incident Report\n`;
