@@ -585,11 +585,8 @@ app.get('/api/docker/containers', requireAuth, async (req, res) => {
       hosts: hostSummary
     });
   } catch (error) {
-    if (error.statusCode === 404) {
-      return res.status(404).json({ error: { code: error.code, message: error.message } });
-    }
-    if (error.statusCode === 503) {
-      return res.status(503).json({ error: { code: error.code, message: error.message } });
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
     }
     res.status(500).json(ERRORS.DOCKER_CONNECTION().toJSON());
   }

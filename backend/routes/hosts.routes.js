@@ -318,8 +318,10 @@ router.get('/swarm/services', async (req, res) => {
     const seenClusters = new Set();
     const uniqueManagerHosts = managerHosts.filter(h => {
       const clusterId = h.swarmInfo?.cluster;
-      if (clusterId && seenClusters.has(clusterId)) return false;
-      if (clusterId) seenClusters.add(clusterId);
+      if (clusterId) {
+        if (seenClusters.has(clusterId)) return false;
+        seenClusters.add(clusterId);
+      }
       return true;
     });
 
