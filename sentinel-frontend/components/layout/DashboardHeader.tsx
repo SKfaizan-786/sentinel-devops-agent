@@ -8,10 +8,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useState } from "react";
 import { useNotifications, NotificationState } from "@/hooks/useNotifications";
 import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
-<<<<<<< HEAD
-=======
 import { useWebSocketConnection } from "@/lib/WebSocketContext";
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 interface DashboardHeaderProps {
     onRefresh?: () => void;
@@ -20,10 +17,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
     const { enabled, updateEnabled, interval, updateInterval, manualRefresh } =
         useAutoRefresh({ onRefresh: onRefresh || (() => { }) });
-<<<<<<< HEAD
-=======
     const { isConnected } = useWebSocketConnection();
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);

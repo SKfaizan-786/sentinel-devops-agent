@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-<<<<<<< HEAD
-=======
 import { useWebSocketMessage, useWebSocketConnection } from '@/lib/WebSocketContext';
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 export interface Container {
     id: string;
@@ -35,11 +32,8 @@ export function useContainers(options: { manual?: boolean } = {}) {
     const [containers, setContainers] = useState<Container[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-<<<<<<< HEAD
-=======
     const lastMessage = useWebSocketMessage();
     const { sendMessage } = useWebSocketConnection();
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     const fetchContainers = async () => {
         try {

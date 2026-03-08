@@ -1,31 +1,27 @@
 const axios = require('axios');
 const { logActivity } = require('./incidents');
 const { metrics } = require('../metrics/prometheus');
-<<<<<<< HEAD
-const { loadServicesConfig, getAllServices, getClusterIds } = require('../config/services');
-
-let systemStatus = {
-  clusters: {},
-  aiAnalysis: "Waiting for AI report...",
-  lastUpdated: null
-};
-
-=======
 const { 
-  getAllServices: getConfiguredServices, 
+  getAllServices,
   getServicesByCluster,
   getServicesByRegion,
   loadServicesConfig 
 } = require('../config/servicesLoader');
 
+let wsBroadcaster = null;
+let isChecking = false;
+
 // Load services dynamically from configuration
-const configuredServices = getConfiguredServices();
+const configuredServices = getAllServices();
+
+let systemStatus = null;
 
 // Initialize system status from configuration
 function initializeSystemStatus() {
-  const services = {};
+  const svcMap = {};
   for (const svc of configuredServices) {
-    services[svc.name] = { 
+    const serviceKey = `${svc.cluster}:${svc.name}`;
+    svcMap[serviceKey] = { 
       status: 'unknown', 
       code: 0, 
       lastUpdated: null,
@@ -34,15 +30,17 @@ function initializeSystemStatus() {
       region: svc.region
     };
   }
-  return {
-    services,
+  systemStatus = {
+    services: svcMap,
     clusters: getServicesByCluster(),
     aiAnalysis: "Waiting for AI report...",
     lastUpdated: new Date()
   };
+  console.log(`Initialized monitoring for ${Object.keys(getServicesByCluster()).length} cluster(s)`);
+  return systemStatus;
 }
 
-let systemStatus = initializeSystemStatus();
+initializeSystemStatus();
 
 // Get flat services array from configuration
 const services = configuredServices.map(s => ({
@@ -55,41 +53,6 @@ const services = configuredServices.map(s => ({
   port: s.port
 }));
 
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
-let wsBroadcaster = null;
-let servicesConfig = null;
-let isChecking = false;
-
-/**
- * Initialize system status structure for all configured clusters
- */
-function initializeSystemStatus() {
-  const config = loadServicesConfig();
-  servicesConfig = config;
-  
-  systemStatus.clusters = {};
-  systemStatus.lastUpdated = new Date();
-  
-  for (const clusterId of getClusterIds(config)) {
-    systemStatus.clusters[clusterId] = {
-      label: config.clusters[clusterId].label,
-      region: config.clusters[clusterId].region,
-      services: {}
-    };
-    
-    const services = getAllServices(config, clusterId);
-    for (const service of services) {
-      systemStatus.clusters[clusterId].services[service.name] = {
-        status: 'unknown',
-        code: 0,
-        lastUpdated: null
-      };
-    }
-  }
-  
-  console.log(`Initialized monitoring for ${getClusterIds(config).length} cluster(s)`);
-}
-
 function setWsBroadcaster(broadcaster) {
   wsBroadcaster = broadcaster;
 }
@@ -99,17 +62,17 @@ function getSystemStatus() {
 }
 
 function getAllServicesInfo() {
-  const config = servicesConfig || loadServicesConfig();
-  const allServices = getAllServices(config);
-  
-  return allServices.map(service => ({
-    name: service.name,
-    url: service.url,
-    cluster: service.cluster,
-    clusterLabel: service.clusterLabel,
-    region: service.region,
-    ...systemStatus.clusters[service.cluster]?.services[service.name]
-  }));
+  return configuredServices.map(service => {
+    const serviceKey = `${service.cluster}:${service.name}`;
+    return {
+      name: service.name,
+      url: service.url,
+      cluster: service.cluster,
+      clusterName: service.clusterName,
+      region: service.region,
+      ...systemStatus.services[serviceKey]
+    };
+  });
 }
 
 async function checkServiceHealth() {
@@ -118,15 +81,12 @@ async function checkServiceHealth() {
 
   try {
     console.log('🔍 Checking service health...');
-    const config = servicesConfig || loadServicesConfig();
-    const allServices = getAllServices(config);
     let hasChanges = false;
 
-    for (const service of allServices) {
-      const clusterStatus = systemStatus.clusters[service.cluster];
-      if (!clusterStatus) continue;
-      
-      const currentServiceStatus = clusterStatus.services[service.name];
+    for (const service of configuredServices) {
+      const serviceKey = `${service.cluster}:${service.name}`;
+      const currentServiceStatus = systemStatus.services[serviceKey];
+      if (!currentServiceStatus) continue;
       
       let newStatus, newCode;
       const start = Date.now();
@@ -171,12 +131,8 @@ async function checkServiceHealth() {
           logActivity(severity, `Service ${service.name} (${service.cluster}) is ${newStatus.toUpperCase()} (Code: ${newCode})`);
         }
 
-<<<<<<< HEAD
-        clusterStatus.services[service.name] = {
-=======
-        systemStatus.services[service.name] = {
-          ...systemStatus.services[service.name], // Preserve cluster metadata
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
+        systemStatus.services[serviceKey] = {
+          ...systemStatus.services[serviceKey],
           status: newStatus,
           code: newCode,
           lastUpdated: new Date()
@@ -188,7 +144,7 @@ async function checkServiceHealth() {
           wsBroadcaster.broadcast('SERVICE_UPDATE', {
             name: service.name,
             cluster: service.cluster,
-            ...clusterStatus.services[service.name]
+            ...systemStatus.services[serviceKey]
           });
         }
       }
@@ -206,46 +162,17 @@ async function checkServiceHealth() {
   }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
 async function startMonitoring(intervalMs = 5000) {
   initializeSystemStatus();
   await checkServiceHealth();
   setInterval(checkServiceHealth, intervalMs);
-=======
-function startMonitoring(intervalMs = 5000) {
-    setInterval(checkServiceHealth, intervalMs);
-    checkServiceHealth();
->>>>>>> parent of 608787c (merge this branch)
-<<<<<<< HEAD
-=======
-function startMonitoring(intervalMs = 5000) {
-    setInterval(checkServiceHealth, intervalMs);
-    checkServiceHealth();
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-function startMonitoring(intervalMs = 5000) {
-    setInterval(checkServiceHealth, intervalMs);
-    checkServiceHealth();
->>>>>>> parent of 850077c (Merge branch 'main' into deployment)
-=======
-function startMonitoring(intervalMs = 5000) {
-    setInterval(checkServiceHealth, intervalMs);
-    checkServiceHealth();
->>>>>>> parent of 608787c (merge this branch)
-=======
->>>>>>> parent of 2f533e4 (Revert "Merge branch 'main' into deployment")
 }
 
 function updateServiceStatus(serviceName, statusData, clusterId = 'local') {
-  if (systemStatus.clusters[clusterId]?.services[serviceName]) {
-    systemStatus.clusters[clusterId].services[serviceName] = { 
-      ...systemStatus.clusters[clusterId].services[serviceName], 
+  const serviceKey = `${clusterId}:${serviceName}`;
+  if (systemStatus.services[serviceKey]) {
+    systemStatus.services[serviceKey] = { 
+      ...systemStatus.services[serviceKey], 
       ...statusData,
       lastUpdated: new Date()
     };
@@ -257,41 +184,49 @@ function updateServiceStatus(serviceName, statusData, clusterId = 'local') {
  * Remote agents POST to /api/agent/metrics with their cluster ID
  */
 function handleAgentMetrics(agentData) {
-  const { clusterId, services, timestamp } = agentData;
-  
-  if (!systemStatus.clusters[clusterId]) {
-    console.warn(`Received metrics from unknown cluster: ${clusterId}`);
-    return false;
-  }
+  const { clusterId, services: agentServices, timestamp } = agentData;
   
   let hasChanges = false;
   
-  for (const [serviceName, statusData] of Object.entries(services)) {
-    if (systemStatus.clusters[clusterId].services[serviceName]) {
-      const prevStatus = systemStatus.clusters[clusterId].services[serviceName].status;
-      
-      systemStatus.clusters[clusterId].services[serviceName] = {
-        ...statusData,
-        lastUpdated: timestamp || new Date()
+  for (const [serviceName, statusData] of Object.entries(agentServices)) {
+    const serviceKey = `${clusterId}:${serviceName}`;
+    
+    if (!systemStatus.services[serviceKey]) {
+      // Auto-register unknown remote services
+      systemStatus.services[serviceKey] = {
+        status: 'unknown',
+        code: 0,
+        lastUpdated: null,
+        cluster: clusterId,
+        clusterName: clusterId,
+        region: 'remote'
       };
-      
-      // Log status changes
-      if (statusData.status !== prevStatus) {
-        const severity = statusData.status === 'healthy' ? 'success' : 
-          (statusData.status === 'critical' ? 'alert' : 'warn');
-        logActivity(severity, `Service ${serviceName} (${clusterId} agent) is ${statusData.status}`);
-      }
-      
-      hasChanges = true;
-      
-      // Broadcast individual update
-      if (wsBroadcaster) {
-        wsBroadcaster.broadcast('SERVICE_UPDATE', {
-          name: serviceName,
-          cluster: clusterId,
-          ...statusData
-        });
-      }
+    }
+    
+    const prevStatus = systemStatus.services[serviceKey].status;
+    
+    systemStatus.services[serviceKey] = {
+      ...systemStatus.services[serviceKey],
+      ...statusData,
+      lastUpdated: timestamp || new Date()
+    };
+    
+    // Log status changes
+    if (statusData.status !== prevStatus) {
+      const severity = statusData.status === 'healthy' ? 'success' : 
+        (statusData.status === 'critical' ? 'alert' : 'warn');
+      logActivity(severity, `Service ${serviceName} (${clusterId} agent) is ${statusData.status}`);
+    }
+    
+    hasChanges = true;
+    
+    // Broadcast individual update
+    if (wsBroadcaster) {
+      wsBroadcaster.broadcast('SERVICE_UPDATE', {
+        name: serviceName,
+        cluster: clusterId,
+        ...statusData
+      });
     }
   }
   
@@ -315,6 +250,7 @@ function getServicesGroupedByCluster() {
     // Add static services from configuration
     for (const service of services) {
         const clusterId = service.cluster || 'default';
+        const serviceKey = `${clusterId}:${service.name}`;
         if (!clusters[clusterId]) {
             clusters[clusterId] = {
                 id: clusterId,
@@ -325,14 +261,14 @@ function getServicesGroupedByCluster() {
         }
         clusters[clusterId].services.push({
             ...service,
-            ...systemStatus.services[service.name]
+            ...systemStatus.services[serviceKey]
         });
     }
     
-    // Add remote agent services
-    for (const [name, data] of Object.entries(systemStatus.services)) {
-        // Remote service format: "cluster:service"
-        if (name.includes(':')) {
+    // Add remote agent services not in static config
+    const staticClusterKeys = new Set(services.map(s => `${s.cluster}:${s.name}`));
+    for (const [key, data] of Object.entries(systemStatus.services)) {
+        if (key.includes(':') && !staticClusterKeys.has(key)) {
             const cluster = data.cluster || 'remote';
             if (!clusters[cluster]) {
                 clusters[cluster] = {
@@ -343,7 +279,7 @@ function getServicesGroupedByCluster() {
                 };
             }
             clusters[cluster].services.push({ 
-                name,
+                name: key,
                 ...data 
             });
         }
@@ -362,6 +298,7 @@ function getServicesGroupedByRegion() {
     // Add static services from configuration
     for (const service of services) {
         const regionId = service.region || 'default';
+        const serviceKey = `${service.cluster}:${service.name}`;
         if (!regions[regionId]) {
             regions[regionId] = {
                 region: regionId,
@@ -370,14 +307,14 @@ function getServicesGroupedByRegion() {
         }
         regions[regionId].services.push({
             ...service,
-            ...systemStatus.services[service.name]
+            ...systemStatus.services[serviceKey]
         });
     }
     
-    // Add remote agent services
-    for (const [name, data] of Object.entries(systemStatus.services)) {
-        // Remote service format: "cluster:service"
-        if (name.includes(':')) {
+    // Add remote agent services not in static config
+    const staticRegionKeys = new Set(services.map(s => `${s.cluster}:${s.name}`));
+    for (const [key, data] of Object.entries(systemStatus.services)) {
+        if (key.includes(':') && !staticRegionKeys.has(key)) {
             const regionId = data.region || 'remote';
             if (!regions[regionId]) {
                 regions[regionId] = {
@@ -386,7 +323,7 @@ function getServicesGroupedByRegion() {
                 };
             }
             regions[regionId].services.push({
-                name,
+                name: key,
                 ...data
             });
         }
@@ -398,9 +335,8 @@ function getServicesGroupedByRegion() {
 /**
  * Update service status from remote agent report
  * 
- * Note: Remote agent services use a namespaced naming convention: `${clusterId}:${serviceName}`
- * This distinguishes them from locally configured services (which use just `serviceName`).
- * This is intentional to avoid naming conflicts between services in different clusters.
+ * Remote agent services use namespaced keys: `${clusterId}:${serviceName}`
+ * to prevent collisions across clusters.
  * 
  * @param {Object} report - Remote agent health report
  */
@@ -408,12 +344,11 @@ function handleRemoteAgentReport(report) {
     const { clusterId, clusterName, region, services: reportedServices } = report;
     
     for (const [serviceName, serviceData] of Object.entries(reportedServices)) {
-        // Use namespaced format to distinguish remote services from local ones
-        const fullServiceName = `${clusterId}:${serviceName}`;
+        const serviceKey = `${clusterId}:${serviceName}`;
         
         // Initialize if not exists
-        if (!systemStatus.services[fullServiceName]) {
-            systemStatus.services[fullServiceName] = {
+        if (!systemStatus.services[serviceKey]) {
+            systemStatus.services[serviceKey] = {
                 status: 'unknown',
                 code: 0,
                 lastUpdated: null,
@@ -423,7 +358,7 @@ function handleRemoteAgentReport(report) {
             };
         }
         
-        const prevStatus = systemStatus.services[fullServiceName].status;
+        const prevStatus = systemStatus.services[serviceKey].status;
         const newStatus = String(serviceData.status || 'unknown');
         
         // Log status changes
@@ -434,9 +369,9 @@ function handleRemoteAgentReport(report) {
             logActivity(severity, `[${clusterId}] Service ${serviceName} is ${newStatus.toUpperCase()}`);
         }
         
-        systemStatus.services[fullServiceName] = {
-            ...systemStatus.services[fullServiceName],
-            status: newStatus, // Use the type-safe string value
+        systemStatus.services[serviceKey] = {
+            ...systemStatus.services[serviceKey],
+            status: newStatus,
             code: serviceData.code,
             latencyMs: serviceData.latencyMs,
             lastUpdated: new Date(serviceData.lastUpdated || Date.now())
@@ -457,15 +392,10 @@ module.exports = {
   startMonitoring,
   setWsBroadcaster,
   updateServiceStatus,
-<<<<<<< HEAD
   checkServiceHealth,
   handleAgentMetrics,
-  initializeSystemStatus
-};
-=======
-  checkServiceHealth, // Export for manual triggering
+  initializeSystemStatus,
   getServicesGroupedByCluster,
   getServicesGroupedByRegion,
   handleRemoteAgentReport
 };
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963

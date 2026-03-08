@@ -1,11 +1,7 @@
 "use client";
 
-<<<<<<< HEAD
-import { useState, useEffect, useRef, useCallback } from "react";
-=======
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useWebSocketMessage } from "@/lib/WebSocketContext";
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 export type LogLevel = "info" | "warn" | "error" | "debug" | "success";
 
@@ -22,16 +18,15 @@ export function useLogs() {
     const [isPaused, setIsPaused] = useState(false);
     const [filterLevel, setFilterLevel] = useState<LogLevel | "all">("all");
     const [search, setSearch] = useState("");
-<<<<<<< HEAD
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-=======
     const lastMessage = useWebSocketMessage();
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
+    const [error, setError] = useState<string | null>(null);
 
     const fetchLogs = useCallback(async () => {
         if (isPaused) return;
         try {
-            const res = await fetch("http://localhost:4000/api/activity");
+            const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+            const res = await fetch(`${API_BASE}/api/activity`);
             if (!res.ok) throw new Error("Backend not available");
             const data = await res.json();
 
@@ -54,45 +49,8 @@ export function useLogs() {
                 setLogs(formattedLogs);
             }
         } catch (e) {
-            // Fallback to mock data if backend is not available
-            const mockLogs: LogEntry[] = [
-                {
-                    id: "1",
-                    timestamp: new Date().toISOString(),
-                    level: "error",
-                    service: "sentinel-agent",
-                    message: "Service auth-service is CRITICAL - down for 30 seconds"
-                },
-                {
-                    id: "2",
-                    timestamp: new Date(Date.now() - 15000).toISOString(),
-                    level: "warn",
-                    service: "sentinel-agent",
-                    message: "Service payment-service is DEGRADED - high latency detected"
-                },
-                {
-                    id: "3",
-                    timestamp: new Date(Date.now() - 30000).toISOString(),
-                    level: "success",
-                    service: "sentinel-agent",
-                    message: "All services HEALTHY - system operating normally"
-                },
-                {
-                    id: "4",
-                    timestamp: new Date(Date.now() - 45000).toISOString(),
-                    level: "info",
-                    service: "sentinel-agent",
-                    message: "Health check completed for all services"
-                },
-                {
-                    id: "5",
-                    timestamp: new Date(Date.now() - 60000).toISOString(),
-                    level: "debug",
-                    service: "sentinel-agent",
-                    message: "Polling interval: 3000ms, Active monitors: 3"
-                }
-            ];
-            setLogs(mockLogs);
+            console.error("Failed to fetch logs:", e);
+            setError(e instanceof Error ? e.message : "Failed to fetch logs");
         }
     }, [isPaused]);
 
@@ -121,6 +79,7 @@ export function useLogs() {
         setFilterLevel,
         search,
         setSearch,
+        error,
         clearLogs: () => setLogs([])
     };
 }

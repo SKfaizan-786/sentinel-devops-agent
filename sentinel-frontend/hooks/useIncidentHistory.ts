@@ -2,12 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Incident, mockIncidents } from "@/lib/mockData";
-<<<<<<< HEAD
-import { parseInsight } from "@/lib/parseInsight";
-=======
 import { parseInsight, InsightPayload } from "@/lib/parseInsight";
 import { useWebSocketMessage } from "@/lib/WebSocketContext";
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 export interface FilterState {
     services: string[];
@@ -126,10 +122,7 @@ export function useIncidentHistory({
 }: UseIncidentHistoryProps): UseIncidentHistoryResult {
     const [isLoading, setIsLoading] = useState(true);
     const [incidents, setIncidents] = useState<Incident[]>([]);
-<<<<<<< HEAD
-=======
     const lastMessage = useWebSocketMessage();
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     // Simulate API fetch
     const fetchIncidents = useCallback(async () => {

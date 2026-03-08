@@ -131,39 +131,6 @@ export default function DashboardPage() {
                         <p className="text-muted-foreground">Real-time overview of your system health and agent activities.</p>
                     </div>
 
-<<<<<<< HEAD
-                    {/* Hosts Summary and Selector */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border">
-                        <HostSelector
-                            hosts={hosts}
-                            selectedHostId={selectedHostId}
-                            onSelectHost={setSelectedHostId}
-                            isLoading={hostsLoading || isLoading}
-                        />
-                    </div>
-
-                    {/* Per-Host Health Cards */}
-                    {(() => {
-                        if (selectedHostId === 'all' && hosts.length > 0) {
-                            return (
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    {hosts.map(host => <HostHealthCard key={host.id} host={host} />)}
-                                </div>
-                            );
-                        }
-                        const selectedHost = hosts.find(h => h.id === selectedHostId);
-                        if (selectedHost) {
-                            return (
-                                <div className="mb-4">
-                                    <HostHealthCard host={selectedHost} />
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
-
-=======
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
                     {/* Health Summary - Show skeleton during initial load */}
                     {isLoading ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

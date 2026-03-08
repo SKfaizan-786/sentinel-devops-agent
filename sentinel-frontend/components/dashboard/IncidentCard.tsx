@@ -98,15 +98,6 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                 <div className="flex items-center gap-2">
                                     <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
                                         <div
-<<<<<<< HEAD
-                                            className="h-full bg-primary"
-                                            style={{ width: `${incident.agentPredictionConfidence}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-primary font-mono">{incident.agentPredictionConfidence}%</span>
-                                </div>
-                            </div>
-=======
                                             className="h-full bg-green-500 rounded-full"
                                             style={{ width: `${(incident.confidence ?? 0.85) * 100}%` }}
                                         />
@@ -132,7 +123,6 @@ export function IncidentCard({ incident, onViewReasoning }: IncidentCardProps) {
                                 </Button>
                                 <FeedbackButtons incidentId={incident.id} />
                             </div>
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
                             {/* Timeline */}
                             <div className="pt-2">

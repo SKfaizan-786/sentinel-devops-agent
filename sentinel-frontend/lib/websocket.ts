@@ -18,8 +18,6 @@ export interface IncidentNewPayload {
     [key: string]: unknown;
 }
 
-<<<<<<< HEAD
-=======
 import { Prediction } from '@/components/dashboard/PredictionBadge';
 
 export interface ActivityLogPayload {
@@ -43,21 +41,16 @@ export interface ContainerUpdatePayload {
     }>;
 }
 
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 export type WebSocketMessage =
     | { type: 'INIT'; data: InitPayload }
     | { type: 'SERVICE_UPDATE'; data: { name: string; status: string; code: number; lastUpdated: string } }
     | { type: 'METRICS'; data: MetricsPayload }
     | { type: 'INCIDENT_NEW'; data: IncidentNewPayload }
-<<<<<<< HEAD
-    | { type: 'INCIDENT_RESOLVED'; data: { id: string } };
-=======
     | { type: 'INCIDENT_RESOLVED'; data: { id: string } }
     | { type: 'SCALE_PREDICTION'; data: { predictions: unknown[]; evaluatedAt: string } }
     | { type: 'PREDICTION'; data: Prediction }
     | { type: 'ACTIVITY_LOG'; data: ActivityLogPayload }
     | { type: 'CONTAINER_UPDATE'; data: ContainerUpdatePayload };
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
     (typeof window !== 'undefined'

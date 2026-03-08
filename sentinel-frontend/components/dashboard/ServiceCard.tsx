@@ -112,6 +112,4 @@ export function ServiceCard({ service, prediction }: { service: Service; predict
             </div>
         </Spotlight>
     );
-});
-
-ServiceCard.displayName = "ServiceCard";
+}

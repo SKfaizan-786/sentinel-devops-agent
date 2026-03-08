@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-<<<<<<< HEAD
-=======
 import { useWebSocketMessage } from "@/lib/WebSocketContext";
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -13,10 +10,7 @@ export function useStatus() {
     const [status, setStatus] = useState<{ services: Record<string, string> }>({ services: {} });
     const [activity, setActivity] = useState<Record<string, unknown>[]>([]);
     const [insights, setInsights] = useState<Record<string, unknown>[]>([]);
-<<<<<<< HEAD
-=======
     const lastMessage = useWebSocketMessage();
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
 
     const fetchData = async () => {
         try {

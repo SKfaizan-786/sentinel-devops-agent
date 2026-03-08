@@ -1,6 +1,5 @@
 const Docker = require('dockerode');
 
-<<<<<<< HEAD
 /**
  * DockerHostManager manages multihost environment configurations and lifecycle.
  */
@@ -67,11 +66,12 @@ class DockerHostManager {
 }
 
 const hostManager = new DockerHostManager();
-=======
+
+// Single-host client for simple/local Docker operations.
+// For multi-host scenarios, use hostManager.loadHosts() and hostManager.get(hostId).client.
 const docker = new Docker({
   socketPath: process.env.DOCKER_SOCKET || (process.platform === 'win32' ? '//./pipe/docker_engine' : '/var/run/docker.sock')
 });
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
 
 /**
  * Retrieves containers mapped across all available hosts with rich metadata.
@@ -105,15 +105,12 @@ async function listContainers(filters = {}) {
   }
 }
 
-<<<<<<< HEAD
 /**
- * Introspects health for container using a unified compoundID.
- * @param {string} compoundId The id structured {host}:{containerId}
+ * Introspects health for a single container on the default docker host.
+ * For multi-host scenarios, use hostManager to resolve the target host first.
+ * @param {string} containerId The container id
  */
-async function getContainerHealth(compoundId) {
-=======
 async function getContainerHealth(containerId) {
->>>>>>> parent of 6bd84e2 (feat: Implement multi-host Docker management and monitoring with a new dashboard UI.)
   try {
     const container = docker.getContainer(containerId);
     const info = await container.inspect();
@@ -129,4 +126,4 @@ async function getContainerHealth(containerId) {
   }
 }
 
-module.exports = { docker, listContainers, getContainerHealth };
+module.exports = { docker, listContainers, getContainerHealth, hostManager };

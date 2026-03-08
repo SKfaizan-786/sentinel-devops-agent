@@ -12,14 +12,10 @@ import {
     ChevronLeft,
     ChevronRight,
     BarChart3,
-<<<<<<< HEAD
-=======
     DollarSign,
     Target,
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
     Menu,
     X,
-    Target,
 } from "lucide-react";
 import { SentinelLogo } from "@/components/common/SentinelLogo";
 import { useState, useEffect, useRef } from "react";
@@ -32,10 +28,7 @@ const navItems = [
     { name: "Incidents", href: "/dashboard/incidents", icon: Activity },
     { name: "SLO Tracker", href: "/dashboard/slo", icon: Target },
     { name: "Logs", href: "/dashboard/logs", icon: FileText },
-<<<<<<< HEAD
-=======
     { name: "FinOps", href: "/dashboard/finops", icon: DollarSign },
->>>>>>> 0bbacf9800842bb21b1c317f29ea73097dcdc963
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Terms", href: "/terms", icon: FileText },
 ];
