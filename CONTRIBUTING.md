@@ -82,7 +82,7 @@ sentinel-devops-agent/
 ```
 
 **Key files to understand:**
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design & components
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System design & components
 - [sentinel-frontend-prd.md](sentinel-frontend-prd.md) - UI/UX specifications
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) - Development guidelines
 
