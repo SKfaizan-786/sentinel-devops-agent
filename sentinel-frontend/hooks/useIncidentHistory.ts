@@ -160,6 +160,27 @@ export function useIncidentHistory({
         fetchIncidents();
     }, [fetchIncidents]);
 
+    // React to WebSocket messages for real-time incident updates
+    useEffect(() => {
+        if (!lastMessage) return;
+
+        if (lastMessage.type === 'INCIDENT_NEW') {
+            const insight = lastMessage.data as InsightPayload;
+            if (!insight) return;
+            const incident = parseInsight(insight);
+
+            setIncidents(prev => {
+                if (prev.some(i => i.id === incident.id)) return prev;
+                return [incident, ...prev];
+            });
+        } else if (lastMessage.type === 'INCIDENT_RESOLVED') {
+            const { id } = lastMessage.data;
+            setIncidents(prev =>
+                prev.map(i => i.id === id ? { ...i, status: 'resolved' as const } : i)
+            );
+        }
+    }, [lastMessage]);
+
     // Extract all unique services
     const allServices = useMemo(() => {
         const services = new Set(incidents.map((i) => i.serviceId));
