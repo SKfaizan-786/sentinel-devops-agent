@@ -54,7 +54,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
       if (!isMountedRef.current) return;
       try {
         const data = JSON.parse(event.data);
-        setLastMessage(data);
+        setLastMessage(prev => prev ? [...prev, data] : [data]);
         onMessageRef.current?.(data);
       } catch (e) {
         console.error("Failed to parse WebSocket message:", e);
@@ -83,7 +83,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
     };
 
     wsRef.current = ws;
-  }, [reconnectInterval, enabled]);
+  }, []);
 
   // Update ref whenever connect changes
   useEffect(() => {
