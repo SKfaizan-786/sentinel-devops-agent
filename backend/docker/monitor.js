@@ -1,7 +1,4 @@
-const { docker } = require('./client');
-const flapDetector = require('../lib/flap-detector');
-const alertCorrelator = require('../lib/alert-correlator');
-const dependencyGraph = require('../lib/dependency-graph');
+const { docker, hostManager } = require('./client');
 const { scanImage } = require('../security/scanner');
 const EventEmitter = require('events');
 const metricsStore = require('../db/metrics-store');
@@ -30,18 +27,45 @@ class ContainerMonitor extends EventEmitter {
         this.containerNames = new Map();
         this.lastInspectTimes = new Map();
         this.lastPredictTimes = new Map();
+        // Track container-to-host mapping for multi-host support
+        this.containerHosts = new Map();
     }
 
-    async init() {
-        if (this.isRunning) return;
-        this.isRunning = true;
+    /**
+     * Start monitoring a container (supports compound IDs)
+     * @param {string} compoundId - Compound ID (hostId:containerId) or raw containerId
+     * @param {string} hostId - Optional explicit host ID
+     */
+    async startMonitoring(compoundId, hostId = null) {
+        // Use compound ID as the key for all maps
+        if (this.watchers.has(compoundId)) return;
 
-        console.log('🚀 Initializing Docker Event-Driven Monitor with Analytics...');
+        // Parse compound ID to get host and container
+        const parsed = hostManager.parseId(compoundId);
+        const targetHostId = hostId || parsed.hostId;
+        const containerId = parsed.containerId || compoundId;
+
+        // Get the appropriate Docker client
+        const client = hostManager.initialized 
+            ? hostManager.getClient(targetHostId) 
+            : docker;
+
+        if (!client) {
+            console.error(`[Monitor] No client available for host '${targetHostId}'`);
+            return;
+        }
 
         try {
-            const eventStream = await docker.getEvents({
-                filters: { type: ['container'], event: ['start', 'stop', 'die', 'destroy'] }
-            });
+            const container = client.getContainer(containerId);
+            const data = await container.inspect();
+            const imageId = data.Image;
+            
+            // Track initial restart count
+            this.restartCounts.set(compoundId, data.RestartCount || 0);
+            // Track container name
+            this.containerNames.set(compoundId, data.Name.replace(/^\//, ''));
+            // Track which host this container is on
+            this.containerHosts.set(compoundId, targetHostId);
 
             let eventBuffer = '';
             eventStream.on('data', (chunk) => {
@@ -258,7 +282,8 @@ class ContainerMonitor extends EventEmitter {
         const timer = setInterval(() => {
             scanImage(imageId).catch(() => {});
         }, interval);
-        this.securityTimers.set(containerId, timer);
+
+        this.securityTimers.set(compoundId, timer);
     }
 
     parseStats(stats) {
@@ -309,8 +334,40 @@ class ContainerMonitor extends EventEmitter {
         return parseFloat((bytes / Math.pow(k, safeIndex)).toFixed(2)) + ' ' + sizes[safeIndex];
     }
 
-    getMetrics(containerId) {
-        return this.metrics.get(containerId);
+    getMetrics(compoundId) {
+        return this.metrics.get(compoundId);
+    }
+
+    /**
+     * Get all metrics aggregated across hosts
+     * @returns {Object} Map of compoundId -> metrics
+     */
+    getAllMetrics() {
+        return Object.fromEntries(this.metrics);
+    }
+
+    /**
+     * Get metrics for a specific host
+     * @param {string} hostId - Host ID
+     * @returns {Object} Map of compoundId -> metrics for that host
+     */
+    getMetricsByHost(hostId) {
+        const result = {};
+        for (const [compoundId, metrics] of this.metrics) {
+            if (this.containerHosts.get(compoundId) === hostId) {
+                result[compoundId] = metrics;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get host ID for a container
+     * @param {string} compoundId - Container compound ID
+     * @returns {string|undefined} Host ID
+     */
+    getContainerHost(compoundId) {
+        return this.containerHosts.get(compoundId);
     }
 
     async checkContainerHealth(containerId) {

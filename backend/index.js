@@ -43,6 +43,9 @@ const { routeEvent } = require('./config/notifications');
 const { handleDatabaseError } = require('./utils/errorHandler');
 const { validateForDevelopment } = require('./utils/envValidator');
 
+// Hosts Routes for multi-host Docker support
+const hostsRoutes = require('./routes/hosts.routes');
+
 const pendingApprovals = new Map();
 
 function executeHealing(incident) {
@@ -96,7 +99,7 @@ const incidentsRoutes = require('./routes/incidents.routes');
 const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
-const { requireAuth } = require('./auth/middleware');
+const { requireAuth, requireRole } = require('./auth/middleware');
 
 // Distributed Traces Routes
 const traceRoutes = require('./routes/traces.routes');
@@ -148,6 +151,9 @@ app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/incidents', incidentsRoutes);
 app.use('/api/approvals', approvalsRoutes);
+
+// Multi-host Docker Routes
+app.use('/api/hosts', requireAuth, requireRole('Admin'), hostsRoutes);
 
 // FinOps Routes
 app.use('/api/finops', finopsRoutes);
@@ -694,7 +700,7 @@ const requireDockerAuth = (req, res, next) => {
   next();
 };
 
-app.get('/api/settings/notifications', requireDockerAuth, (req, res) => {
+app.get('/api/settings/notifications', requireAuth, (req, res) => {
   const settings = require('./config/notifications').getSettings();
   const isConfigured = (url) => !!url;
   res.json({
@@ -706,7 +712,7 @@ app.get('/api/settings/notifications', requireDockerAuth, (req, res) => {
   });
 });
 
-app.post('/api/settings/notifications', requireDockerAuth, (req, res) => {
+app.post('/api/settings/notifications', requireAuth, (req, res) => {
   const { slackWebhook, discordWebhook, teamsWebhook, notifyOnNewIncident, notifyOnHealing } = req.body;
 
   const updates = {};
@@ -722,7 +728,7 @@ app.post('/api/settings/notifications', requireDockerAuth, (req, res) => {
   res.json({ success: true, message: 'Settings saved successfully' });
 });
 
-app.post('/api/settings/notifications/test', requireDockerAuth, async (req, res) => {
+app.post('/api/settings/notifications/test', requireAuth, async (req, res) => {
   const { platform, webhookUrl } = req.body;
   const testIncident = {
     id: `MOCK-${Date.now()}`,
@@ -774,11 +780,13 @@ const validateScaleParams = (req, res, next) => {
   next();
 };
 
-app.get('/api/docker/containers', async (req, res) => {
+app.get('/api/docker/containers', requireAuth, async (req, res) => {
   try {
-    const containers = await listContainers();
-    // Monitor initialization is now global and event-driven via monitor.init()
-    // No need to aggressively start monitoring on every list request
+    // Support host filtering via query parameter
+    const hostId = req.query.hostId || null;
+    const containers = await listContainers({}, hostId);
+    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
+    await Promise.allSettled(containers.map(c => containerMonitor.startMonitoring(c.id)));
 
     const enrichedContainers = containers.map(c => {
       const tracker = restartTracker.get(c.id) || { attempts: 0, lastAttempt: 0 };
@@ -793,8 +801,25 @@ app.get('/api/docker/containers', async (req, res) => {
     // Broadcast container updates to all WebSocket clients
     wsBroadcaster.broadcast('CONTAINER_UPDATE', { containers: enrichedContainers });
 
-    res.json({ containers: enrichedContainers });
+    // Include host summary only for Admin users (prevents host topology leakage)
+    const isAdmin = req.user?.roles?.includes('Admin');
+    const hostSummary = isAdmin ? hostManager.getAll().map(h => ({
+      id: h.id,
+      label: h.label,
+      status: h.status,
+      containersRunning: h.containersRunning || 0
+    })) : undefined;
+
+    const response = { containers: enrichedContainers };
+    if (hostSummary) {
+      response.hosts = hostSummary;
+    }
+
+    res.json(response);
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
+    }
     res.status(500).json(ERRORS.DOCKER_CONNECTION().toJSON());
   }
 });
@@ -816,7 +841,7 @@ app.get('/api/docker/metrics/:id', validateId, (req, res) => {
   res.json(metrics);
 });
 
-app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (req, res) => {
+app.post('/api/docker/try-restart/:id', requireAuth, validateId, async (req, res) => {
   const id = req.params.id;
   const now = Date.now();
   let tracker = restartTracker.get(id) || { attempts: 0, lastAttempt: 0 };
@@ -869,7 +894,7 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
   }
 });
 
-app.post('/api/docker/recreate/:id', requireDockerAuth, validateId, async (req, res) => {
+app.post('/api/docker/recreate/:id', requireAuth, validateId, async (req, res) => {
   try {
     const result = await healer.recreateContainer(req.params.id);
     res.json(result);
@@ -878,7 +903,7 @@ app.post('/api/docker/recreate/:id', requireDockerAuth, validateId, async (req, 
   }
 });
 
-app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScaleParams, async (req, res) => {
+app.post('/api/docker/scale/:service/:replicas', requireAuth, validateScaleParams, async (req, res) => {
   try {
     const result = await healer.scaleService(req.params.service, req.params.replicas);
     res.json(result);
@@ -940,8 +965,17 @@ app.get('/api/predictions/:id', validateId, (req, res) => {
 
 let globalWsBroadcaster;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Sentinel Backend running on http://0.0.0.0:${PORT}`);
+  
+  // Initialize multi-host Docker manager
+  try {
+    await hostManager.initialize();
+    console.log(`🐳 Docker Host Manager initialized with ${hostManager.getConnected().length} connected host(s)`);
+  } catch (err) {
+    console.warn('⚠️ Docker Host Manager initialization failed:', err.message);
+  }
+  
   // Start FinOps metrics collector
   startFinOpsCollector();
 });
