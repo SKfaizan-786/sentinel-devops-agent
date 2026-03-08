@@ -281,7 +281,7 @@ async function analyzeSystemHealth() {
     systemStatus.aiAnalysis = report;
 
     const insight = {
-      id: Date.now(),
+      id: uuidv4(),
       timestamp: new Date(),
       analysis: report,
       summary: report
