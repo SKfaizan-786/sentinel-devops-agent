@@ -55,4 +55,3 @@ export function filterItems<T>(items: T[], query: string, fields: (keyof T)[]): 
         });
     });
 }
-}
