@@ -444,7 +444,7 @@ sentinel simulate auth down
 | Document | Content |
 |:--------:|:--------|
 | [**DOCUMENTATION.md**](docs/DOCUMENTATION.md) | Complete docs index |
-| [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) | System design deep-dive |
+| [**ARCHITECTURE.md**](./ARCHITECTURE.md) | System design deep-dive |
 | [**DEVELOPMENT.md**](docs/DEVELOPMENT.md) | Setup & development guide |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | How to contribute |
 | [**SECURITY.md**](docs/SECURITY.md) | Security policy & disclosure |

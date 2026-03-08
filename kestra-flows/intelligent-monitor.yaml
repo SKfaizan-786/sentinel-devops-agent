@@ -213,8 +213,7 @@ tasks:
 
       - id: validate_ai_prediction
         type: io.kestra.plugin.scripts.node.Script
-        inputFiles:
-          main.js: |
+        script: |
             const fs = require('fs');
             
             try {
@@ -245,8 +244,7 @@ tasks:
                 raw_content: aiContent
               };
               
-              // Write validated output
-              fs.writeFileSync('/output/validation_result.json', JSON.stringify(validatedData, null, 2));
+              fs.writeFileSync('{{ outputDir }}/validation_result.json', JSON.stringify(validatedData, null, 2));
               console.log('✅ AI prediction validated successfully');
               
             } catch (error) {
@@ -262,7 +260,7 @@ tasks:
                 raw_content: "AI output parsing failed"
               };
               
-              fs.writeFileSync('/output/validation_result.json', JSON.stringify(fallbackData, null, 2));
+              fs.writeFileSync('{{ outputDir }}/validation_result.json', JSON.stringify(fallbackData, null, 2));
             }
         outputFiles:
           - validation_result.json
@@ -272,7 +270,7 @@ tasks:
         message: |
           🤖 SENTINEL AI REPORT:
           {% set validation = outputs['validate_ai_prediction'] | default({}) %}
-          {% set result = validation.files['validation_result.json'] | default('{}') | fromJson %}
+          {% set result = read(outputs['validate_ai_prediction'].outputFiles['validation_result.json']) | default('{}') | fromJson %}
           {% if result.status == 'valid' %}
           ✅ Validated AI Prediction:
           - Confidence Score: {{ result.confidence_score | default('N/A') }}
