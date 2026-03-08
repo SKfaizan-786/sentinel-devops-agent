@@ -3,6 +3,7 @@
 import { Incident } from "@/lib/mockData";
 import { Zap, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface IncidentDetailProps {
     incident: Incident;
@@ -10,6 +11,18 @@ interface IncidentDetailProps {
 }
 
 export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProps) {
+    const { addNotification } = useNotifications();
+
+    const handleViewReasoning = () => {
+        if (!onViewReasoning) return;
+        onViewReasoning(incident.id);
+        addNotification({
+            type: "info",
+            title: "Loading agent reasoning",
+            message: `Fetching AI analysis for incident ${incident.id}.`,
+        });
+    };
+
     return (
         <div className="p-4 bg-black/20 border-t border-white/5 space-y-4">
             {/* Root Cause & Agent Action */}
@@ -75,12 +88,13 @@ export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProp
                 </div>
             )}
 
-            {/* Actions */}
+            {/* Actions - Fix 5: disabled when onViewReasoning is not provided */}
             <div className="flex justify-end pt-2">
                 <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => onViewReasoning?.(incident.id)}
+                    disabled={!onViewReasoning}
+                    onClick={handleViewReasoning}
                 >
                     <Search className="h-3 w-3 mr-2" />
                     View Agent Reasoning
