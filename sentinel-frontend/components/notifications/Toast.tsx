@@ -56,7 +56,7 @@ export const ToastContainer = () => {
             });
         }, 0);
     }
-  }, [notifications, mountedAt, processedIds]);
+  }, [notifications, mountedAt, processedIds, setVisibleToasts]);
 
   // Handle auto-dismissal
   useEffect(() => {
@@ -69,7 +69,7 @@ export const ToastContainer = () => {
 
       return () => clearInterval(timer);
     }
-  }, [visibleToasts]);
+  }, [visibleToasts, setVisibleToasts]);
 
   const dismissToast = (id: string) => {
     setVisibleToasts((prev) => prev.filter((n) => n.id !== id));
