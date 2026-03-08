@@ -16,10 +16,13 @@ Sentinel provides a pre-built Grafana dashboard to visualize container health, i
 
 ### Dashboard Features
 
-- **Container Health Heatmap**: Visualizes the status of all managed containers.
+- **Container Health Heatmap**: Visualizes the status of all managed containers using `sentinel_container_health`.
 - **Incident Timeline**: Correlates Prometheus alerts with Sentinel AI investigations.
-- **MTTR Trend**: Tracks Mean Time To Resolution for automated healing actions.
-- **AI Accuracy**: Visualizes confidence scores of AI analysis over time.
+- **AI Accuracy & Healing Success**: A gauge showing the ratio of successful resolutions to total incidents.
+- **MTTR Trend**: Tracks Resolution Rate over time to measure system recovery efficiency.
+
+![Sentinel Dashboard Preview](https://raw.githubusercontent.com/vedhapprakashni/sentinel-devops-agent/prometheus/docs/images/dashboard-preview.png)
+*Figure 1: The enhanced Sentinel Grafana dashboard showing health heatmap and AI insights.*
 
 ---
 
@@ -29,13 +32,14 @@ Sentinel can ingest alerts from Alertmanager to trigger automated AI investigati
 
 ### Configuration
 
-Add the following receiver configuration to your `alertmanager.yml`:
+1. **Security Token**: Generate a secure string and set it as `ALERTMANAGER_SECRET` in your Sentinel `.env` file.
+2. **Alertmanager Setup**: Add the following receiver configuration to your `alertmanager.yml`, ensuring you include the `token` parameter.
 
 ```yaml
 receivers:
 - name: 'sentinel-webhook'
   webhook_configs:
-  - url: 'http://<sentinel-backend-host>:4000/api/webhooks/alertmanager'
+  - url: 'http://<sentinel-backend-host>:4000/api/webhooks/alertmanager?token=<YOUR_SECRET_TOKEN>'
     send_resolved: true
 
 route:
@@ -44,6 +48,7 @@ route:
 ```
 
 ### How it Works
+...
 
 1. **Alert Firing**: When Prometheus detects an issue (e.g., High CPU), Alertmanager sends a webhook to Sentinel.
 2. **Sentinel Ingestion**: Sentinel receives the alert, logs it in the activity feed, and creates a "Prometheus Investigation" incident.

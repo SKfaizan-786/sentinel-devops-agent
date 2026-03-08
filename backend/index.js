@@ -9,6 +9,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const monitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const { v4: uuidv4 } = require('uuid');
 
 // RBAC Routes
 const authRoutes = require('./routes/auth.routes');
@@ -156,7 +157,7 @@ app.post('/api/kestra-webhook', (req, res) => {
     systemStatus.aiAnalysis = aiReport;
     // Create an incident/insight object
     const insight = {
-      id: Date.now(),
+      id: uuidv4(),
       timestamp: new Date(),
       analysis: aiReport,
       summary: aiReport
@@ -194,9 +195,43 @@ app.post('/api/kestra-webhook', (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  
+  let metrics = '';
+  
+  // Sentinel health metrics
+  metrics += '# HELP sentinel_container_health Container health status (1=healthy, 0=unhealthy)\n';
+  metrics += '# TYPE sentinel_container_health gauge\n';
+  Object.keys(systemStatus.services).forEach(name => {
+    const val = systemStatus.services[name].status === 'healthy' ? 1 : 0;
+    metrics += `sentinel_container_health{name="${name}"} ${val}\n`;
+  });
+
+  // Incidents count (from aiLogs for simplicity in this mvp)
+  metrics += '\n# HELP sentinel_incidents_total Total number of critical/degraded incidents detected\n';
+  metrics += '# TYPE sentinel_incidents_total counter\n';
+  const incidentCount = aiLogs.filter(l => l.type === 'PROMETHEUS_INVESTIGATION' || l.analysis.includes('CRITICAL')).length;
+  metrics += `sentinel_incidents_total ${incidentCount}\n`;
+
+  // Healing success rate (placeholder for future actual tracking)
+  metrics += '\n# HELP sentinel_healing_success_total Total successful auto-healing actions\n';
+  metrics += '# TYPE sentinel_healing_success_total counter\n';
+  metrics += `sentinel_healing_success_total ${activityLog.filter(l => l.type === 'success' && l.message.includes('recovered')).length}\n`;
+
+  res.send(metrics);
+});
+
 // --- PROMETHEUS ALERTMANAGER WEBHOOK ---
 app.post('/api/webhooks/alertmanager', async (req, res) => {
   const { alerts, status: groupStatus } = req.body;
+  const token = req.query.token;
+  const SECRET = process.env.ALERTMANAGER_SECRET || 'sentinel-secret-123';
+
+  if (token !== SECRET) {
+    console.error('[ALERTMANAGER] Unauthorized webhook attempt');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   if (!alerts || !Array.isArray(alerts)) {
     return res.status(400).json({ error: 'Invalid Alertmanager payload' });
@@ -205,48 +240,59 @@ app.post('/api/webhooks/alertmanager', async (req, res) => {
   console.log(`[ALERTMANAGER] Received ${alerts.length} alerts with status: ${groupStatus}`);
 
   for (const alert of alerts) {
-    const status = alert.status || groupStatus;
-    const alertName = alert.labels.alertname || 'Unknown Alert';
-    const severity = alert.labels.severity || 'info';
-    const instance = alert.labels.instance || 'unknown';
-    const summary = alert.annotations.summary || alert.annotations.description || 'No summary provided';
+    try {
+      const status = alert.status || groupStatus || 'unknown';
+      const labels = alert.labels || {};
+      const annotations = alert.annotations || {};
+      
+      const alertName = labels.alertname || 'Unknown Alert';
+      const severity = labels.severity || 'info';
+      const instance = labels.instance || 'unknown';
+      const summary = annotations.summary || annotations.description || 'No summary provided';
 
-    const logSeverity = status === 'firing' ? (severity === 'critical' ? 'alert' : 'warn') : 'success';
-    logActivity(logSeverity, `Prometheus Alert [${status.toUpperCase()}]: ${alertName} on ${instance} - ${summary}`);
+      const logSeverity = status === 'firing' ? (severity === 'critical' ? 'alert' : 'warn') : 'success';
+      logActivity(logSeverity, `Prometheus Alert [${status.toUpperCase()}]: ${alertName} on ${instance} - ${summary}`);
 
-    if (status === 'firing') {
-      // Trigger "AI Investigation"
-      const investigationId = Date.now();
-      const insight = {
-        id: investigationId,
-        timestamp: new Date(),
-        type: 'PROMETHEUS_INVESTIGATION',
-        alertName,
-        severity,
-        instance,
-        summary,
-        status: 'investigating',
-        analysis: `🔍 Sentinel AI is investigating ${alertName} on ${instance}...\n\n` +
-          `Detected: ${summary}\n` +
-          `Severity: ${severity.toUpperCase()}\n\n` +
-          `Rule: Check logs for ${instance} and verify service health.`
-      };
+      if (status === 'firing') {
+        // Trigger "AI Investigation"
+        const investigationId = uuidv4();
+        const insight = {
+          id: investigationId,
+          timestamp: new Date(),
+          type: 'PROMETHEUS_INVESTIGATION',
+          alertName,
+          severity,
+          instance,
+          summary,
+          status: 'investigating',
+          analysis: `🔍 Sentinel AI is investigating ${alertName} on ${instance}...\n\n` +
+            `Detected: ${summary}\n` +
+            `Severity: ${severity.toUpperCase()}\n\n` +
+            `Rule: Check logs for ${instance} and verify service health.`
+        };
 
-      aiLogs.unshift(insight);
-      if (aiLogs.length > 50) aiLogs.pop();
+        aiLogs.unshift(insight);
+        if (aiLogs.length > 50) aiLogs.pop();
 
-      // Broadcast the new incident
-      wsBroadcaster.broadcast('INCIDENT_NEW', insight);
+        // Broadcast the new incident
+        wsBroadcaster.broadcast('INCIDENT_NEW', insight);
 
-      // Attempt to trigger Kestra if available
-      try {
+        // Dispatch Kestra investigation
         const kestraEndpoint = process.env.KESTRA_ENDPOINT || 'http://localhost:8080';
-        console.log(`[AI] Triggering investigation for ${alertName} via Kestra (if configured)`);
-        // Placeholder for Kestra API call:
-        // await axios.post(`${kestraEndpoint}/api/v1/executions/sentinel/intelligent-monitor`, {});
-      } catch (err) {
-        console.error(`[AI] Failed to trigger Kestra: ${err.message}`);
+        try {
+          console.log(`[AI] Dispatching investigation for ${alertName} to Kestra at ${kestraEndpoint}`);
+          await axios.post(`${kestraEndpoint}/api/v1/executions/sentinel/intelligent-monitor`, {
+            alert: alertName,
+            instance: instance,
+            severity: severity,
+            summary: summary
+          }, { timeout: 2000 });
+        } catch (err) {
+          console.warn(`[AI] Kestra dispatch failed (is Kestra running?): ${err.message}`);
+        }
       }
+    } catch (err) {
+      console.error(`[ALERTMANAGER] Error processing individual alert: ${err.message}`);
     }
   }
 
