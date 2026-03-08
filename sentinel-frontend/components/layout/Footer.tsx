@@ -26,9 +26,9 @@ const footerLinks = {
 };
 
 const socialLinks = [
-    { icon: Github, href: "https://github.com/SKfaizan-786/sentinel-devops-agent", label: "GitHub" },
+    { icon: Github, href: "https://github.com/vallabhatech/sentinel-devops-agent", label: "GitHub" },
     { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: Mail, href: "mailto:contact@sentinel.ai", label: "Email" },
+    { icon: Mail, href: "mailto:contact@sentinel.dev", label: "Email" },
 ];
 
 export function Footer() {
@@ -42,7 +42,7 @@ export function Footer() {
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
 
             <div className="container px-4 md:px-6 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
                     {/* Brand Column */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -103,12 +103,61 @@ export function Footer() {
                         </ul>
                     </motion.div>
 
+                    {/* Contact Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.15 }}
+                        className="space-y-4"
+                    >
+                        <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+                            Get in Touch
+                        </h3>
+                        <div className="space-y-4">
+                            <a
+                                href="mailto:contact@sentinel.dev"
+                                className="flex items-center gap-3 group"
+                            >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-cyan-400 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-all duration-300">
+                                    <Mail className="h-4 w-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors duration-200">
+                                        Email Us
+                                    </span>
+                                    <span className="text-xs text-zinc-500">
+                                        contact@sentinel.dev
+                                    </span>
+                                </div>
+                            </a>
+                            <a
+                                href="https://github.com/vallabhatech/sentinel-devops-agent"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 group"
+                            >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-cyan-400 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-all duration-300">
+                                    <Github className="h-4 w-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors duration-200">
+                                        GitHub
+                                    </span>
+                                    <span className="text-xs text-zinc-500">
+                                        View Repository
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                    </motion.div>
+
                     {/* Legal Links */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
+                        transition={{ duration: 0.5, delay: 0.25 }}
                     >
                         <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
                             Legal
@@ -132,7 +181,7 @@ export function Footer() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
+                        transition={{ duration: 0.5, delay: 0.35 }}
                     >
                         <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
                             Why Sentinel
