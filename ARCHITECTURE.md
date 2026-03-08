@@ -131,6 +131,42 @@ Distributed services that demonstrate the monitoring capabilities and provide re
 
 The Sentinel system follows a sophisticated data flow pattern that ensures real-time monitoring and predictive analysis:
 
+### System Data Flow
+
+```mermaid
+graph TD
+    CLI[Sentinel CLI Tool] --> KW[Kestra AI Workflow]
+    KW -->|Health Check APIs| MS[Microservices]
+    MS -->|Health Status| KW
+    KW -->|AI Analysis| LLM[LLaMA 3.3-70B]
+    LLM -->|Raw Predictions| KW
+    KW -->|Schema Validation| SV[Validation Task]
+    SV -->|Validated Data| WH[Webhook to Backend]
+    WH --> BS[Node.js Backend]
+    BS -->|Store Data| PG[PostgreSQL Database]
+    BS -->|Broadcast| WS[WebSocket Server]
+    WS --> FD[Frontend Dashboard]
+    PG -->|Historical Data| FD
+    
+    subgraph "AI Processing Pipeline"
+        LLM
+        SV
+    end
+    
+    subgraph "Data Storage"
+        PG
+    end
+    
+    subgraph "Real-time Communication"
+        WS
+        FD
+    end
+    
+    subgraph "Microservices"
+        MS
+    end
+```
+
 ### Monitoring Pipeline
 1. **Service Health Collection**: Kestra workflows poll all microservices
 2. **AI Processing**: Health data analyzed by LLaMA 3.3-70B model
@@ -144,6 +180,92 @@ The Sentinel system follows a sophisticated data flow pattern that ensures real-
 - **WebSockets**: Persistent connections for real-time updates
 - **CLI Integration**: Direct system interaction via command line
 - **Inter-Service Communication**: Docker network-based service communication
+
+## 🗄️ Database Schema Overview
+
+### Primary Tables Structure
+
+```mermaid
+erDiagram
+    ACTIVITY_LOGS {
+        bigint id PK
+        varchar type
+        text message
+        timestamp timestamp
+        varchar severity
+    }
+    
+    AI_ANALYSIS_REPORTS {
+        bigint id PK
+        text analysis
+        varchar summary
+        float confidence_score
+        boolean predicted_failure
+        varchar status
+        timestamp validation_timestamp
+        text raw_content
+        varchar error
+    }
+    
+    ACTIVITY_LOGS ||--o{ AI_ANALYSIS_REPORTS : "triggers analysis"
+```
+
+### Table Descriptions
+
+#### `activity_logs`
+Stores comprehensive system events and monitoring data for audit trails and historical analysis.
+
+**Columns**:
+- `id` (bigint, Primary Key): Unique identifier for each log entry
+- `type` (varchar): Log category (info, success, warn, alert, error)
+- `message` (text): Detailed log message describing the event
+- `timestamp` (timestamp): When the event occurred
+- `severity` (varchar): Event severity level for filtering and alerting
+
+#### `ai_analysis_reports`
+Contains validated AI predictions with confidence scores and metadata for predictive analysis.
+
+**Columns**:
+- `id` (bigint, Primary Key): Unique identifier for each AI report
+- `analysis` (text): Full AI analysis text from the language model
+- `summary` (varchar): Concise summary of the AI prediction
+- `confidence_score` (float): Validated confidence score (0.0-1.0)
+- `predicted_failure` (boolean): Whether failure is predicted
+- `status` (varchar): Validation status (valid, validation_failed)
+- `validation_timestamp` (timestamp): When the prediction was validated
+- `raw_content` (text): Raw AI output before validation
+- `error` (varchar): Error message if validation failed
+
+### Schema Validation Rules
+
+The system implements strict schema validation to ensure data integrity:
+
+```javascript
+// Validation Rules Applied
+{
+  "confidence_score": {
+    "type": "number",
+    "range": [0.0, 1.0],
+    "required": true
+  },
+  "predicted_failure": {
+    "type": "boolean", 
+    "required": true
+  },
+  "status": {
+    "type": "string",
+    "enum": ["valid", "validation_failed"],
+    "required": true
+  }
+}
+```
+
+### Data Flow Persistence
+
+1. **Event Capture**: All system events are logged to `activity_logs`
+2. **AI Processing**: Validated predictions stored in `ai_analysis_reports`
+3. **Historical Analysis**: Long-term trending and capacity planning
+4. **Audit Trail**: Complete record of system actions and AI decisions
 
 ## 🛡️ Security & Reliability
 
