@@ -1,13 +1,39 @@
 "use client";
 
+import { useMemo } from "react";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { AnalyticsHeader } from "@/components/analytics/AnalyticsHeader";
 import { ResourcesChart } from "@/components/analytics/ResourcesChart";
 import { TrafficChart } from "@/components/analytics/TrafficChart";
 import { PerformanceTable } from "@/components/analytics/PerformanceTable";
+import { useStatus } from "@/hooks/useStatus";
 import { Info } from "lucide-react";
 
 export default function AnalyticsPage() {
+    const { status } = useStatus();
+
+    // Compute health score from real service data
+    const healthScore = useMemo(() => {
+        const services = status?.services;
+        if (!services || typeof services !== 'object') return 0;
+
+        const entries = Object.values(services);
+        if (entries.length === 0) return 0;
+
+        const healthyCount = entries.filter((s: unknown) => {
+            if (typeof s === 'string') return s === 'healthy' || s === 'ok';
+            if (typeof s === 'object' && s !== null && 'status' in s) {
+                const st = (s as { status: string }).status;
+                return st === 'healthy' || st === 'ok';
+            }
+            return false;
+        }).length;
+
+        return Math.round((healthyCount / entries.length) * 100);
+    }, [status]);
+
+    const scoreColor = healthScore >= 80 ? 'text-green-400' : healthScore >= 50 ? 'text-yellow-400' : 'text-red-400';
+
     return (
         <div>
             <DashboardHeader />
@@ -35,9 +61,9 @@ export default function AnalyticsPage() {
                                     <Info className="h-24 w-24" />
                                 </div>
                                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">System Health Score</h3>
-                                <div className="text-5xl font-bold mb-2">98<span className="text-2xl text-muted-foreground">/100</span></div>
-                                <p className="text-xs text-green-400 flex items-center gap-1">
-                                    +2.4% from last week
+                                <div className="text-5xl font-bold mb-2">{healthScore}<span className="text-2xl text-muted-foreground">/100</span></div>
+                                <p className={`text-xs ${scoreColor} flex items-center gap-1`}>
+                                    {healthScore >= 80 ? '✓ Systems operating normally' : healthScore >= 50 ? '⚠ Some services degraded' : '✕ Multiple services down'}
                                 </p>
                             </div>
 
@@ -55,7 +81,7 @@ export default function AnalyticsPage() {
 
                         {/* Regional Map Placeholder (2/3) */}
                         <div className="md:col-span-2 p-6 bg-white/5 border border-gray-400 rounded-xl relative min-h-[300px] flex items-center justify-center overflow-hidden">
-                            <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')] bg-cover opacity-5 grayscale bg-center"></div>
+                            <div className="absolute inset-0 bg-[url('/world-map.svg')] bg-cover opacity-5 grayscale bg-center"></div>
                             <div className="text-center z-10">
                                 <h3 className="text-lg font-semibold mb-2">Global Request Distribution</h3>
                                 <p className="text-muted-foreground text-sm">Interactive map visualization coming soon.</p>

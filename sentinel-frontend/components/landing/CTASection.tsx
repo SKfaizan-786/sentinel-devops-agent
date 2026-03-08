@@ -7,7 +7,7 @@ import { ArrowRight } from "lucide-react";
 
 export function CTASection() {
     return (
-        <section className="py-24 relative overflow-hidden">
+        <section className="py-24 relative overflow-hidden flex items-center justify-center">
             <div className="absolute inset-0 bg-primary/5" />
             <div className="container px-4 md:px-6 relative z-10 text-center">
                 <motion.div

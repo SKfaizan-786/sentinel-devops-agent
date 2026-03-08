@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0",
+    "better-sqlite3": "^12.6.2",
+    "prom-client": "^15.1.3"
+  }
+}
