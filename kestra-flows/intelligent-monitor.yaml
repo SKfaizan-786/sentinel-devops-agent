@@ -211,11 +211,79 @@ tasks:
             "max_tokens": 150
           }
 
+      - id: validate_ai_prediction
+        type: io.kestra.plugin.scripts.node.Script
+        inputFiles:
+          main.js: |
+            const fs = require('fs');
+            
+            try {
+              // Get AI prediction output from previous task
+              const aiOutput = {{ outputs['call-ai'].body | toJsonString }};
+              
+              // Parse AI response
+              const aiResponse = JSON.parse(aiOutput);
+              const aiContent = aiResponse.choices?.[0]?.message?.content;
+              if (!aiContent) throw new Error('Missing AI message content');
+              
+              const parsedPrediction = JSON.parse(aiContent);
+              if (typeof parsedPrediction.confidence_score !== 'number') {
+                throw new Error('confidence_score must be a number');
+              }
+              if (parsedPrediction.confidence_score < 0 || parsedPrediction.confidence_score > 1) {
+                throw new Error('confidence_score must be between 0 and 1');
+              }
+              if (typeof parsedPrediction.predicted_failure !== 'boolean') {
+                throw new Error('predicted_failure must be a boolean');
+              }
+              
+              let validatedData = {
+                confidence_score: parsedPrediction.confidence_score,
+                predicted_failure: parsedPrediction.predicted_failure,
+                status: "valid",
+                validation_timestamp: new Date().toISOString(),
+                raw_content: aiContent
+              };
+              
+              // Write validated output
+              fs.writeFileSync('/output/validation_result.json', JSON.stringify(validatedData, null, 2));
+              console.log('✅ AI prediction validated successfully');
+              
+            } catch (error) {
+              console.error('[Validation Error] AI prediction validation failed:', error.message);
+              
+              // Fallback safe output
+              const fallbackData = {
+                confidence_score: 0,
+                predicted_failure: false,
+                status: "validation_failed",
+                error: error.message,
+                validation_timestamp: new Date().toISOString(),
+                raw_content: "AI output parsing failed"
+              };
+              
+              fs.writeFileSync('/output/validation_result.json', JSON.stringify(fallbackData, null, 2));
+            }
+        outputFiles:
+          - validation_result.json
+
       - id: log-ai-result
         type: io.kestra.plugin.core.log.Log
         message: |
           🤖 SENTINEL AI REPORT:
-          {{ outputs['call-ai'].body | jq(".choices[0].message.content") | first | default("AI analysis unavailable") }}
+          {% set validation = outputs['validate_ai_prediction'] | default({}) %}
+          {% set result = validation.files['validation_result.json'] | default('{}') | fromJson %}
+          {% if result.status == 'valid' %}
+          ✅ Validated AI Prediction:
+          - Confidence Score: {{ result.confidence_score | default('N/A') }}
+          - Predicted Failure: {{ result.predicted_failure | default('N/A') }}
+          - Validation Status: {{ result.status | default('unknown') }}
+          {% else %}
+          ⚠️ AI Validation Failed:
+          - Status: {{ result.status | default('validation_failed') }}
+          - Fallback Applied: confidence_score={{ result.confidence_score | default(0) }}, predicted_failure={{ result.predicted_failure | default(false) }}
+          {% if result.error %}Error: {{ result.error }}{% endif %}
+          {% endif %}
 
   # 7. Push status to dashboard
   - id: push-to-dashboard
@@ -228,14 +296,26 @@ tasks:
       {% set auth = outputs['get-auth'] | default({}) %}
       {% set payment = outputs['get-payment'] | default({}) %}
       {% set notify = outputs['get-notify'] | default({}) %}
-      {% set aiReport = outputs['call-ai'].body | jq(".choices[0].message.content") | first | default("System monitoring active - Auto-healing enabled") %}
+      {% set validation = outputs['validate_ai_prediction'] | default({}) %}
+      {% set aiResult = validation.files['validation_result.json'] | default('{}') | fromJson %}
+      {% set hasAiResult = validation.files is defined and validation.files['validation_result.json'] is defined %}
 
       {
-        "aiReport": {{ aiReport | json }},
+        "aiReport": {% if hasAiResult %}{
+          "confidence_score": {{ aiResult.confidence_score | default(0) }},
+          "predicted_failure": {{ aiResult.predicted_failure | default(false) }},
+          "status": {{ aiResult.status | default('validation_failed') | json }},
+          "validation_timestamp": {{ aiResult.validation_timestamp | default(None) | json }},
+          "raw_content": {{ aiResult.raw_content | default('AI analysis unavailable') | json }}
+        }{% else %}null{% endif %},
         "metrics": {
           "auth": { "code": {{ auth.code | default(500) }} },
           "payment": { "code": {{ payment.code | default(500) }} },
           "notification": { "code": {{ notify.code | default(500) }} }
+        },
+        "validation": {
+          "is_valid": {{ aiResult.status == 'valid' }},
+          "error": {{ aiResult.error | default(None) | json }}
         }
       }
 
