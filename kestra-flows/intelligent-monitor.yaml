@@ -223,49 +223,27 @@ tasks:
               
               // Parse AI response
               const aiResponse = JSON.parse(aiOutput);
-              const aiContent = aiResponse.choices?.[0]?.message?.content || '';
+              const aiContent = aiResponse.choices?.[0]?.message?.content;
+              if (!aiContent) throw new Error('Missing AI message content');
               
-              // Try to extract structured data from AI content
-              let validatedData = {
-                confidence_score: 0,
-                predicted_failure: false,
-                status: "validation_failed",
-                raw_content: aiContent
-              };
-              
-              // Look for confidence indicators and failure predictions
-              const content = aiContent.toLowerCase();
-              
-              // Extract confidence (simple heuristic)
-              if (content.includes('high confidence') || content.includes('very likely')) {
-                validatedData.confidence_score = 0.8;
-              } else if (content.includes('medium confidence') || content.includes('likely')) {
-                validatedData.confidence_score = 0.6;
-              } else if (content.includes('low confidence') || content.includes('uncertain')) {
-                validatedData.confidence_score = 0.3;
-              } else {
-                validatedData.confidence_score = 0.5; // default
-              }
-              
-              // Extract failure prediction
-              if (content.includes('critical') || content.includes('failure') || content.includes('down') || content.includes('unhealthy')) {
-                validatedData.predicted_failure = true;
-              } else {
-                validatedData.predicted_failure = false;
-              }
-              
-              // Validate schema types
-              if (typeof validatedData.confidence_score !== 'number') {
+              const parsedPrediction = JSON.parse(aiContent);
+              if (typeof parsedPrediction.confidence_score !== 'number') {
                 throw new Error('confidence_score must be a number');
               }
-              
-              if (typeof validatedData.predicted_failure !== 'boolean') {
+              if (parsedPrediction.confidence_score < 0 || parsedPrediction.confidence_score > 1) {
+                throw new Error('confidence_score must be between 0 and 1');
+              }
+              if (typeof parsedPrediction.predicted_failure !== 'boolean') {
                 throw new Error('predicted_failure must be a boolean');
               }
               
-              // If validation passes, mark as valid
-              validatedData.status = "valid";
-              validatedData.validation_timestamp = new Date().toISOString();
+              let validatedData = {
+                confidence_score: parsedPrediction.confidence_score,
+                predicted_failure: parsedPrediction.predicted_failure,
+                status: "valid",
+                validation_timestamp: new Date().toISOString(),
+                raw_content: aiContent
+              };
               
               // Write validated output
               fs.writeFileSync('/output/validation_result.json', JSON.stringify(validatedData, null, 2));
