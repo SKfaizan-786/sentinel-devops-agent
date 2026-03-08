@@ -8,6 +8,7 @@
 - **Autonomous Operation**: Minimal human intervention required
 - **Predictive Intelligence**: AI-powered failure prediction using advanced machine learning
 - **Real-Time Response**: Instant detection and healing of infrastructure issues
+- **Human-in-the-Loop**: Critical healing actions require human approval via `/api/approvals/pending` endpoint
 - **Scalable Architecture**: Built to handle enterprise-grade workloads
 
 ## 🛠️ Technology Stack
@@ -147,6 +148,9 @@ graph TD
     BS -->|Broadcast| WS[WebSocket Server]
     WS --> FD[Frontend Dashboard]
     PG -->|Historical Data| FD
+    BS -->|Approval Request| AG[Approval Gate]
+    AG -->|Approve| Heal[Recover Service]
+    AG -->|Reject| Abort[Manual Intervention]
     
     subgraph "AI Processing Pipeline"
         LLM
@@ -164,6 +168,12 @@ graph TD
     
     subgraph "Microservices"
         MS
+    end
+    
+    subgraph "Human-in-the-Loop"
+        AG
+        Heal
+        Abort
     end
 ```
 
@@ -313,7 +323,7 @@ The system implements strict schema validation to ensure data integrity:
 
 ## 📚 Additional Resources
 
-- [API Documentation](./API.md) - Detailed API reference
+- [API Documentation](./docs/API.md) - Detailed API reference
 - [Development Guide](./docs/DEVELOPMENT.md) - Setup and development instructions
 - [Contributing Guide](./CONTRIBUTING.md) - How to contribute to the project
 - [Security Policy](./docs/SECURITY.md) - Security guidelines and disclosure
