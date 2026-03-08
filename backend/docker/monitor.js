@@ -4,6 +4,7 @@ class ContainerMonitor {
     constructor() {
         this.metrics = new Map();
         this.watchers = new Map();
+        this.buffers = new Map();
     }
 
     async startMonitoring(containerId) {
@@ -12,13 +13,29 @@ class ContainerMonitor {
         try {
             const container = docker.getContainer(containerId);
             const stream = await container.stats({ stream: true });
+            
+            this.buffers.set(containerId, '');
 
             stream.on('data', (chunk) => {
                 try {
-                    const stats = JSON.parse(chunk.toString());
-                    this.metrics.set(containerId, this.parseStats(stats));
+                    let buffer = this.buffers.get(containerId) + chunk.toString();
+                    const lines = buffer.split('\n');
+                    
+                    // The last element is either an empty string (if chunk ended in \n) 
+                    // or a partial JSON object.
+                    this.buffers.set(containerId, lines.pop());
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const stats = JSON.parse(line);
+                            this.metrics.set(containerId, this.parseStats(stats));
+                        } catch (parseError) {
+                            // Single line parse error - skip this one but keep going
+                        }
+                    }
                 } catch (e) {
-                    // Ignore parse errors from partial chunks
+                    // Buffer management error
                 }
             });
 
@@ -43,6 +60,7 @@ class ContainerMonitor {
             if (stream.destroy) stream.destroy();
             this.watchers.delete(containerId);
             this.metrics.delete(containerId);
+            this.buffers.delete(containerId);
         }
     }
 
