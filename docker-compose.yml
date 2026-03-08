@@ -13,9 +13,9 @@ services:
     image: postgres:15
     container_name: kestra-postgres
     environment:
-      POSTGRES_USER: kestra
-      POSTGRES_PASSWORD: kestra
-      POSTGRES_DB: kestra
+      POSTGRES_USER: SET_SECURE_USER_HERE
+      POSTGRES_PASSWORD: SET_SECURE_PASSWORD_HERE
+      POSTGRES_DB: SET_SECURE_DB_NAME_HERE
     ports:
       - "5432:5432"
     volumes:
@@ -24,12 +24,12 @@ services:
       - sentinel-net
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U kestra" ]
+      test: [ "CMD-SHELL", "pg_isready -U SET_SECURE_USER_HERE" ]
       interval: 5s
       timeout: 5s
       retries: 5
     # Note: For RBAC system, create separate database 'sentinel_rbac'
-    # Run: docker exec -it kestra-postgres createdb -U kestra sentinel_rbac
+    # Run: docker exec -it kestra-postgres createdb -U SET_SECURE_USER_HERE sentinel_rbac
     # Or use backend/quick-setup.js which handles this automatically
 
   # Kestra Workflow Orchestrator
@@ -47,10 +47,10 @@ services:
       KESTRA_CONFIGURATION: |
         datasources:
           postgres:
-            url: jdbc:postgresql://postgres:5432/kestra
+            url: jdbc:postgresql://postgres:5432/SET_SECURE_DB_NAME_HERE
             driverClassName: org.postgresql.Driver
-            username: kestra
-            password: kestra
+            username: SET_SECURE_USER_HERE
+            password: SET_SECURE_PASSWORD_HERE
         kestra:
           server:
             basic-auth:
