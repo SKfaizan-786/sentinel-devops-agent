@@ -9,6 +9,8 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const monitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const { v4: uuidv4 } = require('uuid');
+const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 
 // RBAC Routes
 const authRoutes = require('./routes/auth.routes');
@@ -50,8 +52,14 @@ function logActivity(type, message) {
     message
   };
   activityLog.unshift(entry);
-  if (activityLog.length > 100) activityLog.pop(); // Keep last 100
+  if (activityLog.length > 100) activityLog.pop(); // Keep last 100 in memory
   console.log(`[LOG] ${type}: ${message}`);
+
+  // Persist to PostgreSQL (fire-and-forget)
+  insertActivityLog(type, message).catch(() => { });
+
+  // Broadcast the new log entry
+  wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
 }
 
 // WebSocket Broadcaster
@@ -142,12 +150,28 @@ app.get('/api/status', (req, res) => {
   res.json(systemStatus);
 });
 
-app.get('/api/activity', (req, res) => {
-  res.json({ activity: activityLog.slice(0, 50) });
+app.get('/api/activity', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { logs, total } = await getActivityLogs(limit, offset);
+    res.json({ activity: logs, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory
+    res.json({ activity: activityLog.slice(offset, offset + limit) });
+  }
 });
 
-app.get('/api/insights', (req, res) => {
-  res.json({ insights: aiLogs.slice(0, 20) });
+app.get('/api/insights', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { reports, total } = await getAIReports(limit, offset);
+    res.json({ insights: reports, total, limit, offset });
+  } catch (err) {
+    // Fallback to in-memory
+    res.json({ insights: aiLogs.slice(offset, offset + limit) });
+  }
 });
 
 app.post('/api/kestra-webhook', (req, res) => {
@@ -156,13 +180,16 @@ app.post('/api/kestra-webhook', (req, res) => {
     systemStatus.aiAnalysis = aiReport;
     // Create an incident/insight object
     const insight = {
-      id: Date.now(),
+      id: uuidv4(),
       timestamp: new Date(),
       analysis: aiReport,
       summary: aiReport
     };
     aiLogs.unshift(insight);
     if (aiLogs.length > 50) aiLogs.pop();
+
+    // Persist to PostgreSQL (fire-and-forget)
+    insertAIReport(aiReport, aiReport).catch(() => { });
 
     logActivity('info', 'Received new AI Analysis report');
 
