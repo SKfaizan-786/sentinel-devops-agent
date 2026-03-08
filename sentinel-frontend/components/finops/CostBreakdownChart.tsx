@@ -14,7 +14,7 @@ const COLORS = [
     'hsl(162, 60%, 50%)',   // chart-2 teal
     'hsl(40, 80%, 55%)',    // chart-3 amber
     'hsl(290, 60%, 55%)',   // chart-4 violet
-    'hsl(10, 70%, 55%)',    // chart-5 coral
+    'hsl(10, 70%, 55%)',    // coral
     'hsl(200, 70%, 55%)',   // cyan
     'hsl(130, 50%, 50%)',   // green
     'hsl(330, 60%, 55%)',   // pink
@@ -40,10 +40,10 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
         <div className="bg-background/95 backdrop-blur-sm border border-white/10 rounded-lg p-3 shadow-xl">
             <p className="text-sm font-medium mb-1">{data.name}</p>
             <p className="text-xs text-muted-foreground">
-                Allocated: <span className="text-foreground font-medium">{data.allocated} MB</span>
+                Allocated: <span className="text-foreground font-medium">{Number(data.allocated || 0).toFixed(2)} MB</span>
             </p>
             <p className="text-xs text-muted-foreground">
-                Used: <span className="text-foreground font-medium">{data.used} MB</span>
+                Used: <span className="text-foreground font-medium">{Number(data.used || 0).toFixed(2)} MB</span>
             </p>
         </div>
     );

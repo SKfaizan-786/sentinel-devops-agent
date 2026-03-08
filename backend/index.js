@@ -14,6 +14,7 @@ const axios = require('axios');
 const { listContainers, getContainerHealth } = require('./docker/client');
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const scalingPredictor = require('./docker/scaling-predictor');
 const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 const { routeEvent } = require('./config/notifications');
 
@@ -66,6 +67,7 @@ const { startCollectors } = require('./metrics/collectors');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const incidentsRoutes = require('./routes/incidents.routes');
 const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -119,6 +121,7 @@ app.use(express.urlencoded({
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/incidents', incidentsRoutes);
 app.use('/api/approvals', approvalsRoutes);
 
 // FinOps Routes
@@ -147,6 +150,9 @@ let systemStatus = {
 let activityLog = [];
 let aiLogs = [];
 let nextLogId = 1;
+
+// Expose aiLogs to route handlers (used by /api/incidents/correlated)
+app.locals.aiLogs = aiLogs;
 
 function logActivity(type, message) {
   const entry = {
@@ -548,8 +554,8 @@ const validateScaleParams = (req, res, next) => {
 app.get('/api/docker/containers', async (req, res) => {
   try {
     const containers = await listContainers();
-    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
-    await Promise.allSettled(containers.map(c => containerMonitor.startMonitoring(c.id)));
+    // Monitor initialization is now global and event-driven via monitor.init()
+    // No need to aggressively start monitoring on every list request
 
     // Enrich with smart restart meta
     const enrichedContainers = containers.map(c => {
@@ -632,7 +638,7 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
       const containers = await listContainers();
       const enriched = containers.map(c => ({
         ...c,
-        metrics: monitor.getMetrics(c.id),
+        metrics: containerMonitor.getMetrics(c.id),
         restartCount: (restartTracker.get(c.id) || { attempts: 0 }).attempts,
         lastRestart: (restartTracker.get(c.id) || { lastAttempt: 0 }).lastAttempt
       }));
@@ -663,6 +669,57 @@ app.post('/api/docker/scale/:service/:replicas', requireDockerAuth, validateScal
   }
 });
 
+app.post('/api/docker/scale-bulk', requireDockerAuth, async (req, res) => {
+  try {
+    const aiDecisionStr = req.body.aiDecision;
+    let decisions = [];
+    if (typeof aiDecisionStr === 'string') {
+      try {
+        const match = aiDecisionStr.match(/\[.*\]/s);
+        decisions = JSON.parse(match ? match[0] : aiDecisionStr);
+      } catch (e) {
+        console.error('Failed to parse AI scale decisions', e);
+        return res.status(400).json({ success: false, error: 'Invalid AI payload format' });
+      }
+    } else if (Array.isArray(aiDecisionStr)) {
+      decisions = aiDecisionStr;
+    } else {
+      decisions = [aiDecisionStr];
+    }
+
+    const results = [];
+    for (const d of decisions) {
+      if (d && d.action === 'scale-out' && d.service && d.replicas) {
+        logActivity('info', `Proactively scaling ${d.service} to ${d.replicas} based on AI decision`);
+        const result = await healer.scaleService(d.service, d.replicas);
+        results.push(result);
+      }
+    }
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Scale bulk error:', error);
+    res.status(500).json(ERRORS.ACTION_FAILED().toJSON());
+  }
+});
+
+// --- PREDICTION ENDPOINTS ---
+
+app.get('/api/predictions', (req, res) => {
+  const predictions = scalingPredictor.getPredictions();
+  const evaluatedAt = predictions.length > 0
+    ? predictions.reduce((latest, p) => p.evaluatedAt > latest ? p.evaluatedAt : latest, predictions[0].evaluatedAt)
+    : new Date().toISOString();
+  res.json({ predictions, evaluatedAt });
+});
+
+app.get('/api/predictions/:id', validateId, (req, res) => {
+  const prediction = scalingPredictor.getPrediction(req.params.id);
+  if (!prediction) {
+    return res.status(404).json({ error: 'No prediction available for this container' });
+  }
+  res.json(prediction);
+});
+
 let globalWsBroadcaster;
 
 // Start the server (secrets are already initialized by start.js)
@@ -674,9 +731,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 // Setup WebSocket
 globalWsBroadcaster = setupWebSocket(server);
+wsBroadcaster = globalWsBroadcaster; // Synergize both references
 serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
-// Listen for container predictions
+// Initialize Predictive Scaling Engine
+scalingPredictor.init(containerMonitor, globalWsBroadcaster);
+
+// React to scale recommendations
+scalingPredictor.on('scale-recommendation', (prediction) => {
+  logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
+});
+
+// Listen for container predictions - MUST be before init to catch startup predictions
 containerMonitor.on('prediction', (prediction) => {
   if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
     incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
@@ -690,6 +756,9 @@ containerMonitor.on('prediction', (prediction) => {
     globalWsBroadcaster.broadcast('PREDICTION', prediction);
   }
 });
+
+// Initialize monitoring on startup - After listeners are attached
+containerMonitor.init();
 
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {

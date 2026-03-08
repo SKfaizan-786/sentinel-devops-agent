@@ -47,6 +47,7 @@ export type WebSocketMessage =
     | { type: 'METRICS'; data: MetricsPayload }
     | { type: 'INCIDENT_NEW'; data: IncidentNewPayload }
     | { type: 'INCIDENT_RESOLVED'; data: { id: string } }
+    | { type: 'SCALE_PREDICTION'; data: { predictions: unknown[]; evaluatedAt: string } }
     | { type: 'PREDICTION'; data: Prediction }
     | { type: 'ACTIVITY_LOG'; data: ActivityLogPayload }
     | { type: 'CONTAINER_UPDATE'; data: ContainerUpdatePayload };

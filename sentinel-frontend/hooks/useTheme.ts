@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 
+
 type Theme = 'dark' | 'light';
 
 export const STORAGE_KEY = 'sentinel-theme';

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import { Incident } from "@/lib/mockData";
 import { IncidentCard } from "./IncidentCard";
 
@@ -8,7 +9,7 @@ interface IncidentTimelineProps {
     onViewReasoning?: (id: string) => void;
 }
 
-export function IncidentTimeline({ incidents, onViewReasoning }: IncidentTimelineProps) {
+export const IncidentTimeline = memo(function IncidentTimeline({ incidents, onViewReasoning }: IncidentTimelineProps) {
     // Group active (in-progress) vs resolved
     const active = incidents.filter(i => i.status !== "resolved");
     const recent = incidents.filter(i => i.status === "resolved");
@@ -48,4 +49,6 @@ export function IncidentTimeline({ incidents, onViewReasoning }: IncidentTimelin
             </div>
         </div>
     );
-}
+});
+
+IncidentTimeline.displayName = "IncidentTimeline";
