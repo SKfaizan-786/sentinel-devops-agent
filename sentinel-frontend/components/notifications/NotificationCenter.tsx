@@ -119,7 +119,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                                             )}
                                         >
                                             {/* Status Icon */}
-                                            <div className="flex-shrink-0 mt-0.5">
+                                            <div className="shrink-0 mt-0.5">
                                                 <NotificationIcon type={notification.type} />
                                             </div>
 

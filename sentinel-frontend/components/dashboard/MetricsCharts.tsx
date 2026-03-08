@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useMemo, memo } from "react";
 import {
     LineChart,
     Line,
@@ -16,45 +16,40 @@ interface MetricsChartsProps {
     metrics: Record<string, ServiceMetrics>;
 }
 
-export function MetricsCharts({ metrics }: MetricsChartsProps) {
+export const MetricsCharts = memo(function MetricsCharts({ metrics }: MetricsChartsProps) {
     const [timeRange, setTimeRange] = useState<"1h" | "6h" | "24h">("1h");
     const [activeTab, setActiveTab] = useState<"response" | "error" | "resources">("response");
 
-    // Transform metrics dictionary into array for charting if needed
-    // But for multi-line charts, we usually iterate over the keys to create multiple Lines
-    const serviceIds = Object.keys(metrics);
+    const serviceIds = useMemo(() => Object.keys(metrics), [metrics]);
 
-    // Helper to get color for service
     const getServiceColor = (id: string) => {
-        // If service is down, line becomes RED
         if (metrics[id] && metrics[id].currentErrorRate > 0.5) return "#ef4444";
-
         switch (id) {
             case "api-gateway": return "#22d3ee"; // Cyan
             case "auth-service": return "#818cf8"; // Indigo
-            case "notification-service": return "#f472b6"; // Pink (was missing)
-            case "payment-service": return "#34d399"; // Emerald (was key mismatch)
+            case "notification-service": return "#f472b6"; // Pink
+            case "payment-service": return "#34d399"; // Emerald
             default: return "#94a3b8";
         }
     };
 
-    // Prepare data for the charts
-    // ... (keep existing data prep)
-    const referenceService = serviceIds[0];
-    const referenceHistory = referenceService ? metrics[referenceService]?.history : [];
+    const chartData = useMemo(() => {
+        const referenceService = serviceIds[0];
+        const referenceHistory = referenceService ? metrics[referenceService]?.history : [];
 
-    const chartData = referenceHistory?.map((point, index) => {
-        const combinedPoint: Record<string, string | number> = { timestamp: point.timestamp };
-        serviceIds.forEach(id => {
-            const historyPoint = metrics[id]?.history[index];
-            if (historyPoint) {
-                combinedPoint[`${id}_response`] = historyPoint.responseTime;
-                combinedPoint[`${id}_error`] = historyPoint.errorRate;
-                combinedPoint[`${id}_cpu`] = historyPoint.cpu;
-            }
-        });
-        return combinedPoint;
-    }) || [];
+        return referenceHistory?.map((point, index) => {
+            const combinedPoint: Record<string, string | number> = { timestamp: point.timestamp };
+            serviceIds.forEach(id => {
+                const historyPoint = metrics[id]?.history[index];
+                if (historyPoint) {
+                    combinedPoint[`${id}_response`] = historyPoint.responseTime;
+                    combinedPoint[`${id}_error`] = historyPoint.errorRate;
+                    combinedPoint[`${id}_cpu`] = historyPoint.cpu;
+                }
+            });
+            return combinedPoint;
+        }) || [];
+    }, [metrics, serviceIds]);
 
     return (
         <div className="space-y-6">
@@ -134,7 +129,7 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     key={id}
                                     type="monotone"
                                     dataKey={`${id}_cpu`}
-                                    name={metrics[id].name}
+                                    name={metrics[id]?.name || id}
                                     stroke={getServiceColor(id)}
                                     strokeWidth={metrics[id]?.currentErrorRate > 0.5 ? 4 : 2}
                                     dot={false}
@@ -155,7 +150,7 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     key={id}
                                     type="monotone"
                                     dataKey={`${id}_error`}
-                                    name={metrics[id].name}
+                                    name={metrics[id]?.name || id}
                                     stroke={getServiceColor(id)}
                                     strokeWidth={metrics[id]?.currentErrorRate > 0.5 ? 4 : 2}
                                     dot={false}
@@ -176,9 +171,8 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                                     key={id}
                                     type="monotone"
                                     dataKey={`${id}_response`}
-                                    name={metrics[id].name}
+                                    name={metrics[id]?.name || id}
                                     stroke={getServiceColor(id)}
-                                    // Make line thicker if down
                                     strokeWidth={(metrics[id] && metrics[id].currentErrorRate > 0.5) ? 4 : 2}
                                     dot={false}
                                     activeDot={{ r: 6, strokeWidth: 0 }}
@@ -189,12 +183,10 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
                 </ResponsiveContainer>
             </div>
 
-            {/* Custom Legend for better control */}
             <div className="flex flex-wrap items-center justify-center gap-6 pt-2">
                 {serviceIds.map(id => {
                     const isDown = metrics[id] && metrics[id].currentErrorRate > 0.5;
                     const color = getServiceColor(id);
-                    // Guard against missing metrics in legend
                     if (!metrics[id]) return null;
                     return (
                         <div key={id} className="flex items-center gap-2">
@@ -213,4 +205,6 @@ export function MetricsCharts({ metrics }: MetricsChartsProps) {
             </div>
         </div>
     );
-}
+});
+
+MetricsCharts.displayName = "MetricsCharts";
