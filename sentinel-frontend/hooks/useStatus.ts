@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useWebSocketContext } from "@/lib/WebSocketContext";
+import { useWebSocketMessage } from "@/lib/WebSocketContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -10,7 +10,7 @@ export function useStatus() {
     const [status, setStatus] = useState<{ services: Record<string, unknown> }>({ services: {} });
     const [activity, setActivity] = useState<Record<string, unknown>[]>([]);
     const [insights, setInsights] = useState<Record<string, unknown>[]>([]);
-    const { lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
 
     // Initial fetch for cold start
     const fetchData = useCallback(async () => {
@@ -65,7 +65,7 @@ export function useStatus() {
                 const next = [entry, ...prev];
                 return next.length > 100 ? next.slice(0, 100) : next;
             });
-        } else if (lastMessage.type === 'INCIDENT_NEW') {
+        } else if (lastMessage.type === 'AI_ANALYSIS_COMPLETE') {
             // Real-time new insight/incident
             setInsights(prev => {
                 const insight = lastMessage.data as Record<string, unknown>;

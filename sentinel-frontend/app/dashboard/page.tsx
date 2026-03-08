@@ -113,6 +113,14 @@ export default function DashboardPage() {
     const healthyServices = liveServices.filter(s => s.status === "healthy").length;
     const realUptime = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
 
+    const handleViewReasoning = useCallback((id: string) => {
+        setActiveIncidentId(id);
+    }, [setActiveIncidentId]);
+
+    const handleCloseReasoning = useCallback(() => {
+        setActiveIncidentId(null);
+    }, [setActiveIncidentId]);
+
     return (
         <div className="space-y-8 pb-20">
             <div>
@@ -217,7 +225,7 @@ export default function DashboardPage() {
                                     <div className="flex items-center justify-between mb-2">
                                         <h2 className="text-lg font-semibold text-primary">Sentinel AI Analysis</h2>
                                         <button
-                                            onClick={() => setActiveIncidentId(null)}
+                                            onClick={handleCloseReasoning}
                                             className="text-xs text-muted-foreground hover:text-foreground"
                                         >
                                             Close
@@ -235,7 +243,7 @@ export default function DashboardPage() {
                                 ) : (
                                     <IncidentTimeline
                                         incidents={incidents}
-                                        onViewReasoning={(id) => setActiveIncidentId(id)}
+                                        onViewReasoning={handleViewReasoning}
                                     />
                                 )}
                             </div>

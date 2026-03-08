@@ -14,6 +14,7 @@ const { listContainers, getContainerHealth } = require('./docker/client');
 const containerMonitor = require('./docker/monitor');
 const healer = require('./docker/healer');
 const scalingPredictor = require('./docker/scaling-predictor');
+const aiService = require('./ai');
 const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 const { routeEvent } = require('./config/notifications');
 
@@ -66,6 +67,7 @@ const { startCollectors } = require('./metrics/collectors');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const rolesRoutes = require('./routes/roles.routes');
+const incidentsRoutes = require('./routes/incidents.routes');
 const approvalsRoutes = require('./routes/approvals.routes');
 const kubernetesRoutes = require('./routes/kubernetes.routes');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -119,6 +121,7 @@ app.use(express.urlencoded({
 app.use('/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/incidents', incidentsRoutes);
 app.use('/api/approvals', approvalsRoutes);
 
 // FinOps Routes
@@ -147,6 +150,9 @@ let systemStatus = {
 let activityLog = [];
 let aiLogs = [];
 let nextLogId = 1;
+
+// Expose aiLogs to route handlers (used by /api/incidents/correlated)
+app.locals.aiLogs = aiLogs;
 
 function logActivity(type, message) {
   const entry = {
@@ -183,6 +189,54 @@ const GRACE_PERIOD_MS = 60 * 1000; // 1 minute
 
 // Continuous health checking
 let isChecking = false;
+let isAnalyzing = false;
+let needsAnotherRun = false;
+
+/**
+ * Performs root cause analysis in the background
+ */
+async function analyzeSystemHealth() {
+  if (isAnalyzing) {
+    needsAnotherRun = true;
+    return;
+  }
+
+  isAnalyzing = true;
+  needsAnotherRun = false;
+  systemStatus.aiAnalysis = "Analyzing system health...";
+  wsBroadcaster.broadcast('METRICS', systemStatus);
+
+  try {
+    const report = await aiService.performAnalysis(systemStatus.services);
+    systemStatus.aiAnalysis = report;
+
+    const insight = {
+      id: Date.now(),
+      timestamp: new Date(),
+      analysis: report,
+      summary: report
+    };
+    aiLogs.unshift(insight);
+    if (aiLogs.length > 50) aiLogs.pop();
+
+    // Persist to PostgreSQL (fire-and-forget)
+    insertAIReport(report, report).catch(() => { });
+
+    wsBroadcaster.broadcast('AI_ANALYSIS_COMPLETE', insight);
+    wsBroadcaster.broadcast('METRICS', systemStatus);
+    logActivity('info', 'AI Root Cause Analysis completed');
+  } catch (error) {
+    logActivity('error', `AI Analysis failed: ${error.message}`);
+    systemStatus.aiAnalysis = `AI Analysis failed: ${error.message}. Please check logs.`;
+    wsBroadcaster.broadcast('METRICS', systemStatus);
+  } finally {
+    isAnalyzing = false;
+    // If state changed during analysis, run again to capture latest context
+    if (needsAnotherRun) {
+      setTimeout(() => analyzeSystemHealth(), 1000);
+    }
+  }
+}
 
 async function checkServiceHealth() {
   if (isChecking) return;
@@ -250,6 +304,14 @@ async function checkServiceHealth() {
       systemStatus.lastUpdated = new Date();
       // Broadcast full metrics update
       wsBroadcaster.broadcast('METRICS', systemStatus);
+
+      // Trigger AI Analysis in the background if there are failures
+      const hasFailures = Object.values(systemStatus.services).some(s => s.status !== 'healthy');
+      if (hasFailures) {
+        analyzeSystemHealth().catch(err => {
+          logActivity('error', `Background AI Analysis trigger failed: ${err.message}`);
+        });
+      }
     }
   } finally {
     isChecking = false;
@@ -310,8 +372,8 @@ app.post('/api/kestra-webhook', (req, res) => {
 
     logActivity('info', 'Received new AI Analysis report');
 
-    // Broadcast new incident/insight
-    wsBroadcaster.broadcast('INCIDENT_NEW', insight);
+    // Broadcast new incident/insight using dedicated AI event
+    wsBroadcaster.broadcast('AI_ANALYSIS_COMPLETE', insight);
 
     // Call routeEvent with the incident payload for ChatOps
     initiateHealingProtocol({
@@ -326,7 +388,7 @@ app.post('/api/kestra-webhook', (req, res) => {
     incidents.logActivity('info', 'Received new AI Analysis report');
 
     if (globalWsBroadcaster) {
-      globalWsBroadcaster.broadcast('INCIDENT_NEW', newInsight);
+      globalWsBroadcaster.broadcast('AI_ANALYSIS_COMPLETE', newInsight);
     }
   }
   systemStatus.lastUpdated = new Date();
@@ -548,8 +610,8 @@ const validateScaleParams = (req, res, next) => {
 app.get('/api/docker/containers', async (req, res) => {
   try {
     const containers = await listContainers();
-    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
-    await Promise.allSettled(containers.map(c => containerMonitor.startMonitoring(c.id)));
+    // Monitor initialization is now global and event-driven via monitor.init()
+    // No need to aggressively start monitoring on every list request
 
     // Enrich with smart restart meta
     const enrichedContainers = containers.map(c => {
@@ -632,7 +694,7 @@ app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, r
       const containers = await listContainers();
       const enriched = containers.map(c => ({
         ...c,
-        metrics: monitor.getMetrics(c.id),
+        metrics: containerMonitor.getMetrics(c.id),
         restartCount: (restartTracker.get(c.id) || { attempts: 0 }).attempts,
         lastRestart: (restartTracker.get(c.id) || { lastAttempt: 0 }).lastAttempt
       }));
@@ -724,6 +786,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 // Setup WebSocket
 globalWsBroadcaster = setupWebSocket(server);
+wsBroadcaster = globalWsBroadcaster; // Synergize both references
 serviceMonitor.setWsBroadcaster(globalWsBroadcaster);
 
 // Initialize Predictive Scaling Engine
@@ -734,7 +797,7 @@ scalingPredictor.on('scale-recommendation', (prediction) => {
   logActivity('alert', `🔮 Scale Alert: ${prediction.containerName} at ${Math.round(prediction.failureProbability * 100)}% failure risk — Recommendation: ${prediction.recommendation}`);
 });
 
-// Listen for container predictions from upstream monitor
+// Listen for container predictions - MUST be before init to catch startup predictions
 containerMonitor.on('prediction', (prediction) => {
   if (prediction.probability > 0.8 && prediction.confidence !== 'low') {
     incidents.logActivity('alert', `🔮 Prediction: Container ${prediction.containerId.substring(0, 12)} risk ${Math.round(prediction.probability * 100)}%. ${prediction.reason}`);
@@ -748,6 +811,9 @@ containerMonitor.on('prediction', (prediction) => {
     globalWsBroadcaster.broadcast('PREDICTION', prediction);
   }
 });
+
+// Initialize monitoring on startup - After listeners are attached
+containerMonitor.init();
 
 // K8s Watcher Event Handling
 k8sWatcher.on('oom', (pod) => {

@@ -66,7 +66,7 @@ export const showStatus = async () => {
         ]);
     });
 
-    console.log(table.toString());
+        console.log(table.toString());
         if (data.lastUpdated) {
             console.log(chalk.gray(`Last Updated: ${new Date(data.lastUpdated).toLocaleString()}`));
         }

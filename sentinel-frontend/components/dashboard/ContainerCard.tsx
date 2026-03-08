@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { memo } from 'react';
 import { Container } from '../../hooks/useContainers';
 import { Box, RefreshCw, Layers, Calendar, Network } from "lucide-react";
 import { Button } from "@/components/common/Button";
@@ -11,7 +13,7 @@ interface ContainerCardProps {
     onRestart: (id: string) => void;
 }
 
-const StatusDot = ({ status }: { status: "healthy" | "unhealthy" | "unknown" }) => {
+const StatusDot = memo(({ status }: { status: "healthy" | "unhealthy" | "unknown" }) => {
     const color = {
         healthy: "bg-green-500",
         unknown: "bg-gray-500",
@@ -24,15 +26,28 @@ const StatusDot = ({ status }: { status: "healthy" | "unhealthy" | "unknown" }) 
             <span className={cn("relative inline-flex rounded-full h-3 w-3", color)}></span>
         </div>
     );
-};
+});
 
-export function ContainerCard({ container, onRestart }: ContainerCardProps) {
+StatusDot.displayName = "StatusDot";
+
+export const ContainerCard = memo(function ContainerCard({ container, onRestart }: ContainerCardProps) {
     const isHealthy = container.health === 'healthy';
+    const [isRestarting, setIsRestarting] = React.useState(false);
 
-    // Mock sparkline data since we don't have history yet
-    const [mockTrend] = React.useState(() =>
-        Array.from({ length: 12 }, () => 20 + Math.random() * 10)
-    );
+    // Stable mock trend data using useMemo to avoid re-calculating on every render
+    const mockTrend = React.useMemo(() =>
+        Array.from({ length: 12 }, () => 20 + Math.random() * 10),
+        []);
+
+    const handleRestart = async () => {
+        if (isRestarting) return;
+        setIsRestarting(true);
+        try {
+            await Promise.resolve(onRestart(container.id));
+        } finally {
+            setIsRestarting(false);
+        }
+    };
 
     return (
         <Spotlight className="p-5 bg-card border-border hover:border-primary/20 transition-all group">
@@ -53,14 +68,11 @@ export function ContainerCard({ container, onRestart }: ContainerCardProps) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
-                    onClick={() => {
-                        if (window.confirm(`Are you sure you want to restart container ${container.name}?`)) {
-                            onRestart(container.id);
-                        }
-                    }}
-                    title="Restart Container"
+                    disabled={isRestarting}
+                    onClick={handleRestart}
+                    title={isRestarting ? "Restarting..." : "Restart Container"}
                 >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={cn("h-4 w-4", isRestarting && "animate-spin")} />
                 </Button>
             </div>
 
@@ -91,7 +103,6 @@ export function ContainerCard({ container, onRestart }: ContainerCardProps) {
                 </div>
             </div>
 
-            {/* Mini Sparkline */}
             <div className="h-10 w-full opacity-50 group-hover:opacity-100 transition-opacity mt-2">
                 <Sparkline
                     data={mockTrend.map(val => ({ value: val }))}
@@ -101,4 +112,6 @@ export function ContainerCard({ container, onRestart }: ContainerCardProps) {
             </div>
         </Spotlight>
     );
-}
+});
+
+ContainerCard.displayName = "ContainerCard";

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import { Service } from "@/lib/mockData";
 import { getStatusColor } from "@/lib/theme";
 import { MoreHorizontal, Cloud, Database, Server, Shield, Zap } from "lucide-react";
@@ -10,7 +11,7 @@ import { Sparkline } from "@/components/common/Sparkline";
 import { PredictionBadge, Prediction } from "./PredictionBadge";
 import { CopyButton } from "@/components/common/CopyButton";
 
-const ServiceIcon = ({ type }: { type: Service["type"] }) => {
+const ServiceIcon = memo(({ type }: { type: Service["type"] }) => {
     switch (type) {
         case "api": return <Cloud className="h-4 w-4 text-primary" />;
         case "database": return <Database className="h-4 w-4 text-blue-500" />;
@@ -18,14 +19,12 @@ const ServiceIcon = ({ type }: { type: Service["type"] }) => {
         case "cache": return <Zap className="h-4 w-4 text-yellow-500" />;
         default: return <Shield className="h-4 w-4 text-muted-foreground" />;
     }
-};
+});
 
-const StatusDot = ({ status }: { status: Service["status"] }) => {
+ServiceIcon.displayName = "ServiceIcon";
+
+const StatusDot = memo(({ status }: { status: Service["status"] }) => {
     const themeColor = getStatusColor(status);
-
-    // Map theme properties to what the component expects if needed, or simply use theme properties directly.
-    // The theme object return by getStatusColor has 'bg' (bg-color/20), 'text' (text-color), 'border', 'dot' (bg-color).
-    // The original code used "bg-green-500". The theme 'dot' property is "bg-green-500".
 
     return (
         <div className="relative flex h-3 w-3">
@@ -33,9 +32,11 @@ const StatusDot = ({ status }: { status: Service["status"] }) => {
             <span className={cn("relative inline-flex rounded-full h-3 w-3", themeColor.dot)}></span>
         </div>
     );
-};
+});
 
-export function ServiceCard({ service, prediction }: { service: Service; prediction?: Prediction }) {
+StatusDot.displayName = "StatusDot";
+
+export const ServiceCard = memo(function ServiceCard({ service, prediction }: { service: Service; prediction?: Prediction }) {
     return (
         <Spotlight className="p-5 bg-card border-border hover:border-primary/20 transition-all group">
             <div className="flex justify-between items-start mb-4">
@@ -60,7 +61,7 @@ export function ServiceCard({ service, prediction }: { service: Service; predict
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
             </div>
-            
+
             {/* Prediction Badge */}
             <div className="mb-3">
                 <PredictionBadge prediction={prediction} />
@@ -97,4 +98,6 @@ export function ServiceCard({ service, prediction }: { service: Service; predict
             </div>
         </Spotlight>
     );
-}
+});
+
+ServiceCard.displayName = "ServiceCard";

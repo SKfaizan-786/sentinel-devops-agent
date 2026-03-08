@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useWebSocketContext } from "../lib/WebSocketContext";
+import { useEffect, useState, useMemo } from "react";
+import { useWebSocketMessage, useWebSocketConnection } from "../lib/WebSocketContext";
 
 export type TimeSeriesPoint = {
     timestamp: string;
@@ -36,23 +36,23 @@ export interface RemoteStatus {
 }
 
 export function useMetrics() {
-    const [metrics, setMetrics] = useState<Record<string, ServiceMetrics>>(() => {
-        const initialHistory = Array(30).fill(0).map((_, i) => ({
-            timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
-            responseTime: 20 + Math.random() * 10,
-            cpu: 10 + Math.random() * 10,
-            errorRate: 0
-        }));
+    // Helper for initial history - memoized to prevent re-creation
+    const initialHistory = useMemo(() => Array(30).fill(0).map((_, i) => ({
+        timestamp: new Date(Date.now() - (30 - i) * 2000).toLocaleTimeString(),
+        responseTime: 20 + Math.random() * 10,
+        cpu: 10 + Math.random() * 10,
+        errorRate: 0
+    })), []);
 
-        return {
-            "auth-service": { id: "auth-service", name: "Auth Service", currentResponseTime: 45, currentErrorRate: 0, currentCpu: 32, history: [...initialHistory] },
-            "payment-service": { id: "payment-service", name: "Payment Service", currentResponseTime: 85, currentErrorRate: 0, currentCpu: 22, history: [...initialHistory] },
-            "notification-service": { id: "notification-service", name: "Notification Service", currentResponseTime: 120, currentErrorRate: 0, currentCpu: 48, history: [...initialHistory] },
-            "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: [...initialHistory] },
-        };
-    });
+    const [metrics, setMetrics] = useState<Record<string, ServiceMetrics>>(() => ({
+        "auth-service": { id: "auth-service", name: "Auth Service", currentResponseTime: 45, currentErrorRate: 0, currentCpu: 32, history: [...initialHistory] },
+        "payment-service": { id: "payment-service", name: "Payment Service", currentResponseTime: 85, currentErrorRate: 0, currentCpu: 22, history: [...initialHistory] },
+        "notification-service": { id: "notification-service", name: "Notification Service", currentResponseTime: 120, currentErrorRate: 0, currentCpu: 48, history: [...initialHistory] },
+        "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: [...initialHistory] },
+    }));
 
-    const { isConnected, lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
+    const { isConnected } = useWebSocketConnection();
     const [remoteStatus, setRemoteStatus] = useState<RemoteStatus>({});
 
     // Listen for WebSocket messages from Context
@@ -64,10 +64,18 @@ export function useMetrics() {
                 setRemoteStatus(lastMessage.data.services as unknown as RemoteStatus);
             }
         } else if (lastMessage.type === 'SERVICE_UPDATE') {
-            setRemoteStatus((prev) => ({
-                ...prev,
-                [lastMessage.data.name]: lastMessage.data as unknown as RemoteStatusService
-            }));
+            setRemoteStatus((prev) => {
+                const serviceData = lastMessage.data as unknown as RemoteStatusService;
+                // Only update if something actually changed to prevent ripple re-renders
+                if (prev[lastMessage.data.name]?.status === serviceData.status &&
+                    prev[lastMessage.data.name]?.code === serviceData.code) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    [lastMessage.data.name]: serviceData
+                };
+            });
         }
     }, [lastMessage, setRemoteStatus]);
 
@@ -78,6 +86,7 @@ export function useMetrics() {
 
             setMetrics(prev => {
                 const next = { ...prev };
+                let hasChanges = false;
 
                 // Map backend services to frontend keys
                 const serviceMap: Record<string, RemoteStatusService | undefined> = {
@@ -114,27 +123,31 @@ export function useMetrics() {
                         responseTime = 0;
                         cpu = 0;
                     } else if (backendData) {
-                        // Healthy: Add random jitter to the wave
                         responseTime += Math.random() * 5;
                     }
 
-                    // Round values for UI cleanliness
                     responseTime = Math.round(responseTime);
                     cpu = Math.round(cpu);
 
                     // Update current values
-                    next[key] = {
-                        ...next[key],
-                        currentResponseTime: responseTime,
-                        currentErrorRate: errorRate,
-                        currentCpu: cpu,
-                        history: [
-                            ...next[key].history,
-                            { timestamp, responseTime, cpu, errorRate }
-                        ].slice(-30) // Keep last 30 points
-                    };
+                    if (next[key].currentResponseTime !== responseTime ||
+                        next[key].currentCpu !== cpu ||
+                        next[key].currentErrorRate !== errorRate) {
+
+                        next[key] = {
+                            ...next[key],
+                            currentResponseTime: responseTime,
+                            currentErrorRate: errorRate,
+                            currentCpu: cpu,
+                            history: [
+                                ...next[key].history,
+                                { timestamp, responseTime, cpu, errorRate }
+                            ].slice(-30)
+                        };
+                        hasChanges = true;
+                    }
                 });
-                return next;
+                return hasChanges ? next : prev;
             });
         };
 

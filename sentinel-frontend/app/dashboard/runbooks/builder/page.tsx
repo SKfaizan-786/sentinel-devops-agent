@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -60,7 +60,7 @@ function defaultPosition(index: number): { x: number; y: number } {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RunbookBuilderPage() {
+function RunbookBuilderContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get("id");
@@ -381,6 +381,14 @@ export default function RunbookBuilderPage() {
                 </button>
             </div>
         </div>
+    );
+}
+
+export default function RunbookBuilderPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading Builder...</div>}>
+            <RunbookBuilderContent />
+        </Suspense>
     );
 }
 

@@ -2,69 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { Incident } from "@/lib/mockData";
-import { useWebSocketContext } from "../lib/WebSocketContext";
+import { useWebSocketMessage, useWebSocketConnection } from "@/lib/WebSocketContext";
 import { parseInsight, InsightPayload } from "@/lib/parseInsight";
 
 export function useIncidents(options: { manual?: boolean } = {}) {
     const { manual } = options;
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
-    const { isConnected, lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
+    const { isConnected } = useWebSocketConnection();
 
     // Handle WebSocket Messages
     useEffect(() => {
         if (!lastMessage) return;
 
-        if (lastMessage.type === 'INCIDENT_NEW') {
-            const insight = lastMessage.data as InsightPayload;
-            if (!insight) return;
-
-            const incident = parseInsight(insight);
-
-            setIncidents(prev => {
-                // Prevent duplicates
-                if (prev.some(i => i.id === incident.id)) return prev;
-                return [incident, ...prev];
+        if (lastMessage.type === "INCIDENT_NEW") {
+            const newIncident = parseInsight(lastMessage.data as InsightPayload);
+            setIncidents((prev) => {
+                if (prev.some(i => i.id === newIncident.id)) return prev;
+                return [newIncident, ...prev].slice(0, 50);
             });
-
-            // Auto-open panel only if critical/degraded
-            if (incident.status === 'failed') {
-                setActiveIncidentId(incident.id);
-            }
         }
     }, [lastMessage]);
 
-    // Initial Fetch — with AbortController to prevent state updates after unmount
+    // Initial fetch fallback
     useEffect(() => {
         if (manual) return;
 
-        const controller = new AbortController();
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
-        fetch(`${apiUrl}/insights`, { signal: controller.signal })
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        fetch(`${API_BASE}/api/insights`)
             .then(res => res.json())
             .then(data => {
-                if (data.insights && Array.isArray(data.insights)) {
-                    const newIncidents = data.insights.map((i: InsightPayload) => parseInsight(i));
-                    setIncidents(prev => {
-                        const existingIds = new Set(prev.map(p => p.id));
-                        const uniqueNew = newIncidents.filter((n: Incident) => !existingIds.has(n.id));
-                        return [...uniqueNew, ...prev];
-                    });
+                if (Array.isArray(data)) {
+                    setIncidents(data.map(parseInsight));
                 }
             })
-            .catch(e => {
-                if (e.name === 'AbortError') return; // Expected on unmount
-                console.error("Failed to fetch incidents:", e);
-            });
-
-        return () => controller.abort();
+            .catch(err => console.error("Failed to fetch incidents:", err));
     }, [manual]);
 
-    return {
-        incidents,
-        activeIncidentId,
-        setActiveIncidentId,
-        connectionStatus: isConnected ? "connected" : "disconnected",
-    };
+    return { incidents, activeIncidentId, setActiveIncidentId, isConnected };
 }

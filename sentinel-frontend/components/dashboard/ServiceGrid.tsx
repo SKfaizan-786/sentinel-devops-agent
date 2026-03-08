@@ -1,11 +1,12 @@
 "use client";
 
+import React, { memo } from "react";
 import { Service } from "@/lib/mockData";
 import { ServiceCard } from "./ServiceCard";
 import { motion } from "framer-motion";
 import { usePredictions } from "@/hooks/usePredictions";
 
-export function ServiceGrid({ services }: { services: Service[] }) {
+export const ServiceGrid = memo(function ServiceGrid({ services }: { services: Service[] }) {
     const { predictionsMap } = usePredictions();
     const predictions = Object.values(predictionsMap);
 
@@ -18,7 +19,6 @@ export function ServiceGrid({ services }: { services: Service[] }) {
             if (name === serviceId) return true;
 
             // Safe fallback: match only if the container name *starts with* the service name followed by a delimiter
-            // This avoids "api" matching "api-gateway" incorrectly if not desired, or "auth" matching "author"
             if (name === service.name.toLowerCase().replace(/ /g, '-')) return true;
 
             return false;
@@ -39,4 +39,6 @@ export function ServiceGrid({ services }: { services: Service[] }) {
             ))}
         </div>
     );
-}
+});
+
+ServiceGrid.displayName = "ServiceGrid";

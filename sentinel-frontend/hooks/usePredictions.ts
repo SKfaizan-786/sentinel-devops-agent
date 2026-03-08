@@ -1,7 +1,6 @@
 "use client";
-
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useWebSocketContext } from "@/lib/WebSocketContext";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useWebSocketMessage, useWebSocketConnection } from "@/lib/WebSocketContext";
 
 export type Prediction = {
     containerId: string;
@@ -75,10 +74,11 @@ export function usePredictions() {
     }, [fetchPredictions]);
 
     // Listen for WebSocket updates
-    const { lastMessage } = useWebSocketContext();
+    const lastMessage = useWebSocketMessage();
 
     useEffect(() => {
         if (!lastMessage) return;
+
 
         if (lastMessage.type === 'SCALE_PREDICTION') {
             const data = lastMessage.data as {
