@@ -298,15 +298,16 @@ tasks:
       {% set notify = outputs['get-notify'] | default({}) %}
       {% set validation = outputs['validate_ai_prediction'] | default({}) %}
       {% set aiResult = validation.files['validation_result.json'] | default('{}') | fromJson %}
+      {% set hasAiResult = validation.files is defined and validation.files['validation_result.json'] is defined %}
 
       {
-        "aiReport": {
+        "aiReport": {% if hasAiResult %}{
           "confidence_score": {{ aiResult.confidence_score | default(0) }},
           "predicted_failure": {{ aiResult.predicted_failure | default(false) }},
           "status": {{ aiResult.status | default('validation_failed') | json }},
-          "validation_timestamp": {{ aiResult.validation_timestamp | default('null') | json }},
+          "validation_timestamp": {{ aiResult.validation_timestamp | default(None) | json }},
           "raw_content": {{ aiResult.raw_content | default('AI analysis unavailable') | json }}
-        },
+        }{% else %}null{% endif %},
         "metrics": {
           "auth": { "code": {{ auth.code | default(500) }} },
           "payment": { "code": {{ payment.code | default(500) }} },
@@ -314,7 +315,7 @@ tasks:
         },
         "validation": {
           "is_valid": {{ aiResult.status == 'valid' }},
-          "error": {{ aiResult.error | default('null') | json }}
+          "error": {{ aiResult.error | default(None) | json }}
         }
       }
 
