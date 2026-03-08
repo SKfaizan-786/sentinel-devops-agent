@@ -223,17 +223,26 @@ tasks:
               // Parse AI response
               const aiResponse = JSON.parse(aiOutput);
               const aiContent = aiResponse.choices?.[0]?.message?.content;
-              
               if (!aiContent) throw new Error('Missing AI message content');
               
-              let parsed = JSON.parse(aiContent);
-              if (typeof parsed.confidence_score !== 'number') throw new Error('confidence_score must be a number');
-              if (typeof parsed.predicted_failure !== 'boolean') throw new Error('predicted_failure must be a boolean');
+              const parsedPrediction = JSON.parse(aiContent);
+              if (typeof parsedPrediction.confidence_score !== 'number') {
+                throw new Error('confidence_score must be a number');
+              }
+              if (parsedPrediction.confidence_score < 0 || parsedPrediction.confidence_score > 1) {
+                throw new Error('confidence_score must be between 0 and 1');
+              }
+              if (typeof parsedPrediction.predicted_failure !== 'boolean') {
+                throw new Error('predicted_failure must be a boolean');
+              }
               
-              let validatedData = parsed;
-              validatedData.status = "valid";
-              validatedData.validation_timestamp = new Date().toISOString();
-              validatedData.raw_content = aiContent;
+              let validatedData = {
+                confidence_score: parsedPrediction.confidence_score,
+                predicted_failure: parsedPrediction.predicted_failure,
+                status: "valid",
+                validation_timestamp: new Date().toISOString(),
+                raw_content: aiContent
+              };
               
               fs.writeFileSync('{{ outputDir }}/validation_result.json', JSON.stringify(validatedData, null, 2));
               console.log('✅ AI prediction validated successfully');
@@ -286,16 +295,17 @@ tasks:
       {% set payment = outputs['get-payment'] | default({}) %}
       {% set notify = outputs['get-notify'] | default({}) %}
       {% set validation = outputs['validate_ai_prediction'] | default({}) %}
-      {% set aiResult = read(outputs['validate_ai_prediction'].outputFiles['validation_result.json']) | default('{}') | fromJson %}
+      {% set aiResult = validation.files['validation_result.json'] | default('{}') | fromJson %}
+      {% set hasAiResult = validation.files is defined and validation.files['validation_result.json'] is defined %}
 
       {
-        "aiReport": {
+        "aiReport": {% if hasAiResult %}{
           "confidence_score": {{ aiResult.confidence_score | default(0) }},
           "predicted_failure": {{ aiResult.predicted_failure | default(false) }},
-          "status": {{ aiResult.status | default('not_run') | json }},
+          "status": {{ aiResult.status | default('validation_failed') | json }},
           "validation_timestamp": {{ aiResult.validation_timestamp | default(None) | json }},
           "raw_content": {{ aiResult.raw_content | default('AI analysis unavailable') | json }}
-        },
+        }{% else %}null{% endif %},
         "metrics": {
           "auth": { "code": {{ auth.code | default(500) }} },
           "payment": { "code": {{ payment.code | default(500) }} },
