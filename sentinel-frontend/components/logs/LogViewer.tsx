@@ -124,9 +124,11 @@ export function LogViewer() {
                                                 {log.level}
                                             </span>
                                         </div>
-                                        <span className="text-xs font-medium text-slate-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                            {log.service}
-                                        </span>
+
+                                        {/* 🔥 YOU LOST THIS PART — PUT IT BACK */}
+                                        <p className="text-sm text-slate-300 font-mono leading-relaxed break-all">
+                                            {log.message}
+                                        </p>
                                     </div>
                                     <div className="relative group/message rounded-md transition-colors hover:bg-white/5 p-2 -mx-2">
                                         <p className="text-sm text-slate-300 font-mono leading-relaxed break-all pr-8">
