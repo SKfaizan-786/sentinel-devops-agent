@@ -21,7 +21,7 @@ Sentinel provides a pre-built Grafana dashboard to visualize container health, i
 - **AI Accuracy & Healing Success**: A gauge showing the ratio of successful resolutions to total incidents.
 - **MTTR Trend**: Tracks Resolution Rate over time to measure system recovery efficiency.
 
-![Sentinel Dashboard Preview](https://raw.githubusercontent.com/vedhapprakashni/sentinel-devops-agent/prometheus/docs/images/dashboard-preview.png)
+![Sentinel Dashboard Preview](../images/dashboard-preview.png)
 *Figure 1: The enhanced Sentinel Grafana dashboard showing health heatmap and AI insights.*
 
 ---
@@ -39,7 +39,10 @@ Sentinel can ingest alerts from Alertmanager to trigger automated AI investigati
 receivers:
 - name: 'sentinel-webhook'
   webhook_configs:
-  - url: 'http://<sentinel-backend-host>:4000/api/webhooks/alertmanager?token=<YOUR_SECRET_TOKEN>'
+  - url: 'http://<sentinel-backend-host>:4000/api/webhooks/alertmanager'
+    http_config:
+      headers:
+        X-Sentinel-Token: '<YOUR_SECRET_TOKEN>'
     send_resolved: true
 
 route:

@@ -201,8 +201,8 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sentinel_incidents_total",
-          "legendFormat": "Incidents",
+          "expr": "sum(increase(sentinel_incidents_total[1m]))",
+          "legendFormat": "Incident Rate",
           "range": true,
           "refId": "A"
         }
@@ -266,7 +266,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sentinel_healing_success_total / sentinel_incidents_total * 100",
+          "expr": "sum(sentinel_healing_actions_total{outcome=\"success\"}) / (sum(sentinel_incidents_total) > 0) * 100 or vector(0)",
           "refId": "A"
         }
       ],
@@ -353,8 +353,8 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(sentinel_incidents_total[5m])",
-          "legendFormat": "MTTR Trend (Approximated)",
+          "expr": "sum(rate(sentinel_mttr_seconds_sum[5m])) / sum(rate(sentinel_mttr_seconds_count[5m]))",
+          "legendFormat": "Average MTTR (Seconds)",
           "range": true,
           "refId": "A"
         }

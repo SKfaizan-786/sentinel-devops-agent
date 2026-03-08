@@ -4,7 +4,7 @@ import { Brain, Sparkles } from "lucide-react";
 import { Spotlight } from "@/components/common/Spotlight";
 
 export interface AIInsightItem {
-    id: number;
+    id: string;
     analysis: string;
     metrics?: Record<string, { code: number }>;
     summary?: string;

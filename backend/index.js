@@ -363,41 +363,28 @@ app.post('/api/kestra-webhook', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/metrics', (req, res) => {
-  res.set('Content-Type', 'text/plain');
-  
-  let metrics = '';
-  
-  // Sentinel health metrics
-  metrics += '# HELP sentinel_container_health Container health status (1=healthy, 0=unhealthy)\n';
-  metrics += '# TYPE sentinel_container_health gauge\n';
-  Object.keys(systemStatus.services).forEach(name => {
-    const val = systemStatus.services[name].status === 'healthy' ? 1 : 0;
-    metrics += `sentinel_container_health{name="${name}"} ${val}\n`;
-  });
-
-  // Incidents count (from aiLogs for simplicity in this mvp)
-  metrics += '\n# HELP sentinel_incidents_total Total number of critical/degraded incidents detected\n';
-  metrics += '# TYPE sentinel_incidents_total counter\n';
-  const incidentCount = aiLogs.filter(l => l.type === 'PROMETHEUS_INVESTIGATION' || l.analysis.includes('CRITICAL')).length;
-  metrics += `sentinel_incidents_total ${incidentCount}\n`;
-
-  // Healing success rate (placeholder for future actual tracking)
-  metrics += '\n# HELP sentinel_healing_success_total Total successful auto-healing actions\n';
-  metrics += '# TYPE sentinel_healing_success_total counter\n';
-  metrics += `sentinel_healing_success_total ${activityLog.filter(l => l.type === 'success' && l.message.includes('recovered')).length}\n`;
-
-  res.send(metrics);
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (ex) {
+    res.status(500).end(ex);
+  }
 });
 
 // --- PROMETHEUS ALERTMANAGER WEBHOOK ---
 app.post('/api/webhooks/alertmanager', async (req, res) => {
   const { alerts, status: groupStatus } = req.body;
-  const token = req.query.token;
-  const SECRET = process.env.ALERTMANAGER_SECRET || 'sentinel-secret-123';
+  const token = req.headers['x-sentinel-token'];
+  const SECRET = process.env.ALERTMANAGER_SECRET;
+
+  if (!SECRET) {
+    console.error('[ALERTMANAGER] ERROR: ALERTMANAGER_SECRET is not set in .env. Rejecting all webhooks.');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
 
   if (token !== SECRET) {
-    console.error('[ALERTMANAGER] Unauthorized webhook attempt');
+    console.error('[ALERTMANAGER] Unauthorized webhook attempt (Invalid X-Sentinel-Token)');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -407,64 +394,76 @@ app.post('/api/webhooks/alertmanager', async (req, res) => {
 
   console.log(`[ALERTMANAGER] Received ${alerts.length} alerts with status: ${groupStatus}`);
 
-  for (const alert of alerts) {
-    try {
-      const status = alert.status || groupStatus || 'unknown';
-      const labels = alert.labels || {};
-      const annotations = alert.annotations || {};
-      
-      const alertName = labels.alertname || 'Unknown Alert';
-      const severity = labels.severity || 'info';
-      const instance = labels.instance || 'unknown';
-      const summary = annotations.summary || annotations.description || 'No summary provided';
+  // Process alerts in the background to avoid blocking the webhook ACK
+  (async () => {
+    for (const alert of alerts) {
+      try {
+        const status = alert.status || groupStatus || 'unknown';
+        const labels = alert.labels || {};
+        const annotations = alert.annotations || {};
+        
+        const alertName = labels.alertname || 'Unknown Alert';
+        const severity = labels.severity || 'info';
+        const instance = labels.instance || 'unknown';
+        const summary = annotations.summary || annotations.description || 'No summary provided';
 
-      const logSeverity = status === 'firing' ? (severity === 'critical' ? 'alert' : 'warn') : 'success';
-      logActivity(logSeverity, `Prometheus Alert [${status.toUpperCase()}]: ${alertName} on ${instance} - ${summary}`);
+        const logSeverity = status === 'firing' ? (severity === 'critical' ? 'alert' : 'warn') : 'success';
+        logActivity(logSeverity, `Prometheus Alert [${status.toUpperCase()}]: ${alertName} on ${instance} - ${summary}`);
 
-      if (status === 'firing') {
-        // Trigger "AI Investigation"
-        const investigationId = uuidv4();
-        const insight = {
-          id: investigationId,
-          timestamp: new Date(),
-          type: 'PROMETHEUS_INVESTIGATION',
-          alertName,
-          severity,
-          instance,
-          summary,
-          status: 'investigating',
-          analysis: `🔍 Sentinel AI is investigating ${alertName} on ${instance}...\n\n` +
+        // Update Prometheus counters
+        recordIncident({ 
+          severity, 
+          service: instance, 
+          type: 'PROMETHEUS_ALERT' 
+        });
+
+        if (status === 'firing') {
+          // Trigger "AI Investigation"
+          const investigationId = uuidv4();
+          const analysisText = `🔍 Sentinel AI is investigating ${alertName} on ${instance}...\n\n` +
             `Detected: ${summary}\n` +
             `Severity: ${severity.toUpperCase()}\n\n` +
-            `Rule: Check logs for ${instance} and verify service health.`
-        };
+            `Rule: Check logs for ${instance} and verify service health.`;
+          
+          const insight = {
+            id: investigationId,
+            timestamp: new Date(),
+            type: 'PROMETHEUS_INVESTIGATION',
+            alertName,
+            severity,
+            instance,
+            summary,
+            status: 'investigating',
+            analysis: analysisText
+          };
 
-        aiLogs.unshift(insight);
-        if (aiLogs.length > 50) aiLogs.pop();
+          // Update local state and broadcast
+          aiLogs.unshift(insight);
+          if (aiLogs.length > 50) aiLogs.pop();
+          wsBroadcaster.broadcast('INCIDENT_NEW', insight);
 
-        // Broadcast the new incident
-        wsBroadcaster.broadcast('INCIDENT_NEW', insight);
+          // Persist to DB using the common path
+          insertAIReport(analysisText, `Investigation: ${alertName} on ${instance}`).catch(() => { });
 
-        // Dispatch Kestra investigation
-        const kestraEndpoint = process.env.KESTRA_ENDPOINT || 'http://localhost:8080';
-        try {
+          // Dispatch Kestra investigation (fire and forget)
+          const kestraEndpoint = process.env.KESTRA_ENDPOINT || 'http://localhost:8080';
           console.log(`[AI] Dispatching investigation for ${alertName} to Kestra at ${kestraEndpoint}`);
-          await axios.post(`${kestraEndpoint}/api/v1/executions/sentinel/intelligent-monitor`, {
+          axios.post(`${kestraEndpoint}/api/v1/executions/sentinel/intelligent-monitor`, {
             alert: alertName,
             instance: instance,
             severity: severity,
             summary: summary
-          }, { timeout: 2000 });
-        } catch (err) {
-          console.warn(`[AI] Kestra dispatch failed (is Kestra running?): ${err.message}`);
+          }, { timeout: 2000 }).catch(err => {
+            console.warn(`[AI] Kestra dispatch failed (is Kestra running?): ${err.message}`);
+          });
         }
+      } catch (err) {
+        console.error(`[ALERTMANAGER] Error processing individual alert: ${err.message}`);
       }
-    } catch (err) {
-      console.error(`[ALERTMANAGER] Error processing individual alert: ${err.message}`);
     }
-  }
+  })();
 
-  res.json({ success: true, message: `Processed ${alerts.length} alerts` });
+  res.json({ success: true, message: `Queued ${alerts.length} alerts for processing` });
 });
 
 app.post('/api/action/:service/:type', async (req, res) => {
