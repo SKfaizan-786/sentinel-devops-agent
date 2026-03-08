@@ -1,7 +1,10 @@
 const WebSocket = require('ws');
 
+let wss = null;
+let pingInterval = null;
+
 function setupWebSocket(server) {
-  const wss = new WebSocket.Server({ server });
+  wss = new WebSocket.Server({ server });
 
   const clients = new Set();
 
@@ -23,7 +26,7 @@ function setupWebSocket(server) {
   });
 
   // Ping interval to keep connections alive and detect stale ones
-  const interval = setInterval(() => {
+  pingInterval = setInterval(() => {
     wss.clients.forEach((ws) => {
       if (ws.isAlive === false) {
         ws.terminate();
@@ -36,7 +39,10 @@ function setupWebSocket(server) {
   }, 30000);
 
   wss.on('close', () => {
-    clearInterval(interval);
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
   });
 
   return {
@@ -51,4 +57,43 @@ function setupWebSocket(server) {
   };
 }
 
-module.exports = { setupWebSocket };
+/**
+ * Gracefully close the WebSocket server
+ * @returns {Promise<void>}
+ */
+function closeWebSocketServer() {
+  return new Promise((resolve) => {
+    if (!wss) {
+      console.log('ℹ️ WebSocket server not initialized');
+      resolve();
+      return;
+    }
+
+    console.log('🔄 Closing WebSocket server...');
+    
+    // Clear ping interval
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
+
+    // Close all client connections
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.close(1001, 'Server shutting down');
+      }
+    });
+
+    // Close the server
+    wss.close((err) => {
+      if (err) {
+        console.error('❌ Error closing WebSocket server:', err);
+      } else {
+        console.log('✅ WebSocket server closed successfully');
+      }
+      resolve();
+    });
+  });
+}
+
+module.exports = { setupWebSocket, closeWebSocketServer };

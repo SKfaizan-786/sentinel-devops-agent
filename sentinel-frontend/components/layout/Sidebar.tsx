@@ -148,7 +148,7 @@ export function Sidebar() {
             if (timer) clearTimeout(timer);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pathname]);
+    }, [pathname, mobileOpen]);
 
     // Close mobile menu on resize to desktop
     useEffect(() => {

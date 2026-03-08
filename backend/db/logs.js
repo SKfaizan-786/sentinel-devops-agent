@@ -3,7 +3,7 @@
  * @module backend/db/logs
  */
 
-const pool = require('./config');
+const { pool } = require('./config');
 
 /**
  * Insert an activity log entry into the database

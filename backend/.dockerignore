@@ -1,0 +1,13 @@
+# Prevent node_modules from being copied into Docker build context
+# This ensures Docker layer caching works properly and builds remain fast
+
+node_modules
+npm-debug.log*
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+*.md
+.DS_Store
+Thumbs.db

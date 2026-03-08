@@ -24,7 +24,8 @@ validateConfig({ exitOnError: process.env.NODE_ENV === 'production' });
 if (process.env.NODE_ENV !== 'production') {
   validateForDevelopment();
 }
-const { setupWebSocket } = require('./websocket');
+const { setupWebSocket, closeWebSocketServer } = require('./websocket');
+const { closePool } = require('./db/config');
 const express = require('express');
 const { ERRORS } = require('./lib/errors');
 const cors = require('cors');
@@ -894,3 +895,55 @@ k8sWatcher.on('crashloop', (pod) => {
     });
   }
 });
+
+/**
+ * Graceful shutdown handler
+ * @param {string} signal - The termination signal received
+ */
+async function gracefulShutdown(signal) {
+  console.log(`\n🔄 Received ${signal}. Starting graceful shutdown...`);
+  
+  // Start a fail-safe timeout to prevent hanging
+  const failSafeTimeout = setTimeout(() => {
+    console.error('❌ Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+  
+  try {
+    // Stop accepting new HTTP requests
+    console.log('🔄 Closing HTTP server...');
+    await new Promise((resolve, reject) => {
+      server.close((err) => {
+        if (err) {
+          console.error('❌ Error closing HTTP server:', err);
+          reject(err);
+        } else {
+          console.log('✅ HTTP server closed successfully');
+          resolve();
+        }
+      });
+    });
+    
+    // Close WebSocket connections
+    console.log('🔄 Closing WebSocket server...');
+    await closeWebSocketServer();
+    
+    // Close database pool
+    console.log('🔄 Closing database pool...');
+    await closePool();
+    
+    // Clear the fail-safe timeout
+    clearTimeout(failSafeTimeout);
+    
+    console.log('✅ Graceful shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during graceful shutdown:', error);
+    clearTimeout(failSafeTimeout);
+    process.exit(1);
+  }
+}
+
+// Attach signal listeners for graceful shutdown
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

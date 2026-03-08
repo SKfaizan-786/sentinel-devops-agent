@@ -38,6 +38,44 @@ app.post('/simulate/:mode', (req, res) => {
   res.json({ message: `Service is now simulating: ${healthStatus}` });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Auth Service listening on port ${port}`);
 });
+
+/**
+ * Graceful shutdown handler for auth service
+ * @param {string} signal - The termination signal received
+ */
+function gracefulShutdown(signal) {
+  console.log(`\n🔄 Auth service received ${signal}. Starting graceful shutdown...`);
+  
+  // Start a fail-safe timeout to prevent hanging
+  const failSafeTimeout = setTimeout(() => {
+    console.error('❌ Auth service could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+  
+  try {
+    // Close HTTP server (stop accepting new requests)
+    server.close((err) => {
+      if (err) {
+        console.error('❌ Error closing auth service HTTP server:', err);
+        clearTimeout(failSafeTimeout);
+        process.exit(1);
+      } else {
+        console.log('✅ Auth service HTTP server closed successfully');
+        clearTimeout(failSafeTimeout);
+        console.log('✅ Auth service graceful shutdown complete');
+        process.exit(0);
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error during auth service graceful shutdown:', error);
+    clearTimeout(failSafeTimeout);
+    process.exit(1);
+  }
+}
+
+// Attach signal listeners for graceful shutdown
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

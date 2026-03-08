@@ -22,4 +22,20 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-module.exports = pool;
+/**
+ * Gracefully close the database pool
+ * @returns {Promise<void>}
+ */
+async function closePool() {
+  try {
+    if (pool) {
+      console.log('🔄 Closing database pool...');
+      await pool.end();
+      console.log('✅ Database pool closed successfully');
+    }
+  } catch (error) {
+    console.error('❌ Error closing database pool:', error);
+  }
+}
+
+module.exports = { pool, closePool };
