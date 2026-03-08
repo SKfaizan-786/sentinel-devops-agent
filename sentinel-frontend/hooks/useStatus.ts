@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { isEqual } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -18,10 +19,10 @@ export function useStatus() {
                 axios.get(`${API_BASE}/api/insights`)
             ]);
 
-            // Simple debounce/dedupe: only update if data changed
-            setStatus(prev => JSON.stringify(prev) === JSON.stringify(statusRes.data) ? prev : statusRes.data);
-            setActivity(prev => JSON.stringify(prev) === JSON.stringify(activityRes.data.activity) ? prev : activityRes.data.activity);
-            setInsights(prev => JSON.stringify(prev) === JSON.stringify(insightsRes.data.insights) ? prev : insightsRes.data.insights);
+            // Efficiently update state only if data changed
+            setStatus(prev => isEqual(prev, statusRes.data) ? prev : statusRes.data);
+            setActivity(prev => isEqual(prev, activityRes.data.activity) ? prev : activityRes.data.activity);
+            setInsights(prev => isEqual(prev, insightsRes.data.insights) ? prev : insightsRes.data.insights);
         } catch (error) {
             console.error("Error fetching system status:", error);
         }
