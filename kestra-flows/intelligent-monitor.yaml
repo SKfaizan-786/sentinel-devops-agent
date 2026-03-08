@@ -261,7 +261,7 @@ tasks:
         message: |
           🤖 SENTINEL AI REPORT:
           {% set validation = outputs['validate_ai_prediction'] | default({}) %}
-          {% set result = validation.files['validation_result.json'] | default('{}') | fromJson %}
+          {% set result = read(outputs['validate_ai_prediction'].outputFiles['validation_result.json']) | default('{}') | fromJson %}
           {% if result.status == 'valid' %}
           ✅ Validated AI Prediction:
           - Confidence Score: {{ result.confidence_score | default('N/A') }}
@@ -286,14 +286,14 @@ tasks:
       {% set payment = outputs['get-payment'] | default({}) %}
       {% set notify = outputs['get-notify'] | default({}) %}
       {% set validation = outputs['validate_ai_prediction'] | default({}) %}
-      {% set aiResult = validation.files['validation_result.json'] | default('{}') | fromJson %}
+      {% set aiResult = read(outputs['validate_ai_prediction'].outputFiles['validation_result.json']) | default('{}') | fromJson %}
 
       {
         "aiReport": {
           "confidence_score": {{ aiResult.confidence_score | default(0) }},
           "predicted_failure": {{ aiResult.predicted_failure | default(false) }},
-          "status": {{ aiResult.status | default('validation_failed') | json }},
-          "validation_timestamp": {{ aiResult.validation_timestamp | default('null') | json }},
+          "status": {{ aiResult.status | default('not_run') | json }},
+          "validation_timestamp": {{ aiResult.validation_timestamp | default(None) | json }},
           "raw_content": {{ aiResult.raw_content | default('AI analysis unavailable') | json }}
         },
         "metrics": {
@@ -303,7 +303,7 @@ tasks:
         },
         "validation": {
           "is_valid": {{ aiResult.status == 'valid' }},
-          "error": {{ aiResult.error | default('null') | json }}
+          "error": {{ aiResult.error | default(None) | json }}
         }
       }
 
