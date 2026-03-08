@@ -9,6 +9,9 @@ interface UseWebSocketOptions {
   enabled?: boolean;
 }
 
+// Debug logging for verification
+console.debug('[useWebSocket] Hook rendered');
+
 export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = true }: UseWebSocketOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -48,6 +51,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
       }
       setIsConnected(true);
       console.log('🔌 WebSocket connected');
+      console.log('[WebSocket] ✅ Connection established');
     };
 
     ws.onmessage = (event) => {
@@ -98,6 +102,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      console.log('[WebSocket] 🛑 Cleanup function triggered, closing connection');
       wsRef.current?.close();
     };
   }, [connect]);
