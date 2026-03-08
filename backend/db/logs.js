@@ -1,64 +1,96 @@
+/**
+ * @fileoverview Database models for activity logs and AI analysis reports
+ * @module backend/db/logs
+ */
+
 const pool = require('./config');
 
 /**
- * Inserts a new activity log entry into the database.
+ * Insert an activity log entry into the database
+ * @param {string} type - Log type (e.g., 'info', 'success', 'warn', 'alert', 'error')
+ * @param {string} message - Log message
+ * @returns {Promise<object>} The inserted log entry
  */
 async function insertActivityLog(type, message) {
-  const query = 'INSERT INTO activity_logs (type, message) VALUES ($1, $2) RETURNING *';
-  const values = [type, message];
-  const { rows } = await pool.query(query, values);
-  return rows[0];
+    try {
+        const result = await pool.query(
+            'INSERT INTO activity_logs (type, message) VALUES ($1, $2) RETURNING *',
+            [type, message]
+        );
+        return result.rows[0];
+    } catch (error) {
+        console.error('Failed to insert activity log:', error.message);
+        return null;
+    }
 }
 
 /**
- * Retrieves activity logs with pagination.
+ * Fetch activity logs with pagination
+ * @param {number} limit - Max number of results
+ * @param {number} offset - Offset for pagination
+ * @returns {Promise<{logs: object[], total: number}>}
  */
 async function getActivityLogs(limit = 50, offset = 0) {
-  const query = 'SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2';
-  const countQuery = 'SELECT COUNT(*) FROM activity_logs';
-  
-  const [logsRes, countRes] = await Promise.all([
-    pool.query(query, [limit, offset]),
-    pool.query(countQuery)
-  ]);
-  
-  return {
-    logs: logsRes.rows,
-    total: parseInt(countRes.rows[0].count, 10)
-  };
+    try {
+        const [logsResult, countResult] = await Promise.all([
+            pool.query(
+                'SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2',
+                [limit, offset]
+            ),
+            pool.query('SELECT COUNT(*) FROM activity_logs')
+        ]);
+        return {
+            logs: logsResult.rows,
+            total: parseInt(countResult.rows[0].count, 10)
+        };
+    } catch (error) {
+        console.error('Failed to fetch activity logs:', error.message);
+        return { logs: [], total: 0 };
+    }
 }
 
 /**
- * Inserts a new AI report into the database.
+ * Insert an AI analysis report into the database
+ * @param {string} analysis - Full AI analysis text
+ * @param {string} summary - Short summary
+ * @returns {Promise<object>} The inserted report
  */
 async function insertAIReport(analysis, summary) {
-  const query = 'INSERT INTO ai_reports (analysis, summary) VALUES ($1, $2) RETURNING *';
-  const values = [analysis, summary];
-  const { rows } = await pool.query(query, values);
-  return rows[0];
+    try {
+        const result = await pool.query(
+            'INSERT INTO ai_analysis_reports (analysis, summary) VALUES ($1, $2) RETURNING *',
+            [analysis, summary || analysis]
+        );
+        return result.rows[0];
+    } catch (error) {
+        console.error('Failed to insert AI report:', error.message);
+        return null;
+    }
 }
 
 /**
- * Retrieves AI reports with pagination.
+ * Fetch AI analysis reports with pagination
+ * @param {number} limit - Max number of results
+ * @param {number} offset - Offset for pagination
+ * @returns {Promise<{reports: object[], total: number}>}
  */
 async function getAIReports(limit = 20, offset = 0) {
-  const query = 'SELECT * FROM ai_reports ORDER BY timestamp DESC LIMIT $1 OFFSET $2';
-  const countQuery = 'SELECT COUNT(*) FROM ai_reports';
-  
-  const [reportsRes, countRes] = await Promise.all([
-    pool.query(query, [limit, offset]),
-    pool.query(countQuery)
-  ]);
-  
-  return {
-    reports: reportsRes.rows,
-    total: parseInt(countRes.rows[0].count, 10)
-  };
+    try {
+        const [reportsResult, countResult] = await Promise.all([
+            pool.query(
+                'SELECT * FROM ai_analysis_reports ORDER BY timestamp DESC LIMIT $1 OFFSET $2',
+                [limit, offset]
+            ),
+            pool.query('SELECT COUNT(*) FROM ai_analysis_reports')
+        ]);
+        return {
+            reports: reportsResult.rows,
+            total: parseInt(countResult.rows[0].count, 10)
+        };
+    } catch (error) {
+        console.error('Failed to fetch AI reports:', error.message);
+        return { reports: [], total: 0 };
+    }
 }
 
-module.exports = {
-  insertActivityLog,
-  getActivityLogs,
-  insertAIReport,
-  getAIReports
-};
+module.exports = { insertActivityLog, getActivityLogs, insertAIReport, getAIReports };
