@@ -213,8 +213,7 @@ tasks:
 
       - id: validate_ai_prediction
         type: io.kestra.plugin.scripts.node.Script
-        inputFiles:
-          main.js: |
+        script: |
             const fs = require('fs');
             
             try {
@@ -223,52 +222,20 @@ tasks:
               
               // Parse AI response
               const aiResponse = JSON.parse(aiOutput);
-              const aiContent = aiResponse.choices?.[0]?.message?.content || '';
+              const aiContent = aiResponse.choices?.[0]?.message?.content;
               
-              // Try to extract structured data from AI content
-              let validatedData = {
-                confidence_score: 0,
-                predicted_failure: false,
-                status: "validation_failed",
-                raw_content: aiContent
-              };
+              if (!aiContent) throw new Error('Missing AI message content');
               
-              // Look for confidence indicators and failure predictions
-              const content = aiContent.toLowerCase();
+              let parsed = JSON.parse(aiContent);
+              if (typeof parsed.confidence_score !== 'number') throw new Error('confidence_score must be a number');
+              if (typeof parsed.predicted_failure !== 'boolean') throw new Error('predicted_failure must be a boolean');
               
-              // Extract confidence (simple heuristic)
-              if (content.includes('high confidence') || content.includes('very likely')) {
-                validatedData.confidence_score = 0.8;
-              } else if (content.includes('medium confidence') || content.includes('likely')) {
-                validatedData.confidence_score = 0.6;
-              } else if (content.includes('low confidence') || content.includes('uncertain')) {
-                validatedData.confidence_score = 0.3;
-              } else {
-                validatedData.confidence_score = 0.5; // default
-              }
-              
-              // Extract failure prediction
-              if (content.includes('critical') || content.includes('failure') || content.includes('down') || content.includes('unhealthy')) {
-                validatedData.predicted_failure = true;
-              } else {
-                validatedData.predicted_failure = false;
-              }
-              
-              // Validate schema types
-              if (typeof validatedData.confidence_score !== 'number') {
-                throw new Error('confidence_score must be a number');
-              }
-              
-              if (typeof validatedData.predicted_failure !== 'boolean') {
-                throw new Error('predicted_failure must be a boolean');
-              }
-              
-              // If validation passes, mark as valid
+              let validatedData = parsed;
               validatedData.status = "valid";
               validatedData.validation_timestamp = new Date().toISOString();
+              validatedData.raw_content = aiContent;
               
-              // Write validated output
-              fs.writeFileSync('/output/validation_result.json', JSON.stringify(validatedData, null, 2));
+              fs.writeFileSync('{{ outputDir }}/validation_result.json', JSON.stringify(validatedData, null, 2));
               console.log('✅ AI prediction validated successfully');
               
             } catch (error) {
@@ -284,7 +251,7 @@ tasks:
                 raw_content: "AI output parsing failed"
               };
               
-              fs.writeFileSync('/output/validation_result.json', JSON.stringify(fallbackData, null, 2));
+              fs.writeFileSync('{{ outputDir }}/validation_result.json', JSON.stringify(fallbackData, null, 2));
             }
         outputFiles:
           - validation_result.json
