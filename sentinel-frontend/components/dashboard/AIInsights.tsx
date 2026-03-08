@@ -2,9 +2,10 @@
 
 import { Brain, Sparkles } from "lucide-react";
 import { Spotlight } from "@/components/common/Spotlight";
+import { CopyButton } from "@/components/common/CopyButton";
 
 export interface AIInsightItem {
-    id: number;
+    id: string;
     analysis: string;
     metrics?: Record<string, { code: number }>;
     summary?: string;
@@ -37,9 +38,12 @@ export function AIInsights({ insights }: AIInsightsProps) {
             <div className="p-5 flex-1">
                 {latestInsight ? (
                     <div className="space-y-4">
-                        <div className="prose prose-invert prose-sm max-w-none">
-                            <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                        <div className="prose prose-invert prose-sm max-w-none relative group/ai">
+                            <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap pr-8">
                                 {latestInsight.analysis}
+                            </div>
+                            <div className="absolute top-0 right-0">
+                                <CopyButton textToCopy={latestInsight.analysis} className="opacity-0 group-hover/ai:opacity-100 transition-opacity" />
                             </div>
                         </div>
 

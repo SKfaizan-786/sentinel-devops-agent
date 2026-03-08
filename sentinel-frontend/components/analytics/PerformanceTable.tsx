@@ -34,7 +34,7 @@ export function PerformanceTable() {
             <div className="space-y-1">
                 {metrics.map((m) => (
                     <div key={m.id} className="grid grid-cols-4 items-center p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
-                        <div className="font-mono text-sm text-white">{m.name}</div>
+                        <div className="font-mono text-sm text-gray-500">{m.name}</div>
                         <div className="text-right font-mono text-sm text-muted-foreground">{m.p95}</div>
                         <div className={`text-right font-mono text-sm ${m.p99 > 500 ? `${criticalColor.text} font-bold` : "text-muted-foreground"}`}>{m.p99}</div>
                         {m.change > 0 && <span className={`flex items-center text-xs ${criticalColor.text}`}><ArrowUpRight className="h-3 w-3 mr-1" />{m.change}%</span>}

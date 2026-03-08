@@ -3,6 +3,8 @@
 import { Incident } from "@/lib/mockData";
 import { Zap, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { CopyButton } from "@/components/common/CopyButton";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface IncidentDetailProps {
     incident: Incident;
@@ -10,20 +12,34 @@ interface IncidentDetailProps {
 }
 
 export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProps) {
+    const { addNotification } = useNotifications();
+
+    const handleViewReasoning = () => {
+        if (!onViewReasoning) return;
+        onViewReasoning(incident.id);
+        addNotification({
+            type: "info",
+            title: "Loading agent reasoning",
+            message: `Fetching AI analysis for incident ${incident.id}.`,
+        });
+    };
+
     return (
         <div className="p-4 bg-black/20 border-t border-white/5 space-y-4">
             {/* Root Cause & Agent Action */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                <div className="space-y-1 relative group/rc">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Root Cause
-                    </span>
+                        <CopyButton textToCopy={incident.rootCause} className="opacity-100 md:opacity-0 md:group-hover/rc:opacity-100 group-focus-within/rc:opacity-100 focus-visible:opacity-100 transition-opacity" />
+                    </div>
                     <p className="text-sm text-white">{incident.rootCause}</p>
                 </div>
-                <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                <div className="space-y-1 relative group/aa">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium flex justify-between items-center">
                         Agent Action
-                    </span>
+                        <CopyButton textToCopy={incident.agentAction} className="opacity-100 md:opacity-0 md:group-hover/aa:opacity-100 group-focus-within/aa:opacity-100 focus-visible:opacity-100 transition-opacity" />
+                    </div>
                     <p className="text-sm text-primary flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         {incident.agentAction}
@@ -75,12 +91,13 @@ export function IncidentDetail({ incident, onViewReasoning }: IncidentDetailProp
                 </div>
             )}
 
-            {/* Actions */}
+            {/* Actions - Fix 5: disabled when onViewReasoning is not provided */}
             <div className="flex justify-end pt-2">
                 <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => onViewReasoning?.(incident.id)}
+                    disabled={!onViewReasoning}
+                    onClick={handleViewReasoning}
                 >
                     <Search className="h-3 w-3 mr-2" />
                     View Agent Reasoning

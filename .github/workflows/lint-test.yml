@@ -55,6 +55,11 @@ jobs:
       run: |
         cd backend
         node -c index.js
+    
+    - name: Run JSON parsing tests
+      run: |
+        cd backend
+        npm run test:json
 
   lint-cli:
     runs-on: ubuntu-latest

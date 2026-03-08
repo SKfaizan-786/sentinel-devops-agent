@@ -13,9 +13,9 @@ services:
     image: postgres:15
     container_name: kestra-postgres
     environment:
-      POSTGRES_USER: kestra
-      POSTGRES_PASSWORD: kestra
-      POSTGRES_DB: kestra
+      POSTGRES_USER: SET_SECURE_USER_HERE
+      POSTGRES_PASSWORD: SET_SECURE_PASSWORD_HERE
+      POSTGRES_DB: SET_SECURE_DB_NAME_HERE
     ports:
       - "5432:5432"
     volumes:
@@ -24,12 +24,14 @@ services:
       - sentinel-net
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U kestra" ]
+      test: [ "CMD-SHELL", "pg_isready -U SET_SECURE_USER_HERE" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    labels:
+      - "sentinel.monitor=true"
     # Note: For RBAC system, create separate database 'sentinel_rbac'
-    # Run: docker exec -it kestra-postgres createdb -U kestra sentinel_rbac
+    # Run: docker exec -it kestra-postgres createdb -U SET_SECURE_USER_HERE sentinel_rbac
     # Or use backend/quick-setup.js which handles this automatically
 
   # Kestra Workflow Orchestrator
@@ -47,10 +49,10 @@ services:
       KESTRA_CONFIGURATION: |
         datasources:
           postgres:
-            url: jdbc:postgresql://postgres:5432/kestra
+            url: jdbc:postgresql://postgres:5432/SET_SECURE_DB_NAME_HERE
             driverClassName: org.postgresql.Driver
-            username: kestra
-            password: kestra
+            username: SET_SECURE_USER_HERE
+            password: SET_SECURE_PASSWORD_HERE
         kestra:
           server:
             basic-auth:
@@ -71,6 +73,8 @@ services:
       postgres:
         condition: service_healthy
     restart: always
+    labels:
+      - "sentinel.monitor=true"
 
   # Mock Auth Service
   auth-service:
@@ -81,6 +85,8 @@ services:
     networks:
       - sentinel-net
     restart: always
+    labels:
+      - "sentinel.monitor=true"
 
   # Mock Payment Service
   payment-service:
@@ -91,6 +97,8 @@ services:
     networks:
       - sentinel-net
     restart: always
+    labels:
+      - "sentinel.monitor=true"
 
   # Mock Notification Service
   notification-service:
@@ -101,6 +109,8 @@ services:
     networks:
       - sentinel-net
     restart: always
+    labels:
+      - "sentinel.monitor=true"
 
   # Ollama AI (The Brain)
   ollama:
@@ -113,6 +123,8 @@ services:
     networks:
       - sentinel-net
     restart: always
+    labels:
+      - "sentinel.monitor=true"
 
   # 5. The Backend API (Bridge)
   # COMMENTED OUT - Running locally with node index.js
@@ -121,8 +133,19 @@ services:
   #   container_name: sentinel-backend
   #   environment:
   #     DOCKER_ENV: "true"
+  #     # Multi-host Docker configuration (JSON)
+  #     # DOCKER_HOSTS: |
+  #     #   {
+  #     #     "hosts": [
+  #     #       { "id": "local", "label": "Local Docker", "socketPath": "/var/run/docker.sock", "type": "local" },
+  #     #       { "id": "prod-1", "label": "Production Primary", "host": "tcp://192.168.1.100:2376", "type": "remote", "tls": true },
+  #     #       { "id": "staging", "label": "Staging Server", "host": "tcp://staging.example.com:2376", "type": "remote" }
+  #     #     ]
+  #     #   }
   #   ports:
   #     - "4000:4000"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
   #   networks:
   #     - sentinel-net
   #   restart: always
@@ -131,3 +154,37 @@ volumes:
   postgres-data:
   kestra-data:
   ollama-data:
+
+# =============================================================================
+# MULTI-HOST DOCKER CONFIGURATION
+# =============================================================================
+# 
+# Sentinel supports monitoring Docker containers across multiple hosts.
+# Configure hosts using one of the following methods:
+#
+# Method 1: Environment Variable (DOCKER_HOSTS)
+# Set a JSON configuration in the DOCKER_HOSTS environment variable:
+#
+#   DOCKER_HOSTS='{"hosts":[{"id":"local","label":"Local Docker","socketPath":"/var/run/docker.sock","type":"local"},{"id":"prod-1","label":"Production","host":"tcp://192.168.1.100:2376","type":"remote","tls":true}]}'
+#
+# Method 2: Configuration File (backend/config/hosts.json)
+# Create a hosts.json file with the following structure:
+#
+#   {
+#     "hosts": [
+#       { "id": "local", "label": "Local Docker", "socketPath": "/var/run/docker.sock", "type": "local" },
+#       { "id": "prod-1", "label": "Production Primary", "host": "tcp://192.168.1.100:2376", "type": "remote", "tls": true },
+#       { "id": "staging", "label": "Staging", "host": "tcp://staging.example.com:2376", "type": "remote" }
+#     ]
+#   }
+#
+# Supported Connection Types:
+# - local: Unix socket connection (default: /var/run/docker.sock)
+# - remote/tcp: TCP connection with optional TLS
+# - ssh: SSH tunnel connection (requires ssh2 package)
+#
+# Docker Swarm Mode:
+# When a host is running in Docker Swarm mode, Sentinel will automatically
+# detect it and provide Swarm-specific features like service listing,
+# node management, and replica scaling.
+# =============================================================================

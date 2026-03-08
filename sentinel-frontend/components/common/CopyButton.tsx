@@ -1,10 +1,36 @@
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import React from 'react';
+import { Copy, Check } from 'lucide-react';
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
+import { cn } from '@/lib/utils';
 
-export function CopyButton({ text, className }: { text: string; className?: string }) {
-  const { copy, copied } = useCopyToClipboard();
+interface CopyButtonProps {
+  textToCopy: string;
+  className?: string;
+}
+
+export function CopyButton({ textToCopy, className }: CopyButtonProps) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard();
+
   return (
-    <button onClick={() => copy(text)} className={`text-xs px-2 py-1 rounded transition ${copied ? 'text-green-400 bg-green-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-white/10'} ${className}`} title="Copy to clipboard">
-      {copied ? '✓ Copied' : '⎘ Copy'}
+    <button
+      type="button"
+      onClick={() => copyToClipboard(textToCopy)}
+      className={cn(
+        'p-1.5 rounded-md transition-all duration-200',
+        'hover:bg-slate-200 dark:hover:bg-slate-700',
+        'focus:outline-none focus:ring-2 focus:ring-blue-500/50',
+        'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
+        'opacity-0 group-hover:opacity-100', // ensure the parent has 'group' class to make this visible on hover
+        className
+      )}
+      title="Copy to clipboard"
+      aria-label="Copy to clipboard"
+    >
+      {isCopied ? (
+        <Check className="w-4 h-4 text-green-500 dark:text-green-400" />
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
     </button>
   );
 }

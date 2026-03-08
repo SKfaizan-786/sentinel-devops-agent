@@ -1,10 +1,10 @@
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GlobalShortcuts } from "@/components/common/GlobalShortcuts";
 import { ToastContainer } from "../components/notifications/Toast";
 import { WebSocketProvider } from "@/lib/WebSocketContext";
+import { Footer } from "@/components/layout/Footer";
 import { STORAGE_KEY } from "@/hooks/useTheme";
 
 const geistSans = Geist({
@@ -17,7 +17,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const getBaseUrl = () => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+  } catch (e) {
+    console.warn("Invalid NEXT_PUBLIC_APP_URL. Falling back to localhost.");
+    return new URL("http://localhost:3000");
+  }
+};
+
 export const metadata: Metadata = {
+  metadataBase: getBaseUrl(),
   title: {
     default: "Sentinel - AI DevOps Intelligence Agent",
     template: "%s | Sentinel",
@@ -85,11 +95,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <GlobalShortcuts />
-        <ToastContainer />
-        <WebSocketProvider>
-          {children}
-        </WebSocketProvider>
+        <div className="flex flex-col min-h-screen">
+          <GlobalShortcuts />
+          <ToastContainer />
+          <WebSocketProvider>
+            <main className="flex-grow">
+              {children}
+            </main>
+          </WebSocketProvider>
+          <Footer />
+        </div>
       </body>
     </html>
   );
