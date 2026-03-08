@@ -6,9 +6,11 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const { listContainers, getContainerHealth } = require('./docker/client');
+const { listContainers, getContainerHealth, docker } = require('./docker/client');
 const monitor = require('./docker/monitor');
 const healer = require('./docker/healer');
+const { v4: uuidv4 } = require('uuid');
+const { insertActivityLog, getActivityLogs, insertAIReport, getAIReports } = require('./db/logs');
 
 // RBAC Routes
 const authRoutes = require('./routes/auth.routes');
@@ -29,11 +31,7 @@ app.use('/api/roles', rolesRoutes);
 
 // --- IN-MEMORY DATABASE ---
 let systemStatus = {
-  services: {
-    auth: { status: 'unknown', code: 0, lastUpdated: null },
-    payment: { status: 'unknown', code: 0, lastUpdated: null },
-    notification: { status: 'unknown', code: 0, lastUpdated: null }
-  },
+  services: {},
   aiAnalysis: "Waiting for AI report...",
   lastUpdated: new Date()
 };
@@ -50,19 +48,68 @@ function logActivity(type, message) {
     message
   };
   activityLog.unshift(entry);
-  if (activityLog.length > 100) activityLog.pop(); // Keep last 100
+  if (activityLog.length > 100) activityLog.pop(); // Keep last 100 in memory
   console.log(`[LOG] ${type}: ${message}`);
+
+  // Persist to PostgreSQL (fire-and-forget)
+  insertActivityLog(type, message).catch(() => { });
+
+  // Broadcast the new log entry
+  wsBroadcaster.broadcast('ACTIVITY_LOG', entry);
 }
 
 // WebSocket Broadcaster
 let wsBroadcaster = { broadcast: () => { } };
 
-// Service configuration
-const services = [
-  { name: 'auth', url: 'http://localhost:3001/health' },
-  { name: 'payment', url: 'http://localhost:3002/health' },
-  { name: 'notification', url: 'http://localhost:3003/health' }
-];
+// Dynamic Services State
+let dynamicServices = [];
+
+async function refreshDynamicServices() {
+  try {
+    const containers = await docker.listContainers({
+      all: true,
+      filters: { label: ['sentinel.monitor=true'] }
+    });
+
+    const newServices = containers.map(container => {
+      const name = container.Names[0].replace('/', '');
+      // Try to get external URL from label, fallback to guessing or internal
+      const urlLabel = container.Labels['sentinel.url'];
+      const url = urlLabel || `http://localhost:${container.Ports[0]?.PublicPort || 80}/health`;
+      
+      return { name, url, id: container.Id };
+    });
+
+    // Detect if services list changed
+    const currentNames = dynamicServices.map(s => s.name).sort();
+    const newNames = newServices.map(s => s.name).sort();
+
+    if (JSON.stringify(currentNames) !== JSON.stringify(newNames)) {
+      console.log(`📡 Dynamic Discovery: Found ${newServices.length} monitored services`);
+      
+      // Update systemStatus with new keys if they don't exist
+      newServices.forEach(s => {
+        if (!systemStatus.services[s.name]) {
+          systemStatus.services[s.name] = { status: 'unknown', code: 0, lastUpdated: null };
+          logActivity('info', `New service discovered: ${s.name}`);
+        }
+      });
+
+      // Remove services that are gone
+      Object.keys(systemStatus.services).forEach(name => {
+        if (!newServices.find(s => s.name === name)) {
+          delete systemStatus.services[name];
+          logActivity('warn', `Service removed: ${name}`);
+        }
+      });
+
+      dynamicServices = newServices;
+      wsBroadcaster.broadcast('SERVICES_DISCOVERED', dynamicServices);
+    }
+  } catch (error) {
+    console.error('❌ Dynamic Discovery Error:', error);
+  }
+}
 
 // Smart Restart Tracking
 const restartTracker = new Map(); // containerId -> { attempts: number, lastAttempt: number }
@@ -77,28 +124,31 @@ async function checkServiceHealth() {
   isChecking = true;
 
   try {
-    console.log('🔍 Checking service health...');
+    await refreshDynamicServices();
+    
+    if (dynamicServices.length === 0) {
+      console.log('--- No services found to monitor (add sentinel.monitor=true label) ---');
+      return;
+    }
+
+    console.log(`🔍 Checking ${dynamicServices.length} services...`);
     let hasChanges = false;
 
-    for (const service of services) {
+    for (const service of dynamicServices) {
       let newStatus, newCode;
       try {
         const response = await axios.get(service.url, { timeout: 30000 });
-        console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
         newStatus = 'healthy';
         newCode = response.status;
       } catch (error) {
         const code = error.response?.status || 503;
-        console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
         newStatus = code >= 500 ? 'critical' : 'degraded';
         newCode = code;
       }
 
-      if (
-        systemStatus.services[service.name].status !== newStatus ||
-        systemStatus.services[service.name].code !== newCode
-      ) {
-        const prevStatus = systemStatus.services[service.name].status;
+      const current = systemStatus.services[service.name];
+      if (current.status !== newStatus || current.code !== newCode) {
+        const prevStatus = current.status;
 
         // Log Status Changes
         if (newStatus === 'healthy' && prevStatus !== 'healthy' && prevStatus !== 'unknown') {
@@ -133,7 +183,7 @@ async function checkServiceHealth() {
   }
 }
 
-setInterval(checkServiceHealth, 5000);
+setInterval(checkServiceHealth, 10000);
 checkServiceHealth();
 
 // --- ENDPOINTS FOR FRONTEND ---
@@ -142,21 +192,34 @@ app.get('/api/status', (req, res) => {
   res.json(systemStatus);
 });
 
-app.get('/api/activity', (req, res) => {
-  res.json({ activity: activityLog.slice(0, 50) });
+app.get('/api/activity', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { logs, total } = await getActivityLogs(limit, offset);
+    res.json({ activity: logs, total, limit, offset });
+  } catch (err) {
+    res.json({ activity: activityLog.slice(offset, offset + limit) });
+  }
 });
 
-app.get('/api/insights', (req, res) => {
-  res.json({ insights: aiLogs.slice(0, 20) });
+app.get('/api/insights', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const offset = parseInt(req.query.offset) || 0;
+  try {
+    const { reports, total } = await getAIReports(limit, offset);
+    res.json({ insights: reports, total, limit, offset });
+  } catch (err) {
+    res.json({ insights: aiLogs.slice(offset, offset + limit) });
+  }
 });
 
 app.post('/api/kestra-webhook', (req, res) => {
   const { aiReport, metrics } = req.body;
   if (aiReport) {
     systemStatus.aiAnalysis = aiReport;
-    // Create an incident/insight object
     const insight = {
-      id: Date.now(),
+      id: uuidv4(),
       timestamp: new Date(),
       analysis: aiReport,
       summary: aiReport
@@ -164,9 +227,10 @@ app.post('/api/kestra-webhook', (req, res) => {
     aiLogs.unshift(insight);
     if (aiLogs.length > 50) aiLogs.pop();
 
-    logActivity('info', 'Received new AI Analysis report');
+    // Persist to DB
+    insertAIReport(aiReport, aiReport).catch(() => {});
 
-    // Broadcast new incident/insight
+    logActivity('info', 'Received new AI Analysis report');
     wsBroadcaster.broadcast('INCIDENT_NEW', insight);
   }
   systemStatus.lastUpdated = new Date();
@@ -188,7 +252,6 @@ app.post('/api/kestra-webhook', (req, res) => {
         systemStatus.services[serviceName].lastUpdated = new Date();
       }
     });
-    // Broadcast metrics update from webhook
     wsBroadcaster.broadcast('METRICS', systemStatus);
   }
   res.json({ success: true });
@@ -196,15 +259,14 @@ app.post('/api/kestra-webhook', (req, res) => {
 
 app.post('/api/action/:service/:type', async (req, res) => {
   const { service, type } = req.params;
-  const serviceMap = { 'auth': 3001, 'payment': 3002, 'notification': 3003 };
-  const port = serviceMap[service];
-
-  logActivity('info', `Triggering action '${type}' on service '${service}'`);
-
-  if (!port) {
+  const target = dynamicServices.find(s => s.name === service);
+  
+  if (!target) {
     logActivity('warn', `Failed action '${type}': Invalid service '${service}'`);
     return res.status(400).json({ success: false, error: 'Invalid service' });
   }
+
+  logActivity('info', `Triggering action '${type}' on service '${service}'`);
 
   try {
     let mode = 'healthy';
@@ -212,8 +274,10 @@ app.post('/api/action/:service/:type', async (req, res) => {
     if (type === 'degraded') mode = 'degraded';
     if (type === 'slow') mode = 'slow';
 
-    await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
-    // Force a health check to update status immediately
+    // Guess target port based on discovered URL or default simulator pattern
+    const urlObj = new URL(target.url);
+    await axios.post(`http://${urlObj.hostname}:${urlObj.port}/simulate/${mode}`, {}, { timeout: 5000 });
+    
     await checkServiceHealth();
 
     logActivity('success', `Successfully executed '${type}' on ${service}`);
@@ -226,10 +290,7 @@ app.post('/api/action/:service/:type', async (req, res) => {
 
 // --- DOCKER ENDPOINTS ---
 
-// Middleware for ID/Service validation (mock auth for docker endpoints)
 const requireDockerAuth = (req, res, next) => {
-  // In a real app, check 'Authorization' header
-  // For now, assume authenticated if internal or trusted
   next();
 };
 
@@ -251,15 +312,13 @@ const validateScaleParams = (req, res, next) => {
 app.get('/api/docker/containers', async (req, res) => {
   try {
     const containers = await listContainers();
-    // Use Promise.allSettled to handle monitoring setup concurrently without crashing
     await Promise.allSettled(containers.map(c => monitor.startMonitoring(c.id)));
 
-    // Enrich with smart restart meta
     const enrichedContainers = containers.map(c => {
       const tracker = restartTracker.get(c.id) || { attempts: 0, lastAttempt: 0 };
       return {
         ...c,
-        metrics: monitor.getMetrics(c.id), // Include current metrics snapshot
+        metrics: monitor.getMetrics(c.id),
         restartCount: tracker.attempts,
         lastRestart: tracker.lastAttempt
       };
@@ -290,7 +349,6 @@ app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (re
   const now = Date.now();
   let tracker = restartTracker.get(id) || { attempts: 0, lastAttempt: 0 };
 
-  // Reset attempts if outside grace period
   if (now - tracker.lastAttempt > GRACE_PERIOD_MS) {
     tracker.attempts = 0;
   }
@@ -312,10 +370,7 @@ app.post('/api/docker/try-restart/:id', requireDockerAuth, validateId, async (re
 });
 
 app.post('/api/docker/restart/:id', requireDockerAuth, validateId, async (req, res) => {
-  // Manual override bypasses smart checks, or update tracker manually
   const id = req.params.id;
-  // Update tracker so manual restarts count towards limits or reset headers? 
-  // For manual, we usually want to force it. We won't incr limits but update 'lastAttempt' timestamp
   const now = Date.now();
   let tracker = restartTracker.get(id) || { attempts: 0, lastAttempt: 0 };
   tracker.lastAttempt = now;
